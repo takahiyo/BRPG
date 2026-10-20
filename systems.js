@@ -18,13 +18,13 @@ function gearRequirements(g){return{[g.method==='magic'?'WIZ':g.slot==='armor'?'
 function canEquip(h,g){return Object.entries(gearRequirements(g)).every(([k,n])=>attributes(h)[k]>=n);}
 function gearRequirementText(g){return '必要能力：'+Object.entries(gearRequirements(g)).map(([k,n])=>k+' '+n).join(' / ');}
 const oldGearValue=gearValue;
-gearValue=function(g){if(!g)return 0;const owner=s.roster.find(h=>h[g.slot]===g.id);return owner&&!canEquip(owner,g)?0:Math.round(oldGearValue(g)*(owner&&g.method==='magic'?1+Math.max(0,attributes(owner).WIZ-10)*.01:1));};
+// Intermediate gearValue/enchantPower/characterScreen/rulesScreen wrappers removed; final implementations are below and in characters.js / facilities.js.
 const oldEnchantPower=enchantPower;
-enchantPower=function(g){if(!g)return 0;const owner=s.roster.find(h=>h[g.slot]===g.id);return owner&&!canEquip(owner,g)?0:oldEnchantPower(g);};
+// Intermediate enchantPower wrapper consolidated below.
 const originalBars=bars;
 bars=function(h){return originalBars(h)+`<div class="numbers"><span>SP ${h.sp??maxSP(h)} / ${maxSP(h)}</span><span>${h.hp<=0?'死亡':h.mp===0?'気絶':h.sp===0?'疲弊：能力半減':''}</span></div><div class="bar sp"><i style="width:${(h.sp??maxSP(h))/maxSP(h)*100}%"></i></div>`;};
 const originalCharacter=characterScreen;
-characterScreen=function(h){return originalCharacter(h);};
+// characterScreen is defined in characters.js.
 const oldSkillText=uiSkillText;
 uiSkillText=function(sk){return `消費 MANA ${sk.mp} / SP ${sk.sp||0} · 対象：${({enemy:'敵単体',enemies:'敵全体',allEnemies:'敵全体',allAllies:'味方全員',ally:'味方1人',allies:'味方全員',self:'自分'}[sk.target])||sk.target}`;};
 function reserveSettings(){s.reserve??={mode:'percent',life:25,mana:20,sp:15};return s.reserve;}
@@ -32,7 +32,7 @@ function belowReserve(h,key){const r=reserveSettings(),value=key==='life'?h.hp:k
 const oldAutoPlans=autoPlans;
 autoPlans=function(){oldAutoPlans();if(!s.battle||!s.battleRules.includes('reserve')||!unlocked('reserve'))return;for(const h of alive()){const p=s.battle.plans[h.id];if(belowReserve(h,'life'))s.battle.plans[h.id]={command:'escape',target:0};else if(p.command==='skill'&&(belowReserve(h,'mana')||belowReserve(h,'sp')))s.battle.plans[h.id]={command:'attack',target:enemyAlive()[0].key};}};
 const oldRulesScreen=rulesScreen;
-rulesScreen=function(){const r=reserveSettings();return oldRulesScreen()+`<section class="panel section-space"><h2>残量を見て行動を変える</h2><p>残量判断書（Lv4）で有効化。LIFEが閾値以下なら逃走、MANA/SPが閾値以下なら技を控え通常攻撃。精密判断書（Lv8）で残り1などの絶対値を指定可能。</p><label>判定方式 <select data-reserve="mode" ${!unlocked('reserve')?'disabled':''}><option value="percent" ${r.mode==='percent'?'selected':''}>割合（%）</option><option value="absolute" ${r.mode==='absolute'?'selected':''} ${!unlocked('precise')?'disabled':''}>絶対値</option></select></label>${['life','mana','sp'].map(k=>`<label>${k.toUpperCase()} <input type="number" min="0" max="${r.mode==='percent'?100:9999}" value="${r[k]}" data-reserve="${k}" ${!unlocked('reserve')?'disabled':''}></label>`).join('')}</section>`;};
+// rulesScreen is defined in facilities.js.
 const initialBoot=boot;
 function regionBoss(mapId){return DATA.bosses?.[mapId]||DATA.boss;}
 const oldEnemyStatsAt=enemyStatsAt;
@@ -78,13 +78,13 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     slime: 1, rat: 2, bat: 3, leech: 5, goblin: 8, fungus: 9,
     wisp: 18, spider: 19, skeleton: 17, crab: 16, cavescorpion: 26,
     boar: 27, boss_boar: 27, wolf: 36, frostwolf: 36, voidhound: 29,
-    firelizard: 25, hornhare: 13, moth: 11, mummy: 21, drowned: 21
+    firelizard: 25, hornhare: 13, moth: 11, mummy: 21, drowned: 21 }; const ENEMY_SHEET2_MAP = { gargoyle: 6, treant: 11, golem: 12, wyvern: 16, lich: 19, demon: 23, dragon: 27, warden: 30, boss_treant: 11, boss_golem: 12, boss_wyvern: 16, boss_lich: 19, boss_dragon: 27, boss_shogun: 23, boss_seraph: 30
   };
 
   function monsterThumbHTML(enemyId, mId) {
     let idx = ENEMY_SHEET_MAP[enemyId] || 0;
     if (!idx && mId && /^M00([0-3]\d|40)$/.test(mId)) idx = parseInt(mId.slice(1), 10);
-    if (!idx || idx < 1 || idx > 40) return '';
+    if (!idx || idx < 1 || idx > 40) { const idx2 = ENEMY_SHEET2_MAP[enemyId] || (mId && /^M00(4[1-9]|[56]\d|70)$/.test(mId) ? parseInt(mId.slice(1), 10) - 40 : 0); if (!idx2 || idx2 < 1 || idx2 > 30) return ''; const c2 = (idx2 - 1) % 5, r2 = Math.floor((idx2 - 1) / 5); return `<div class="monster-thumb monster-thumb-s2" style="background-position:${(c2 / 4 * 100).toFixed(2)}% ${(r2 / 5 * 100).toFixed(2)}%" title="図鑑シート2 #${idx2}"></div>`; }
     const col = (idx - 1) % 5, row = Math.floor((idx - 1) / 5);
     const xPct = (col / 4 * 100).toFixed(2), yPct = (row / 7 * 100).toFixed(2);
     return `<div class="monster-thumb" style="background-position:${xPct}% ${yPct}%" title="図鑑シート #${idx}"></div>`;
@@ -135,7 +135,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     s.ext.forgeMode ??= 'workshop'; // 'workshop' (工房請負) or 'craftsman' (職人自作)
     s.ext.crafterHeroId ??= 1;
     s.ext.marketSeed ??= (s.randomState || 12345) >>> 0;
-    s.ext.subJobs ??= {};
+    if (s.ext.subJobs) { s.ext.legacySubJobs ??= s.ext.subJobs; delete s.ext.subJobs; }
     s.ext.alloc ??= {};
     s.ext.freePts ??= {};
     return s.ext;
@@ -557,19 +557,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     const base = prevAttributes(h);
     const e = ext();
     const alloc = e.alloc[h.id] || {};
-    const subId = e.subJobs[h.id];
-    const subJob = subId ? CAT.jobs[subId] : null;
-    for (const k of Object.keys(ATTRIBUTE_NAMES)) {
-      base[k] += (alloc[k] || 0);
-      if (subJob) {
-        // Sub-job from 300 catalog jobs grants level-scaled specialty stat bonus
-        const fam = subJob.family || '';
-        if (['剣客', '重装', '槍兵', '闘士', '狩人'].some(w => fam.includes(w)) && ['STR', 'VIT', 'DEX'].includes(k)) base[k] += 2 + Math.floor(h.lv / 15);
-        else if (['魔導', '術', '学者', '付与', '薬'].some(w => fam.includes(w)) && ['INT', 'WIZ', 'MGR'].includes(k)) base[k] += 2 + Math.floor(h.lv / 15);
-        else if (['斥候', '罠', '案内', '曲芸', '商'].some(w => fam.includes(w)) && ['AGI', 'DEX', 'CHR'].includes(k)) base[k] += 2 + Math.floor(h.lv / 15);
-        else base[k] += 1;
-      }
-    }
+    for (const k of Object.keys(ATTRIBUTE_NAMES)) base[k] += (alloc[k] || 0);
     // Affix stat bonuses from equipped weapon/armor
     for (const slot of ['weapon', 'armor']) {
       const g = item(h[slot]);
@@ -606,10 +594,17 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     return Math.max(1, v);
   };
 
+  function gearEnchants(g) { return Array.isArray(g?.enchants) && g.enchants.length ? g.enchants.filter(id => DATA.enchants[id]) : (g?.enchant && DATA.enchants[g.enchant] ? [g.enchant] : []); }
+  function maxEnchantSlots(g) { if (!g || g.method === 'magic' || (g.residue || 0) > 20) return 1; const qScore = g.craftQ || (45 + (g.quality || 1) * 4); return (qScore >= 82 || (g.quality || 1) >= 10) ? 3 : (qScore >= 64 || (g.quality || 1) >= 5) ? 2 : 1; }
+  function annealCost(g) { return Math.max(25, Math.ceil((g?.quality || 1) * 35 * currentTown().price)); }
+  function annealGear(id) { if (!townOnly()) return; const g = item(id); if (!g) return; const cost = annealCost(g); if (s.gold < cost) { tell(`焼鈍・魔力浄化には ${cost} Gが必要です。`); return render(); } s.gold -= cost; if (availableMaterial('coal', 1) >= 1) consumeMaterial('coal', 1, 1); g.residue = 0; g.craftQ = Math.min(100, Math.max(g.craftQ || 60, 50 + (g.quality || 1) * 4) + 8); g.eta = Number(((g.craftQ / 100) * (1 - g.residue / 100)).toFixed(3)); playSE('heal'); tell(`🔥 焼鈍・魔力浄化により『${gearName(g)}』の魔力残留Rを0%へ浄化！伝達率η${Math.round(g.eta * 100)}%・最大付呪枠 ${maxEnchantSlots(g)}枠へ向上した！`); render(); }
+  globalThis.gearEnchants = gearEnchants; globalThis.maxEnchantSlots = maxEnchantSlots; globalThis.annealCost = annealCost; globalThis.annealGear = annealGear;
+  const prevApplyEnchant = applyEnchant;
+  applyEnchant = function(id, enchantId) { if (!townOnly()) return; const g = item(id), en = DATA.enchants[enchantId]; if (!g || !en) return; if ((en.slot || 'weapon') !== g.slot) { tell('この付呪は装備種が合いません。'); return render(); } const q = enchantQuote(g, enchantId); if (!canPay(q.gold, q.materials)) { tell('付呪の費用か素材が足りません。'); return render(); } pay(q.gold, q.materials); const maxS = maxEnchantSlots(g), list = [...gearEnchants(g)]; if (!list.includes(enchantId)) { if (list.length < maxS) list.push(enchantId); else list[maxS - 1] = enchantId; } else if (maxS === 1) { list[0] = enchantId; } g.enchants = list.slice(0, maxS); g.enchant = g.enchants[0] || enchantId; tell(`${en.name}を付呪（${g.enchants.length}/${maxS}枠）。付呪効果 +${enchantPower({ ...g, dur: 1 })}。`); render(); };
   const prevEnchantPower = enchantPower;
   enchantPower = function(g) {
-    if (!g?.enchant || !g.dur) return 0;
-    let v = prevEnchantPower(g);
+    if (!gearEnchants(g).length || !g.dur) return 0;
+    const list = gearEnchants(g); let v = list.reduce((sum, eid) => sum + prevEnchantPower({ ...g, enchant: eid }), 0); if (g.method === 'physical' && (g.residue || 0) <= 10) { const sciMult = g.route === 'X' ? 1.45 : g.route === 'I' ? 1.38 : g.route === 'F' ? 1.28 : 1.15; v = Math.round(v * sciMult); } if (list.length > 1) v = Math.round(v * (1 + (list.length - 1) * 0.15));
     if (g.eta !== undefined) {
       // 5-route transmission rate η = (Q/100)*(1 - R/100)
       v = Math.max(1, Math.round(v * (0.5 + g.eta * 0.9)));
@@ -627,8 +622,8 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     const rar = RARITY_DEFS[g.rarity || 'common'];
     const rarityPrefix = g.rarity && g.rarity !== 'common' ? `【${rar.name}】` : '';
     const titleStr = g.customTitle ? g.customTitle : (g.titleId && CAT.itemTitles[g.titleId] ? CAT.itemTitles[g.titleId].name : (g.affix && DATA.affixes[g.affix] ? DATA.affixes[g.affix].name : ''));
-    const prodStr = g.productId && CAT.products[g.productId] ? CAT.products[g.productId].name : (m?.category === 'stone' ? (g.slot === 'weapon' ? '石斧' : '石の護具') : (g.slot === 'weapon' ? '武器' : '防具'));
-    return `${rarityPrefix}${titleStr}${matDisplayName}の${prodStr} Q${g.quality || 1}${g.enchant ? ' / ' + DATA.enchants[g.enchant].name : ''}`;
+    const prodStr = g.productId && CAT.products[g.productId] ? CAT.products[g.productId].name : equipmentProductName(g);
+    const enchStr = gearEnchants(g).map(eid => DATA.enchants[eid]?.name).filter(Boolean).join('・'); return `${rarityPrefix}${titleStr}${matDisplayName}の${prodStr}${enchStr ? ' / ' + enchStr : ''}`;
   };
 
   // Roll Hack & Slash Loot Item (used for monster drops, chest jackpots, and black market gacha)
@@ -715,7 +710,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
       if (lockJobs.length) {
         const j = pick(lockJobs);
         e.unlockedJobIds.push(j.id);
-        logs.push(`🎉【職能証発見】専門職『${j.name}』（${j.family}系 / Lv.${j.minLv}〜）が解放された！`);
+        logs.push(`🎉【職能証発見】職業『${j.name}』（${j.family}系 / Lv.${j.minLv}〜）が解放された！`);
         // Also unlock its first skill if within level
         if (j.skills?.[0] && !e.unlockedSkillIds.includes(j.skills[0])) {
           e.unlockedSkillIds.push(j.skills[0]);
@@ -1453,10 +1448,22 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
   battleScreen = exploreScreen;
 
   // === 5. Address Discovery with Expedition Cost & Level Gate ===
+  const addressStatusOverrides = new Map();
+  function isValidReachableAddress(input) { const text = (input || '').trim(); if (!text || /\s/.test(text)) return false; if (text.includes('@') && !text.includes('://')) return /^[^\s@]+@([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/.test(text); try { const u = new URL(text.includes('://') ? text : 'https://' + text); return (u.protocol === 'http:' || u.protocol === 'https:') && /^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/.test(u.hostname); } catch { return false; } }
+  function cataclysmTown(townId, statusCode = 404) { const t = s.towns.find(x => x.id === townId); if (!t) return false; t.ruined = true; t.statusCode = statusCode; if (!t.name.startsWith('【滅亡】')) t.name = '【滅亡】' + t.name; const m = s.addressMaps.find(x => x.townId === townId); if (m && !m.name.startsWith('【滅亡跡地】')) { m.name = '【滅亡跡地】' + m.name; m.description = '天変地異によって街が滅亡した後の荒廃領域。残留装備の回収や遺物探索のみ可能。'; } if (s.homeTownId === townId) s.homeTownId = 'ash'; if (s.townId === townId) s.townId = s.homeTownId || 'ash'; tell(`🌋【天変地異】アドレスの通信消失（${statusCode}）に伴い、街『${t.name.replace(/^【滅亡】/, '')}』は天変地異によって滅亡し廃墟と化した…！`); render(); return true; }
+  function simulateAddressStatus(inputOrTownId, statusCode) { const tid = String(inputOrTownId).startsWith('town-') ? inputOrTownId : addressBlueprint(String(inputOrTownId)).town.id; addressStatusOverrides.set(tid, statusCode); if ((statusCode === 404 || statusCode === 410) && s.towns.some(t => t.id === tid)) cataclysmTown(tid, statusCode); return tid; }
+  globalThis.isValidReachableAddress = isValidReachableAddress; globalThis.cataclysmTown = cataclysmTown; globalThis.simulateAddressStatus = simulateAddressStatus;
+  const prevTravelTown = travelTown, prevSettleTown = settleTown;
+  travelTown = function(id) { if (!townOnly()) return; if (addressStatusOverrides.get(id) === 404) { cataclysmTown(id, 404); return; } const t = s.towns.find(x => x.id === id); if (t?.ruined) { tell(`🌋『${t.name}』は天変地異で滅亡しており、街の施設は失われています。跡地ダンジョンの探索・装備回収のみ可能です。`); return render(); } return prevTravelTown(id); };
+  settleTown = function(id) { if (!townOnly()) return; if (addressStatusOverrides.get(id) === 404) { cataclysmTown(id, 404); return; } const t = s.towns.find(x => x.id === id); if (t?.ruined) { tell(`🌋『${t.name}』は天変地異で滅亡した廃墟のため、活動拠点にはできません。`); return render(); } return prevSettleTown(id); };
   const prevDiscoverAddress = discoverAddress;
   discoverAddress = function(input) {
     const text = (input || '').trim();
     if (!text) return;
+    if (!isValidReachableAddress(text)) { s.addressPreview = null; tell('❌ 通信可能な有効なアドレス（実在形式のURLまたはメールアドレス）を入力してください。通信不能な文字列は認められません。'); return render(); }
+    const planCheck = addressBlueprint(text), stCode = addressStatusOverrides.get(planCheck.town.id);
+    if (stCode === 0 || stCode === 'unreachable') { s.addressPreview = null; tell('❌ 指定されたアドレスは通信不能のため、道標の座標を結べませんでした。'); return render(); }
+    if (stCode === 404 || stCode === 410) { if (!s.towns.some(t => t.id === planCheck.town.id)) prevDiscoverAddress(text); cataclysmTown(planCheck.town.id, stCode); s.addressPreview = null; return; }
     const plan = addressBlueprint(text);
     const pLv = partyLevel();
     const reqLv = Math.max(1, plan.map.level - 25);
@@ -1497,12 +1504,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
 
   // Helper: Check if active party has a Craftsman (sub-job or main job or craftLv > 1)
   function getPartyCraftsmen() {
-    const e = ext();
-    return s.roster.filter(h => {
-      const sub = CAT.jobs[e.subJobs[h.id]];
-      const isCraftSub = sub && ['鍛冶', '工', '細工', '木工', '革', '織', '薬', '錬金', '付与', '石'].some(w => (sub.name + sub.family + sub.role).includes(w));
-      return isCraftSub || ['alchemist', 'runesmith', 'blacksmith', 'artificer'].includes(h.job) || h.id === 1;
-    });
+    return s.roster.filter(h => DATA.jobs[h.job]?.craftSpecialist || ['alchemist', 'runesmith', 'blacksmith', 'artificer'].includes(h.job));
   }
 
   function getTitleByCraftSkill(skillLv, r) {
@@ -1589,58 +1591,6 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
       ${(s.addressMaps || []).length ? `<h2 class="section-space">道標調査で到達した地域</h2><div class="grid three">${s.addressMaps.map(renderMapCard).join('')}</div>` : ''}`;
   };
 
-  // UI: Character Detail Dialog (No internal math formulas! No job requirement spoilers! Only discovered jobs!)
-  characterScreen = function(h) {
-    const e = ext();
-    const j = DATA.jobs[h.job], st = stats(h);
-    const learnedSkills = uiSkillList(h).filter(sk => sk.level <= h.lv);
-    // Check if any new main jobs were secretly unlocked by this hero's growth!
-    for (const [jid] of Object.entries(DATA.jobs)) {
-      if (canJob(h, jid) && !e.discoveredMainJobs.includes(jid)) {
-        e.discoveredMainJobs.push(jid);
-      }
-    }
-    const changeableJobs = Object.entries(DATA.jobs).filter(([id]) => canJob(h, id));
-
-    return `<div class="hero-top">
-      <div class="avatar">${jobCrestSVG(h.job)}</div>
-      <div>
-        <p class="eyebrow">CHARACTER RECORD</p>
-        <h2>${esc(h.name)} <span class="gold">Lv.${h.lv}</span></h2>
-        <small>${esc(j.name)} / ${h.row === 'front' ? '前衛' : '後衛'} / ${s.active.includes(h.id) ? '探索参加中' : '街で待機'}</small>
-      </div>
-    </div>
-    ${bars(h)}
-    ${uiStatList(st)}
-    <p class="gold">経験値 ${h.xp} / ${xpNeeded(h)} · 次の成長まで ${Math.max(0, xpNeeded(h) - h.xp)}</p>
-    <section class="detail-section">
-      <h3>基礎能力</h3>
-      <dl class="stat-grid">${Object.entries(attributes(h)).map(([k, n]) => `<div><dt>${k} · ${ATTRIBUTE_NAMES[k]}</dt><dd>${n}</dd></div>`).join('')}</dl>
-    </section>
-    <section class="detail-section">
-      <h3>現在の装備</h3>
-      ${['weapon', 'armor'].map(slot => {
-        const g = item(h[slot]);
-        return `<div class="detail-gear">
-          <b>${slot === 'weapon' ? '武器' : '防具'}：${esc(g ? gearName(g) : '装備なし')}</b>
-          ${g ? `<p class="muted">耐久 ${g.dur} / ${g.maxDur}${canEquip(h, g) ? '' : ' · ⚠️能力不足により性能発揮不可'}</p>` : ''}
-        </div>`;
-      }).join('')}
-    </section>
-    <section class="detail-section">
-      <h3>体得した技 <small>${learnedSkills.length}種</small></h3>
-      ${learnedSkills.map(sk => `<article class="skill-line">
-        <div class="row between"><b>✨ ${esc(sk.name)}</b><span class="chip">消費 MANA ${sk.mp} / SP ${sk.sp || 0}</span></div>
-        <p class="muted">${esc(sk.desc || '鍛錬によって体得した技。')}</p>
-      </article>`).join('') || '<p class="muted">まだ体得した技はありません。実戦を重ねることで新たな技に目覚めることがあります。</p>'}
-    </section>
-    <section class="detail-section">
-      <h3>現在就ける職業 <small>${changeableJobs.length}職</small></h3>
-      <p class="muted">修練や技の体得によって、思いがけない天職への道が開かれることがあります。</p>
-      <div class="actions">${changeableJobs.map(([id, jobDef]) => `<span class="chip">${esc(jobDef.name)}</span>`).join('')}</div>
-    </section>
-    ${s.battle && h.hp > 0 && s.active.includes(h.id) ? btn('この仲間に指示する', 'actor-close', `data-id="${h.id}"`, 'primary wide') : ''}`;
-  };
   const prevUiEnemies = uiEnemies;
   uiEnemies = function() {
     if (!s.battle) return '';
@@ -1649,87 +1599,6 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
       const thumb = monsterThumbHTML(e.id, e.catalogId);
       return `<button class="enemy ${s.battle.target === e.key ? 'selected' : ''} ${e.hp <= 0 ? 'dead' : ''} ${e.elite ? 'rarity-legendary' : ''}" data-action="target" data-id="${e.key}" ${e.hp <= 0 ? 'disabled' : ''}>${thumb || `<span class="enemy-icon">${e.icon}</span>`}<b>${esc(e.name)}</b><small>脅威度 Lv.${e.level || s.dungeon?.level || 1} · 解析 ${tier}/4</small><small>${tier >= 2 ? 'HP ' + e.hp + ' / ' + e.maxhp : 'HP 未解析'}</small>${tier >= 2 ? `<div class="bar"><i style="width:${Math.max(0, e.hp / e.maxhp * 100)}%"></i></div>` : ''}<small>${tier >= 3 ? '弱点 ' + uiElement(e.weak) + ' / 耐性 ' + uiElement(e.resist) : '弱点・耐性 未解析'}</small>${e.ecology && tier >= 2 ? `<small class="muted">${esc(e.ecology)}</small>` : ''}${e.poison ? `<span class="status">毒 ${e.poison}T</span>` : ''}</button>`;
     }).join('')}</div>`;
-  };
-
-  // UI: Party Screen (Only show unlocked/discovered jobs! No locked job lists or requirement spoilers!)
-  partyScreen = function() {
-    const e = ext();
-    const pr = partyPresets();
-    const cost = typeof recruitCost === 'function' ? recruitCost() : 35;
-    // Auto-record any newly unlocked main jobs across the roster
-    for (const h of s.roster) {
-      syncHero(h);
-      for (const [jid] of Object.entries(DATA.jobs)) {
-        if (canJob(h, jid) && !e.discoveredMainJobs.includes(jid)) {
-          e.discoveredMainJobs.push(jid);
-          note(`💡 経験と技の積み重ねにより、新たな天職『${DATA.jobs[jid].name}』への道が開かれた！`);
-        }
-      }
-    }
-    const unlockedSubJobs = e.unlockedJobIds.map(id => CAT.jobs[id]).filter(Boolean);
-    const discoveredMainJobEntries = Object.entries(DATA.jobs).filter(([id]) => e.discoveredMainJobs.includes(id));
-
-    return title('COMPANIONS & CALLINGS', '仲間の力を、組み合わせる。', '修練や探索の果てに、思いがけない天職や専門技術が目覚める。') +
-      `<section class="panel" style="margin-bottom:18px">
-        <div class="row between"><h2>編成セット保存・切替</h2><span class="muted">探索用・強敵用などの隊列を即座に切り替え</span></div>
-        <div class="actions">${[1, 2, 3].map(n => `${btn('セット' + n + 'に保存', 'save-preset', `data-slot="${n}"`)}${btn('セット' + n + 'を呼出' + (pr[n] ? ' (' + pr[n].active.length + '人)' : ' (空)'), 'load-preset', `data-slot="${n}" ${pr[n] ? '' : 'disabled'}`, 'primary')}`).join('')}</div>
-      </section>
-      <div class="grid three">${s.roster.map(h => {
-        const active = s.active.includes(h.id);
-        const pts = heroFreePoints(h);
-        const curSub = e.subJobs[h.id] || '';
-        const subObj = CAT.jobs[curSub];
-        const learnedSkills = uiSkillList(h).filter(sk => sk.level <= h.lv);
-        // Only list jobs this character can actually take right now (plus their current job) — no locked spoilers!
-        const availMainJobs = Object.entries(DATA.jobs).filter(([id]) => canJob(h, id) || h.job === id);
-        const availSubJobs = unlockedSubJobs.filter(j => h.lv >= j.minLv || curSub === j.id);
-
-        return `<article class="card ${active ? '' : 'locked'}">
-          ${mini(h)}
-          ${uiStatList(stats(h))}
-          <p class="equipment">${esc(gearName(item(h.weapon)))}<br>${esc(h.armor ? gearName(item(h.armor)) : '防具なし')}</p>
-          <p class="muted">体得技：${learnedSkills.map(sk => esc(sk.name)).join(' / ') || 'なし'}</p>
-          <label class="field">主職業（転職可能な職のみ表示）
-            <select data-change="job" data-id="${h.id}">
-              ${availMainJobs.map(([id, v]) => `<option value="${id}" ${h.job === id ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}
-            </select>
-          </label>
-          <label class="field">専門職・副職（発見・到達済み）
-            <select data-ext-change="subjob" data-hero="${h.id}">
-              <option value="">なし（主職のみ）</option>
-              ${availSubJobs.map(j => `<option value="${j.id}" ${curSub === j.id ? 'selected' : ''}>${esc(j.name)}（${esc(j.family)}）</option>`).join('')}
-            </select>
-          </label>
-          ${subObj ? `<small class="muted">${esc(subObj.role)}</small>` : ''}
-          ${pts > 0 ? `<div class="quest-box" style="margin:8px 0">
-            <small class="gold">成長ポイント残り ${pts} Pt</small>
-            <div class="actions" style="margin-top:4px">${Object.keys(ATTRIBUTE_NAMES).map(k =>
-              `<button data-action="alloc-stat" data-hero="${h.id}" data-stat="${k}" style="padding:3px 7px;font-size:10px">${k}+1</button>`
-            ).join('')}</div>
-          </div>` : ''}
-          <div class="actions">
-            ${btn(active ? '街で待機' : '探索に参加', 'member', `data-id="${h.id}" ${active && s.active.length === 1 ? 'disabled' : ''}`)}
-            ${btn(h.row === 'front' ? '後衛へ' : '前衛へ', 'row', `data-id="${h.id}"`)}
-          </div>
-        </article>`;
-      }).join('')}</div>
-      <section class="panel section-space">
-        <h2>新しい仲間を迎える <small>${cost} G / 登録16人・参加6人まで</small></h2>
-        <div class="row">
-          <select id="recruit-job" class="inline-select" aria-label="募集する職業">
-            ${Object.entries(DATA.jobs).filter(([, j]) => j.base && partyLevel() >= j.unlock).map(([id, j]) => `<option value="${id}">${esc(j.name)}</option>`).join('')}
-          </select>
-          ${btn('仲間を登録', 'recruit', s.gold < cost || s.roster.length >= 16 ? 'disabled' : '')}
-        </div>
-      </section>
-      <section class="section-space">
-        <h2>転職手帳（発見済みの職業記録）</h2>
-        <p class="muted">これまでに見出した職業のみが記録されます。未知の職業は、様々な職業の経験や技の体得によってある日突然開かれます。</p>
-        <div class="grid three">${discoveredMainJobEntries.map(([, j]) => `<article class="card">
-          <h3>${j.icon} ${esc(j.name)}</h3>
-          <p class="muted">伝承される技の一端：${(j.skills || [j.skill]).slice(0, 1).map(k => DATA.skills?.[k]?.name || '？？？').join('')}</p>
-        </article>`).join('')}</div>
-      </section>`;
   };
 
   // UI: Forge Screen (2 Modes: Town Workshop Commission vs Craftsman Self-Crafting + World Tech Scenarios)
@@ -1747,12 +1616,6 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
       (!sc.prereq || e.completedTechScenarios.includes(sc.prereq)) &&
       town.level >= sc.minTownLv
     );
-    const nextLockedScenario = TECH_SCENARIOS.find(sc =>
-      !e.completedTechScenarios.includes(sc.id) &&
-      (!sc.prereq || e.completedTechScenarios.includes(sc.prereq)) &&
-      town.level < sc.minTownLv
-    );
-
     // Craftsman candidates
     const craftsmen = getPartyCraftsmen();
     const crafter = craftsmen.find(h => h.id === e.crafterHeroId) || craftsmen[0] || s.roster[0];
@@ -1780,20 +1643,20 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     const rentalFee = Math.max(10, Math.ceil(25 * town.price * town.quality));
     const craftMatNeeded = Math.max(2, (activeCraftProd?.category === '防具' ? 6 : 5) - Math.floor(crafterSkill / 25));
 
-    const scenarioHTML = (activeScenarios.length || nextLockedScenario) ? `<section class="panel" style="margin-bottom:18px;border-color:#d7b77a">
+    const scenarioHTML = activeScenarios.length ? `<section class="panel" style="margin-bottom:18px;border-color:#d7b77a">
       <div class="row between">
-        <h2>📜 世界の加工技術・開拓シナリオ</h2>
+        <h2>工房からの相談</h2>
         <span class="chip">現在の世界技術段階：${e.techs.includes('K08') ? '機械・旋盤時代' : e.techs.includes('K06') ? '魔導炉時代' : e.techs.includes('K04') ? '製鉄・高熱炉時代' : e.techs.includes('K02') ? '選鉱・青銅時代' : '田舎村・手作業時代'}</span>
       </div>
       ${activeScenarios.map(sc => `<div class="quest-box">
-        <b>🌟 ${esc(sc.title)}（街Lv.${sc.minTownLv}〜発生中）</b>
+        <b>🌟 ${esc(sc.title.replace('ユニークシナリオ：', ''))}</b>
         <p>${esc(sc.desc)}</p>
         <p class="gold">達成条件：${esc(sc.reqText)}</p>
         <div class="actions">
           ${btn('研究素材・資金を提供して技術を確立する', 'complete-tech-scenario', `data-id="${sc.id}" ${sc.checkCanComplete() ? '' : 'disabled'}`, 'primary')}
         </div>
       </div>`).join('')}
-      ${!activeScenarios.length && nextLockedScenario ? `<p class="muted">💡 次の技術発展シナリオ（『${esc(nextLockedScenario.title)}』）は、<b>発展度 Lv.${nextLockedScenario.minTownLv} 以上の街</b>を訪れると発生します（現在の街：Lv.${town.level}）。※仮に高Lvの街へ先に行っても、世界の加工技術ベースが未開発のうちは手作業品しか作れません。</p>` : ''}
+
     </section>` : '';
 
     return title('WORKSHOP & CRAFTSMANSHIP', `${esc(town.name)}の工房`, '街の職人に製作を請け負わせるか、工房を借りて自ら手探りで鍛えるか。') +
@@ -1845,7 +1708,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
             <span class="chip">設備レンタル料：${rentalFee} G / 回</span>
           </div>
           <p class="muted">街の設備を借りて、仲間のクラフトマンが自ら製作します。クラフト技能が上がると少ない素材で製作でき、名匠の称号が宿ります。また、会得した独自レシピ（普通の石の斧・滑石の斧など）をこの街の工房へ伝授できます。</p>
-          <label class="field">担当クラフトマン
+          ${!craftsmen.length ? '<p class="status">製作を担える職業の仲間がいません。酒場で職人を迎えるか転職してください。</p>' : ''}<label class="field">担当クラフトマン
             <select data-ext-change="crafter">
               ${craftsmen.map(h => `<option value="${h.id}" ${crafter.id === h.id ? 'selected' : ''}>${esc(h.name)}（器用さ DEX:${attributes(h).DEX}）</option>`).join('')}
             </select>
@@ -1870,9 +1733,11 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
           </label>
           <div class="quest-box">
             <b>自作に必要な消費：${esc(apparentMaterialName(mat))} × ${craftMatNeeded}個 ＋ 工房レンタル料 ${rentalFee} G</b>
+            ${(() => { const ev5 = evaluate5RouteCraft(mat, activeCraftProd?.id || 'P0031', e.selectedRoute || 'H'); const et = ev5.calcQ >= 92 ? 'E5（神域付与）' : ev5.calcQ >= 82 ? 'E4（高位付与）' : ev5.calcQ >= 72 ? 'E3（複合付与）' : ev5.calcQ >= 60 ? 'E2（安定付与）' : 'E1（基礎付与）'; return `<p class="muted" style="margin:6px 0 0">📐 <b>5経路加工診断</b>：必要技能 Lv.${ev5.reqLv}（現在 Lv.${ev5.currentSkill}） ／ 予測品質指数 <b>Q${ev5.calcQ}</b> ／ 魔法残留 <b>R${ev5.residue}%</b> ／ 魔力消費 <b>×${ev5.manaMult}</b> ／ 付与伝達率 <b>η${Math.round(ev5.eta * 100)}%</b>（対応付与段階：<b>${et}</b>）${ev5.missingTechs.length ? `<br><span class="status">未確立技術：${ev5.missingTechs.join(', ')}（強行製作時は過渡期補正）</span>` : ''}</p>`; })()}
+            ${(() => { const heldRes = Object.entries(DATA.materials).filter(([id, m]) => m.craftable === false && (s.materials[id] || 0) > 0); return heldRes.length ? `<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #4a5d4b"><b>🏺 未活用素材・遺物・薬草の工房解析と調合</b><div class="actions" style="margin-top:4px">${heldRes.map(([id]) => btn(`${esc(apparentMaterialName(id))}（所持${s.materials[id]}）を解析・調合`, 'research-uncraftable', `data-id="${id}"`)).join('')}</div></div>` : ''; })()}
           </div>
           <div class="actions">
-            ${btn('工房を借りて自作する', 'craftsman-make', s.gold < rentalFee || (s.materials[mat] || 0) < craftMatNeeded ? 'disabled' : '', 'primary')}
+            ${btn('工房を借りて自作する', 'craftsman-make', !craftsmen.length || s.gold < rentalFee || (s.materials[mat] || 0) < craftMatNeeded ? 'disabled' : '', 'primary')}
             ${btn('手探りで新加工品の試作研究を行う (' + (rentalFee * 2) + ' G)', 'discover-recipe', s.gold < rentalFee * 2 ? 'disabled' : '')}
           </div>
         </section>
@@ -1893,20 +1758,21 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
           }).join('')}</div>
         </section>
       </div>`) +
-      `<div class="sectionhead section-space"><h2>所持している装備品 <small>${s.gear.length}個</small></h2></div>
-      <div class="grid">${s.gear.map(g => {
+      `<div class="sectionhead section-space"><h2>所持している装備品 <small>${s.gear.length}個</small></h2>${(() => { const damaged = s.gear.filter(g => s.roster.some(h => h.weapon === g.id || h.armor === g.id) && g.dur < g.maxDur); const totalRepair = damaged.reduce((sum, g) => sum + repairCost(g), 0); return damaged.length ? btn(`装備中の品をすべて修理（${damaged.length}点 / ${totalRepair} G）`, 'repair-all-equipped', s.gold < totalRepair ? 'disabled' : '') : ''; })()}</div>
+      <div class="grid">${[...s.gear].sort((a, b) => { const oa = s.roster.some(h => h[a.slot] === a.id) ? 0 : 1, ob = s.roster.some(h => h[b.slot] === b.id) ? 0 : 1; return oa - ob || (a.dur < a.maxDur ? 0 : 1) - (b.dur < b.maxDur ? 0 : 1) || gearValue(b) - gearValue(a) || b.id - a.id; }).map(g => {
         const owner = s.roster.find(h => h[g.slot] === g.id);
         const enchants = Object.entries(DATA.enchants).filter(([id, en]) => (en.slot || (id === 'ward' ? 'armor' : 'weapon')) === g.slot);
         return `<article class="card item-card rarity-${g.rarity || 'common'}">
           <h3>${esc(gearName(g))}</h3>
-          <p class="gold">${g.slot === 'weapon' ? '攻撃性能' : '防御性能'} +${gearValue(g)}${g.enchant ? ` / 付呪効果 +${enchantPower(g)}` : ''}<br>品質 Q${g.quality || 1} / 耐久 ${g.dur} / ${g.maxDur}</p>
+          <p class="gold">${g.slot === 'weapon' ? '攻撃性能' : '防御性能'} +${gearValue(g)}${gearEnchants(g).length ? ` / 付呪効果 +${enchantPower(g)}（${gearEnchants(g).length}/${maxEnchantSlots(g)}枠）` : `（付呪枠 0/${maxEnchantSlots(g)}）`}<br>品質 Q${g.quality || 1}${g.craftQ ? ` (指数Q${g.craftQ}·残留R${g.residue || 0}%)` : ''} / 耐久 ${g.dur} / ${g.maxDur}</p>
           <small>${owner ? esc(owner.name) + 'が装備中' : '未装備'}${g.dur ? '' : ' / 破損中'}</small>
           <div class="actions">
             <select id="equip-${g.id}" aria-label="装備先">${s.roster.map(h => `<option value="${h.id}" ${owner?.id === h.id ? 'selected' : ''}>${esc(h.name)}</option>`).join('')}</select>
             ${btn('装備', 'equip', `data-id="${g.id}"`)}
             ${btn('修理 ' + repairCost(g) + ' G', 'repair', `data-id="${g.id}" ${g.dur === g.maxDur ? 'disabled' : ''}`)}
           </div>
-          ${e.techs.includes('K06') ? `<label class="field">付呪を施す<select id="enchant-${g.id}">${enchants.map(([id, en]) => `<option value="${id}" ${g.enchant === id ? 'selected' : ''}>${esc(en.name)} / ${uiQuote(enchantQuote(g, id))}</option>`).join('')}</select></label>${btn(g.enchant ? '付呪を上書き' : '付呪を施す', 'enchant', `data-id="${g.id}"`)}` : ''}
+          <div class="actions">${((g.residue || 0) > 0 || (g.method === 'physical' && (g.craftQ || 0) < 92)) ? btn(`🔥 焼鈍・魔力浄化 (${annealCost(g)} G)`, 'anneal-gear', `data-id="${g.id}" ${s.gold < annealCost(g) ? 'disabled' : ''}`) : ''}</div>
+          ${e.techs.includes('K06') ? `<label class="field">付呪を施す（最大${maxEnchantSlots(g)}枠：科学加工・高Qほど多枠）<select id="enchant-${g.id}">${enchants.map(([id, en]) => `<option value="${id}" ${g.enchant === id ? 'selected' : ''}>${esc(en.name)} / ${uiQuote(enchantQuote(g, id))}</option>`).join('')}</select></label>${btn(gearEnchants(g).length < maxEnchantSlots(g) ? `付呪を追加 (${gearEnchants(g).length + 1}/${maxEnchantSlots(g)}枠)` : '末尾枠の付呪を上書き', 'enchant', `data-id="${g.id}"`)}` : ''}
         </article>`;
       }).join('') || '<p class="empty">装備はまだありません。</p>'}</div>`;
   };
@@ -1981,7 +1847,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     const e = ext();
     const subJobBehaviors = new Set();
     for (const h of party()) {
-      const sub = CAT.jobs[e.subJobs[h.id]];
+      const sub = CAT.jobs[h.job];
       if (sub) {
         for (const sid of sub.skills || []) {
           const sk = CAT.skills[sid];
@@ -1997,14 +1863,14 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
         <h2>🧭 発見済みの探索行動記録（最大6枠優先設定）</h2>
         <span class="chip">発見済み ${discoveredBehaviors.length}種 · 設定中 ${e.activeBehaviors.length}/6枠</span>
       </div>
-      <p class="muted">手引書の発見や専門職の同行によって新たに身につけた探索行動のみが記録されます。</p>
+      <p class="muted">手引書の発見や職業の同行によって新たに身につけた探索行動のみが記録されます。</p>
       <div class="grid three">${discoveredBehaviors.map(b => {
         const byManual = e.manuals.includes(b.id) && partyLevel() >= b.reqPartyLv;
         const byJob = subJobBehaviors.has(b.id);
         const canUse = b.id === 'B01' || byManual || byJob;
         const active = e.activeBehaviors.includes(b.id);
         return `<article class="card ${canUse ? '' : 'locked'}">
-          <div class="row between"><b>${esc(b.name)}</b><span class="chip">${byJob ? '専門職同行中' : byManual ? '手引習得済' : '要平均Lv.' + b.reqPartyLv}</span></div>
+          <div class="row between"><b>${esc(b.name)}</b><span class="chip">${byJob ? '職業による習得' : byManual ? '手引習得済' : '要平均Lv.' + b.reqPartyLv}</span></div>
           <p class="muted">${esc(b.action)}</p>
           ${btn(active ? '✓ 優先設定中' : canUse ? '行動枠に設定' : 'レベル不足', 'toggle-behavior', `data-id="${b.id}" ${!canUse ? 'disabled' : ''}`, active ? 'selected' : '')}
         </article>`;
@@ -2029,11 +1895,19 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
         ['cat_prod', `加工品レシピ記録 (${discProds.length})`],
         ['cat_title', `発見した称号記録 (${discTitles.length})`],
         ['cat_mon', `遭遇した魔物記録 (${discMons.length})`],
-        ['cat_job', `発見した専門職・技 (${discJobs.length})`],
+        ['main_job', '転職手帳'],
+        ['cat_job', `職能証の記録 (${discJobs.length})`],
+        ['field_mon', '魔物の調査記録'],
         ['cat_mat', `解明した加工技術 (${e.techs.length})`]
       ].map(([id, label]) => btn(label, 'catalog-tab', `data-tab="${id}"`, tab === id ? 'selected' : '')).join('')}
     </div>`;
 
+    if (tab === 'field_mon') return tabsHTML + journalScreen();
+    if (tab === 'main_job') {
+      const jobs = (e.discoveredMainJobs || []).filter(id => DATA.jobs[id]);
+      return title('CALLINGS', '転職手帳', 'これまでに経験し、見出した職業の記録。') + tabsHTML +
+        `<div class="grid three">${jobs.map(id => `<article class="card"><h3>${esc(DATA.jobs[id].name)}</h3><p>${s.roster.filter(h => (h.jobHistory || [h.job]).includes(id)).map(h => esc(h.name)).join('・') || '職能を発見済み'}</p></article>`).join('')}</div>`;
+    }
     if (tab === 'cat_mat') {
       const knownTechs = e.techs.map(tid => CAT.crafting.techs[tid]).filter(Boolean);
       return title('CRAFTING LORE NOTEBOOK', '解明した加工技術の手帳', 'ユニークシナリオや研究によって世に確立された加工技術の記録。') + tabsHTML +
@@ -2072,7 +1946,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
         }).join('') || '<p class="empty">まだ記録された魔物はいません。探索に出かけましょう。</p>'}</div>`;
     }
     if (tab === 'cat_job') {
-      return title('CALLINGS & SECRET ARTS', '発見した専門職と秘伝の記録', '冒険の中で見出した職能証と秘伝の記録。') + tabsHTML +
+      return title('CALLINGS & SECRET ARTS', '発見した職能証の記録', '冒険の中で見出した職能証と秘伝の記録。') + tabsHTML +
         `<div class="grid three">${discJobs.map(j => `<article class="card">
           <div class="row between"><h3>${esc(j.name)}</h3><span class="chip">${esc(j.family)}</span></div>
           <p class="muted">${esc(j.role)}<br><i>${esc(j.flavor)}</i></p>
@@ -2085,7 +1959,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
         return `<article class="card material-card">
           <div class="row between"><h3>${esc(apparentMaterialName(id))}</h3><span class="chip">所持 ${s.materials[id] || 0}</span></div>
           <p class="muted">${identified ? esc(m.desc) : 'まだ世に知識が広まっていない原石。ただの「石」に見えるが、手触りや重さが他の石とわずかに異なる…。'}</p>
-          ${uiSale(id)}
+          <p class="stock-tiers">品質別：${esc(uiStock(id) || '在庫なし')}</p>
         </article>`;
       }).join('')}</div>`;
   };
@@ -2115,10 +1989,10 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
       } else if (act === 'forge-mode') {
         e.forgeMode = b.dataset.mode;
         render();
-      } else if (act === 'complete-tech-scenario') {
+      } else if (act === 'repair-all-equipped') { if (!townOnly()) return; const damaged = s.gear.filter(g => s.roster.some(h => h.weapon === g.id || h.armor === g.id) && g.dur < g.maxDur); const total = damaged.reduce((sum, g) => sum + repairCost(g), 0); if (!damaged.length || s.gold < total) return; s.gold -= total; for (const g of damaged) g.dur = g.maxDur; tell(`装備中の ${damaged.length}点を一括修理した（${total} G）。`); render(); } else if (act === 'complete-tech-scenario') {
         if (!townOnly()) return;
         const sc = TECH_SCENARIOS.find(x => x.id === b.dataset.id);
-        if (!sc || e.completedTechScenarios.includes(sc.id) || !sc.checkCanComplete()) return;
+        if (!sc || currentTown().level < sc.minTownLv || (sc.prereq && !e.completedTechScenarios.includes(sc.prereq)) || e.completedTechScenarios.includes(sc.id) || !sc.checkCanComplete()) return;
         sc.consume();
         e.completedTechScenarios.push(sc.id);
         (sc.unlockTechs || []).forEach(tid => { if (!e.techs.includes(tid)) e.techs.push(tid); });
@@ -2185,6 +2059,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
         const town = currentTown();
         const ws = getTownWorkshop(town);
         const craftsmen = getPartyCraftsmen();
+        if (!craftsmen.length) { tell('製作を担える職業の仲間が必要です。'); return render(); }
         const crafter = craftsmen.find(h => h.id === e.crafterHeroId) || craftsmen[0] || s.roster[0];
         const crafterSkill = Math.min(ws.worldCap, Math.max(1, e.craftLv + Math.floor(attributes(crafter).DEX / 4)));
         const mat = s.craftMaterial || 'wood';
@@ -2223,7 +2098,9 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
           customTitle: tInfo.prefix,
           titleBonus: tInfo.bonus,
           route,
-          craftQ: Math.min(100, 52 + Math.floor(crafterSkill / 2))
+          craftQ: Math.max(evaluate5RouteCraft(mat, prod?.id || 'P0031', route).calcQ, Math.min(100, 52 + Math.floor(crafterSkill / 2))),
+          residue: evaluate5RouteCraft(mat, prod?.id || 'P0031', route).residue,
+          eta: evaluate5RouteCraft(mat, prod?.id || 'P0031', route).eta
         };
         s.gear.push(g);
         e.craftLv = Math.min(ws.worldCap, e.craftLv + 1);
@@ -2306,19 +2183,10 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
         playSE('loot');
         tell(`🏪 伝授したレシピに基づき、工房が『${gearName(g)}』を製作した！`);
         render();
-      } else if (act === 'catalog-tab') {
+      } else if (act === 'anneal-gear') { annealGear(Number(b.dataset.id)); } else if (act === 'catalog-tab') {
         e.catalogTab = b.dataset.tab;
         render();
-      } else if (act === 'alloc-stat') {
-        const h = s.roster.find(x => x.id === Number(b.dataset.hero));
-        const st = b.dataset.stat;
-        if (h && heroFreePoints(h) > 0 && ATTRIBUTE_NAMES[st]) {
-          e.alloc[h.id] ??= {};
-          e.alloc[h.id][st] = (e.alloc[h.id][st] || 0) + 1;
-          tell(`${h.name}の ${st}（${ATTRIBUTE_NAMES[st]}）を +1 強化した！`);
-          render();
-        }
-      } else if (act === 'discover-recipe') {
+      } else if (act === 'research-uncraftable') { if (!townOnly()) return; const mid = b.dataset.id, m = DATA.materials[mid]; if (!m || m.craftable !== false || !(s.materials[mid] > 0) || !consumeMaterial(mid, 1, 1)) return; e.craftLv = Math.min(300, e.craftLv + Math.max(1, Math.ceil((m.rank || 1) / 2))); if (m.category === 'herb' || mid === 'slimegel') { const rewardItem = (m.rank || 1) >= 5 ? 'elixir' : (m.rank || 1) >= 3 ? 'hipotion' : 'potion'; s.items[rewardItem] = (s.items[rewardItem] || 0) + 1; playSE('heal'); tell(`🧪 ${m.name}を調合・抽出し、『${DATA.items[rewardItem].name}』1個と加工経験を得た！`); } else if (mid === 'venom') { s.items.antidote = (s.items.antidote || 0) + 2; playSE('heal'); tell(`🧪 ${m.name}の毒素を中和精製し、『解毒薬』2個と加工経験を得た！`); } else { e.magicCraftLv = Math.min(300, e.magicCraftLv + Math.max(1, Math.ceil((m.rank || 1) / 2))); const logs = rollDiscoveryDrops((m.rank || 1) * 28, true); playSE('loot'); tell(logs[0] || `🏺 遺物『${m.name}』を解析し、クラフト技能（Lv.${e.craftLv}）と魔導加工技能（Lv.${e.magicCraftLv}）が深まった！`); } render(); } else if (act === 'discover-recipe') {
         const town = currentTown();
         const fee = Math.max(20, Math.ceil(50 * town.price * town.quality));
         if (!townOnly() || s.gold < fee) return;
@@ -2331,7 +2199,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
           playSE('loot');
           tell(`📐 試作研究の末、新たな加工品『${p.name}』（${p.category}）の製法を着想し、手帳に記録した！`);
         } else {
-          tell('現在の世界の加工技術で作れる品目はひと通り解明済みです（まず高Lvの街で新たな加工技術シナリオを進めましょう）。');
+          tell('今ある設備と知識では、新しい製法を見つけられなかった。');
         }
         render();
       } else if (act === 'gacha-gear' || act === 'gacha-grand') {
@@ -2357,7 +2225,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
           if (lockJ.length) {
             const j = pick(lockJ);
             e.unlockedJobIds.push(j.id);
-            logs.push(`🎉【職能証発見】専門職『${j.name}』（${j.family}系）が解放された！`);
+            logs.push(`🎉【職能証発見】職業『${j.name}』（${j.family}系）が解放された！`);
           }
         }
         playSE('loot');
@@ -2381,13 +2249,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
       const k = ev.target.dataset.extChange;
       if (!k) return;
       const e = ext();
-      if (k === 'subjob') {
-        const hid = Number(ev.target.dataset.hero);
-        e.subJobs[hid] = ev.target.value || null;
-        const j = CAT.jobs[ev.target.value];
-        tell(j ? `専門職『${j.name}』を副職に設定した。` : '副職を解除した。');
-        render();
-      } else if (k === 'route') {
+      if (k === 'route') {
         e.selectedRoute = ev.target.value;
         s.craftMethod = ev.target.value === 'M' ? 'magic' : 'physical';
         render();
