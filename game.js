@@ -1,10 +1,12 @@
 'use strict';
 const $=id=>document.getElementById(id),KEY='ashen-atlas-v3',LEGACY_KEY='ashen-atlas-v2';
 const DIRS=[[0,-1],[1,0],[0,1],[-1,0]],ELEMENTS={physical:'物理',fire:'炎',frost:'氷',light:'光',thunder:'雷',dark:'闇'};
+const HERO_SLOTS=['weapon','head','armor','arms','feet','acc1','acc2'],DEF_SLOTS=['head','armor','arms','feet','acc1','acc2'],GEAR_SLOT_KEYS=['weapon','armor','head','body','arms','feet','accessory'];
+const SLOT_FACTORS={weapon:1,armor:1,body:1,head:0.55,arms:0.48,feet:0.48,accessory:0.35};
 let walkTimer=null,battleTimer=null,notice='',storageOK=true;
 function hash(str){let h=2166136261;for(const c of str)h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0;}
 function rng(seed){return()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};}
-function makeHero(id,name,job,row='front'){const j=DATA.jobs[job];return{id,name,job,row,lv:1,xp:0,hp:j.hp,mp:j.mp,poison:0,weapon:null,armor:null};}
+function makeHero(id,name,job,row='front'){const j=DATA.jobs[job];return{id,name,job,row,lv:1,xp:0,hp:j.hp,mp:j.mp,poison:0,weapon:null,head:null,armor:null,arms:null,feet:null,acc1:null,acc2:null};}
 function baseTown(){return{id:'ash',name:'灰灯の街',level:1,price:1,quality:1,baseCost:0,owned:true,seed:0};}
 function fresh(){const roster=[makeHero(1,'アッシュ','warrior'),makeHero(2,'リネ','priest','back'),makeHero(3,'ネリ','explorer'),makeHero(4,'ルカ','tactician','back')],gear=roster.map((h,i)=>({id:i+1,material:'wood',slot:'weapon',method:'physical',enchant:null,quality:1,dur:60,maxDur:60}));roster.forEach((h,i)=>h.weapon=gear[i].id);const materials=Object.fromEntries(Object.keys(DATA.materials).map(k=>[k,0]));materials.wood=3;materials.copper=2;const stock=Object.fromEntries(Object.keys(materials).map(k=>[k,materials[k]?{1:materials[k]}:{}]));return{version:3,view:'town',gold:360,debt:0,materials,stock,items:{potion:3,antidote:1,scroll:2,ether:1},roster,active:[1,2,3,4],gear,nextGear:5,nextHero:5,books:[],walkRule:'right',battleRules:[],autoExpedition:false,dungeon:null,battle:null,corpses:[],towns:[baseTown()],townId:'ash',homeTownId:'ash',addressMaps:[],addressPreview:null,quests:{},research:{},won:false,kills:0,calendar:{day:1,hour:8,minute:0,lastRealDate:''},log:['四人の探索者が灰灯の街に集まった。探索者ネリ（自動探索・道標帰還支援）と軍師ルカ（自動戦闘の戦術支援）が同行している。まずはLv.1の森縁で素材と経験を得よう。'],randomState:Date.now()>>>0,selection:1};}
 function migrateV2(v){if(!v||v.version!==2||!Array.isArray(v.roster)||!v.active||!v.materials)return null;const n={...fresh(),...v,version:3,autoExpedition:false,items:{potion:v.potions||0,antidote:v.antidotes||0,scroll:v.scrolls||0,ether:0},research:{},stock:{},materials:{...fresh().materials,...v.materials}};delete n.potions;delete n.antidotes;delete n.scrolls;n.gear=(v.gear||[]).map(g=>({...g,quality:1}));for(const [k,count]of Object.entries(n.materials))n.stock[k]=count?{1:count}:{};for(const id of v.bestiary||[])n.research[id]={encounters:1,kills:0,level:3};delete n.bestiary;function floor(d){return d?{...d,mapId:'old_mine',identity:'guild:old_mine:'+d.seed,level:3+d.depth-1,quality:1,autoSteps:0}:null;}n.dungeon=floor(v.dungeon);n.corpses=(v.corpses||[]).map(c=>({...c,floor:floor(c.floor),gear:c.gear.map(g=>({...g,quality:1}))}));n.roster.forEach(h=>{if(!DATA.jobs[h.job])h.job='warrior';h.lv=Math.min(300,Math.max(1,h.lv));h.hp=Math.min(h.hp,DATA.jobs[h.job].hp+(h.lv-1)*9);h.mp=Math.min(h.mp,DATA.jobs[h.job].mp+(h.lv-1)*4);});if(n.battle){n.battle.plans={};n.battle.enemies=n.battle.enemies.map(e=>({...e,level:n.dungeon.level,drop:DATA.enemies.find(t=>t.id===e.id)?.drop||null,counted:false}));}if(n.view==='battle')n.view='explore';return n;}
@@ -12,6 +14,11 @@ function validSave(v){
  const num=(n,min=0)=>Number.isFinite(n)&&n>=min,arr=Array.isArray,matrix=(m,p)=>arr(m)&&m.length===13&&m.every(r=>arr(r)&&r.length===19&&r.every(p));
  const record=x=>x!==null&&typeof x==='object'&&!arr(x),uint=n=>Number.isSafeInteger(n)&&n>=0;
  const abilityKeys=['STR','INT','AGI','VIT','DEX','WIZ','MGR','CHR'];
+ if(v?.calendar!==undefined){
+   const c=v.calendar;
+   if(!record(c)||!uint(c.day)||c.day<1||!uint(c.hour)||c.hour>23||!uint(c.minute)||c.minute>59)return false;
+   if(c.lastRealDate!==undefined&&(typeof c.lastRealDate!=='string'||c.lastRealDate!==''&&(!/^\d{4}-\d{2}-\d{2}$/.test(c.lastRealDate)||!Number.isFinite(Date.parse(c.lastRealDate))||new Date(c.lastRealDate).toISOString().slice(0,10)!==c.lastRealDate)))return false;
+ }
  if(v?.ext!==undefined){
    const e=v.ext;if(!record(e))return false;
    if(e.alloc!==undefined&&(!record(e.alloc)||!Object.values(e.alloc).every(a=>record(a)&&Object.entries(a).every(([k,n])=>abilityKeys.includes(k)&&uint(n)))))return false;
@@ -27,6 +34,7 @@ function validSave(v){
        if(!record(board)||!arr(board.offers)||!record(board.progress)||!uint(board.returns))return false;
        if(!Object.values(board.progress).every(p=>record(p)&&['accepted','ready','completed','failed'].includes(p.status)&&uint(p.times)))return false;
        if(!board.offers.every(q=>record(q)&&typeof q.id==='string'&&typeof q.name==='string'&&typeof q.mapId==='string'&&uint(q.reward)&&uint(q.expires)&&
+         (q.dueDay===undefined||uint(q.dueDay)&&q.dueDay>0)&&(q.dueHour===undefined||uint(q.dueHour)&&q.dueHour<24)&&(q.penalty===undefined||uint(q.penalty))&&
          (q.kind==='emergency'?num(q.level,1)&&q.level<=300:q.kind==='lucrative'&&DATA.materials[q.material]&&uint(q.amount)&&q.amount>0&&num(q.quality,1)&&q.quality<=13)))return false;
      }
    }
@@ -182,9 +190,9 @@ function draw() {
 function render(){
   s.roster.forEach(syncHero);
   if(s.battle)s.view='explore';
-  const screens={tavern:()=>tavernScreen(),inn:()=>innScreen(),shop:()=>shopScreen(),temple:()=>templeScreen(),town:townScreen,guild:guildScreen,party:partyScreen,forge:forgeScreen,rules:rulesScreen,supplies:suppliesScreen,explore:exploreScreen,journal:journalScreen,catalog:catalogScreen};
+  const screens={tavern:()=>tavernScreen(),inn:()=>innScreen(),shop:()=>shopScreen(),temple:()=>templeScreen(),town:townScreen,atlas:()=>(typeof atlasScreen==='function'?atlasScreen():guildScreen()),guild:()=>guildScreen(),party:partyScreen,forge:forgeScreen,rules:rulesScreen,supplies:suppliesScreen,explore:exploreScreen,journal:journalScreen,catalog:catalogScreen};
   const cal=s.calendar; const timeStr=cal?` · 冒険 ${cal.day}日目 ${String(cal.hour).padStart(2,'0')}:${String(cal.minute).padStart(2,'0')}`:''; $('summary').innerHTML=`<span class="gold">${s.gold} G</span> · Lv.${partyLevel()}${timeStr}${s.debt?' · 債務 '+s.debt+' G':''}`;
-  $('nav').innerHTML=[['town','街'],['guild','地図と依頼'],['party','仲間'],['forge','工房'],['rules','行動書'],['tavern','酒場'],['inn','宿屋'],['shop','商店'],['temple','神殿'],['explore','探索'],['catalog','手帳']].map(([id,name])=>btn(name,'view',`data-view="${id}" ${id==='explore'&&!s.dungeon?'disabled':''}`,s.view===id?'selected':'')).join('');
+  $('nav').innerHTML=[['town','街'],['atlas','地図'],['guild','依頼'],['party','仲間'],['forge','工房'],['rules','行動書'],['tavern','酒場'],['inn','宿屋'],['shop','商店'],['temple','神殿'],['explore','探索'],['catalog','手帳']].map(([id,name])=>btn(name,'view',`data-view="${id}" ${id==='explore'&&!s.dungeon?'disabled':''}`,s.view===id?'selected':'')).join('');
   $('notice').textContent=notice;$('app').innerHTML=(screens[s.view]||townScreen)();draw();save();$('save-status').textContent=storageOK?'保存済み':'保存できません。ブラウザの保存設定を確認してください。';
 }
 function handleAction(event){const button=event.target.closest('[data-action]');if(!button||button.disabled)return;const d=button.dataset,id=Number(d.id),a=d.action;notice='';

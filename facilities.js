@@ -203,8 +203,19 @@
   };
   townScreen=function() {
     const t=currentTown();
-    const facilities=[['guild','◇ 冒険者ギルド','資源の納品依頼、特別依頼と探索地図。'],['tavern','♜ 酒場','新しい仲間の募集とパーティー編成。'],['inn','☽ 旅人の宿','生存している仲間の休息と回復。'],['shop','▣ 道具屋','旅道具の補充と掘出し物。'],['temple','✧ 神殿','蘇生、毒の治療、気絶からの覚醒。'],['forge','⚒ 工房','工房への依頼、自作、修理、付呪。'],['rules','▤ 行動書庫','発見した行動書を購入し、判断を学ぶ。'],['party','♙ 仲間','能力・職業・装備と習得技を確認。'],['catalog','◈ 冒険手帳','素材、魔物、加工法と旅の記録。']];
-    return `<section class="town-hero">${title('A LIGHT IN THE WILDERNESS',esc(t.name),'旅の準備を整え、ギルドの依頼を選ぼう。')}<div class="town-facts"><span class="chip">街 Lv.${t.level}</span><span class="chip">施設品質 Q${t.quality}</span><span class="chip">物価 ×${t.price}</span>${s.debt?`<span class="chip">宿泊立替 ${s.debt} G</span>`:''}</div></section><div class="sectionhead"><h2>今日のパーティー</h2><span class="muted">${party().length}/6人 · 平均Lv.${partyLevel()}</span></div>${strip()}<div class="grid three town-facilities section-space">${facilities.map(([id,name,desc])=>`<button class="panel facility" data-action="view" data-view="${id}"><b>${name}</b><small>${desc}</small></button>`).join('')}</div>${s.homeTownId!==t.id?btn('拠点へ戻る','home-town'):''}`;
+    const facilities=[
+      ['atlas','🗺 探索地図','依頼なしでも自由に潜れる。周辺の地理・道標調査。'],
+      ['guild','◇ 冒険者ギルド','受託枠1件の依頼掲示板。好条件納品や緊急討伐。'],
+      ['tavern','♜ 酒場','新しい仲間の募集とパーティー編成。'],
+      ['inn','☽ 旅人の宿','生存している仲間の休息と回復。'],
+      ['shop','▣ 道具屋','旅道具の補充と掘出し物。'],
+      ['temple','✧ 神殿','蘇生、毒の治療、気絶からの覚醒。'],
+      ['forge','⚒ 工房','工房への依頼、自作、修理、付呪。'],
+      ['rules','▤ 行動書庫','発見した行動書を購入し、判断を学ぶ。'],
+      ['party','♙ 仲間','能力・職業・装備と習得技を確認。'],
+      ['catalog','◈ 冒険手帳','素材、魔物、加工法と旅の記録。']
+    ];
+    return `<section class="town-hero">${title('A LIGHT IN THE WILDERNESS',esc(t.name),'旅の準備を整え、地図から探索へ挑むか、ギルドの依頼を選ぼう。')}<div class="town-facts"><span class="chip">街 Lv.${t.level}</span><span class="chip">施設品質 Q${t.quality}</span><span class="chip">物価 ×${t.price}</span>${s.debt?`<span class="chip">宿泊立替 ${s.debt} G</span>`:''}</div><div class="actions">${btn('地図から探索へ →','view','data-view="atlas"','primary')}${btn('ギルドの依頼','view','data-view="guild"')}${btn('宿と道具','view','data-view="supplies"')}</div></section><div class="sectionhead"><h2>今日のパーティー</h2><span class="muted">${party().length}/6人 · 平均Lv.${partyLevel()}</span></div>${strip()}<div class="grid three town-facilities section-space">${facilities.map(([id,name,desc])=>`<button class="panel facility" data-action="view" data-view="${id}"><b>${name}</b><small>${desc}</small></button>`).join('')}</div>${s.homeTownId!==t.id?btn('拠点へ戻る','home-town'):''}`;
   };
 
   function knownMaps() {
@@ -248,13 +259,14 @@
     const cal = getCalendar();
     const today = currentRealDateStr();
     if (cal.lastRealDate && cal.lastRealDate !== today) {
-      let daysPassed = 1;
+      let daysPassed = 0;
       try {
         const prev = new Date(cal.lastRealDate).getTime();
         const curr = new Date(today).getTime();
         const diff = Math.floor((curr - prev) / (1000 * 60 * 60 * 24));
         if (diff > 0) daysPassed = diff;
       } catch {}
+      if (daysPassed <= 0) return;
       cal.day += daysPassed;
       cal.hour = 8;
       cal.minute = 0;
@@ -267,7 +279,7 @@
     const all = state().guildContracts;
     for (const [townId, board] of Object.entries(all.towns || {})) {
       for (const [id, p] of Object.entries(board.progress || {})) {
-        if (p?.status === 'accepted') {
+        if (p?.status === 'accepted' || p?.status === 'ready') {
           const q = (board.offers || []).find(x => x.id === id) || contracts().find(x => x.id === id) || { id, name: 'ギルド依頼' };
           return { source: 'contract', townId, id, name: q.name, q };
         }
@@ -281,6 +293,7 @@
     }
     return null;
   }
+  globalThis.getActiveQuest = getActiveQuest;
   function checkContractDeadlines() {
     const cal = getCalendar();
     const all = state().guildContracts;
@@ -288,6 +301,8 @@
       const remainingOffers = [];
       for (const q of board.offers || []) {
         const p = board.progress[q.id];
+        // 討伐済みなら達成期限後も報告・報酬受領を保証する。
+        if (p?.status === 'ready') { remainingOffers.push(q); continue; }
         const isSpecial = q.kind === 'emergency' || q.kind === 'lucrative';
         if (!isSpecial) { remainingOffers.push(q); continue; }
         const hasDue = q.dueDay !== undefined;
@@ -465,6 +480,23 @@
     for(const foe of s.battle.enemies){foe.name='強襲個体・'+foe.name;foe.hp=Math.round(foe.hp*1.7);foe.maxhp=foe.hp;foe.atk=Math.round(foe.atk*1.35);foe.mag=Math.round(foe.mag*1.3);}
     tell('緊急討伐：'+q.name+'。撤退した場合は、再挑戦できます。');render();
   }
+  function candidateMapsForContract(q) {
+    if (!q) return [];
+    const maps = knownMaps();
+    const result = [];
+    if (q.mapId) {
+      const primary = worldMap(q.mapId);
+      if (primary) result.push(primary);
+    }
+    if (q.material) {
+      for (const m of maps) {
+        if (!result.some(r => r.id === m.id) && (m.materials || []).includes(q.material)) {
+          result.push(m);
+        }
+      }
+    }
+    return result.length ? result : (q.mapId ? [worldMap(q.mapId)].filter(Boolean) : maps.slice(0, 1));
+  }
   function contractHTML(q) {
     const p=townBoard().progress[q.id]||{},emergency=q.kind==='emergency',isSpecial=emergency||q.kind==='lucrative',amount=emergency?0:availableMaterial(q.material,q.quality),accepted=p.status==='accepted',ready=emergency?p.status==='ready':accepted&&amount>=q.amount,done=p.status==='completed';
     const cal=getCalendar(),active=getActiveQuest();
@@ -475,27 +507,64 @@
       dueText=`<p class="muted" style="margin:2px 0 4px">⏱️ 達成期限：冒険 ${q.dueDay}日目 ${q.dueHour??18}:00（残り ${remD}日 ${remH}時間）<br><span class="debt-note">期限切れ失敗時 違約金：${q.penalty||Math.ceil(q.reward*0.35)} G</span></p>`;
     }
     const cannotAccept=!accepted&&!ready&&active;
-    return `<article class="card ${q.kind==='resource'?'':emergency?'rarity-legendary':'rarity-magic'}" style="${accepted?'border-color:var(--gold)!important;box-shadow:0 0 10px #d7b77a33':''}"><div class="row between"><h3>${esc(q.name)}</h3><span class="chip">${emergency?'高難度・緊急討伐':isSpecial?'特別・好条件納品':'常設・資源調達'}</span></div><p>${emergency?'強襲個体を討伐 / 脅威度 Lv.'+q.level:esc(apparentMaterialName(q.material))+' Q'+q.quality+'以上 ×'+q.amount+' / 所持 '+amount}</p><p class="gold">報酬 ${q.reward} G</p>${dueText}<p class="muted">${esc(worldMap(q.mapId)?.name||'探索地域')} · ${done?'達成済み '+p.times+'回':ready?'報告可能':accepted?'受託中（進行中）':'未受託'}</p><div class="actions">${!accepted&&!ready&&(!done||q.repeat)?btn(cannotAccept?'別の依頼を受注中':done?'再受注する':'依頼を受ける','contract-accept',`data-id="${q.id}" ${cannotAccept?'disabled':''}`,cannotAccept?'':'primary'):''}${accepted&&emergency?btn('討伐へ出発','contract-challenge',`data-id="${q.id}"`,'danger'):''}${accepted&&!emergency||ready?btn(emergency?'討伐を報告':'資源を納品','contract-deliver',`data-id="${q.id}" ${ready?'':'disabled'}`,'primary'):''}${accepted?btn('依頼を破棄','contract-abandon',`data-id="${q.id}"`):''}</div></article>`;
+    const targetMaps = accepted && !emergency ? candidateMapsForContract(q) : [];
+    return `<article class="card ${q.kind==='resource'?'':emergency?'rarity-legendary':'rarity-magic'}" style="${accepted?'border-color:var(--gold)!important;box-shadow:0 0 10px #d7b77a33':''}">
+      <div class="row between"><h3>${esc(q.name)}</h3><span class="chip ${accepted?'gold':''}">${accepted?'📌 受託中':emergency?'高難度・緊急討伐':isSpecial?'特別・好条件納品':'常設・資源調達'}</span></div>
+      <p>${emergency?'強襲個体を討伐 / 脅威度 Lv.'+q.level:esc(apparentMaterialName(q.material))+' Q'+q.quality+'以上 ×'+q.amount+' / 所持 '+amount}</p>
+      <p class="gold">報酬 ${q.reward} G</p>
+      ${dueText}
+      <p class="muted">${esc(worldMap(q.mapId)?.name||'探索地域')} · ${done?'達成済み '+p.times+'回':ready?'報告可能':accepted?'受託中（進行中）':'未受託'}</p>
+      ${accepted ? `<div class="quest-depart-box" style="margin:6px 0;padding:8px 10px;background:#152218;border:1px solid #3d4f3b;border-radius:4px">
+        <small class="gold" style="display:block;margin-bottom:4px"><b>⚔ 探索先ダンジョンを選択：</b></small>
+        <div class="actions" style="margin-top:0">
+          ${emergency ?
+            btn('討伐へ出発（' + esc(worldMap(q.mapId)?.name||'目標地域') + '）', 'contract-challenge', `data-id="${q.id}"`, 'danger') :
+            targetMaps.map(m => btn(esc(m.name) + 'へ出発 →', 'enter-map', `data-id="${m.id}"`, 'primary')).join(' ')
+          }
+        </div>
+      </div>` : ''}
+      <div class="actions">
+        ${!accepted&&!ready&&(!done||q.repeat)?btn(cannotAccept?'別の依頼を受注中':done?'再受注する':'依頼を受ける','contract-accept',`data-id="${q.id}" ${cannotAccept?'disabled':''}`,cannotAccept?'':'primary'):''}
+        ${accepted&&emergency?btn('討伐へ出発','contract-challenge',`data-id="${q.id}"`,'danger'):''}
+        ${accepted&&!emergency||ready?btn(emergency?'討伐を報告':'資源を納品','contract-deliver',`data-id="${q.id}" ${ready?'':'disabled'}`,'primary'):''}
+        ${accepted?btn('依頼を破棄','contract-abandon',`data-id="${q.id}"`):''}
+      </div>
+    </article>`;
   }
   const oldGuildScreen=guildScreen;
   guildScreen=function() {
     ensureSpecialOffers();
     const active = getActiveQuest();
     const cal = getCalendar();
-    return `<section class="panel">
-      <div class="row between">
-        <h2>冒険者ギルド・依頼掲示板</h2>
-        <span class="chip gold" style="font-size:12px">📅 ${formatCalendar(cal)}</span>
-      </div>
-      <p class="muted">受託できる依頼はパーティー全体で同時に1件のみです。常設調達のほか、掲示板には商隊の好条件納品や緊急討伐などの非常設依頼が常に掲載されます。非常設依頼には達成期限があり、期限内に達成できなければ失敗扱いとなり違約金（罰金）が発生します。</p>
-      ${active ? `<div class="quest-box" style="margin-top:10px;border-left:3px solid var(--gold)">
+    return title('ADVENTURERS GUILD', '冒険者ギルド・依頼掲示板', '受託枠は1件。常設の資源調達、商隊の好条件納品や強襲個体の緊急討伐を引き受ける。') +
+      `<section class="panel">
         <div class="row between">
-          <b>📌 現在受託中の依頼：${esc(active.name)}</b>
-          ${btn('依頼を破棄する', 'contract-abandon', `data-id="${active.id}"`)}
+          <h2>冒険者ギルド・依頼掲示板</h2>
+          <span class="chip gold" style="font-size:12px">📅 ${formatCalendar(cal)}</span>
         </div>
-        <small class="muted">※受託中は他の依頼を受けられません。納品・報告して達成するか、破棄してください（非常設依頼の破棄は違約金が発生します）。</small>
-      </div>` : '<div class="quest-box" style="margin-top:10px"><span class="chip">依頼受託枠：空き（1件受託可能）</span></div>'}
-    </section><div class="grid three section-space">${contracts().map(contractHTML).join('')}</div><hr class="divider">`+oldGuildScreen();
+        <p class="muted">受託できる依頼はパーティー全体で同時に1件のみです。常設調達のほか、掲示板には商隊の好条件納品や緊急討伐などの非常設依頼が常に掲載されます。非常設依頼には達成期限があり、期限内に達成できなければ失敗扱いとなり違約金（罰金）が発生します。</p>
+        ${active ? (() => {
+          const actQ = active.q || active;
+          const isEmerg = actQ?.kind === 'emergency';
+          const targetMaps = isEmerg ? (actQ.mapId ? [worldMap(actQ.mapId)].filter(Boolean) : []) : candidateMapsForContract(actQ);
+          return `<div class="quest-box" style="margin-top:10px;border-left:3px solid var(--gold);background:#1a271c">
+            <div class="row between">
+              <b>📌 現在受託中の依頼：${esc(active.name)}</b>
+              ${btn('依頼を破棄する', 'contract-abandon', `data-id="${active.id}"`)}
+            </div>
+            <div style="margin:8px 0">
+              <small class="gold"><b>⚔ 探索先ダンジョンを選択して出発：</b></small>
+              <div class="actions" style="margin-top:4px">
+                ${isEmerg ?
+                  btn('討伐へ出発（' + esc(worldMap(actQ.mapId)?.name || '目標地域') + '）', 'contract-challenge', `data-id="${active.id}"`, 'danger') :
+                  targetMaps.map(m => btn(esc(m.name) + 'へ出発 →', 'enter-map', `data-id="${m.id}"`, 'primary')).join(' ')
+                }
+              </div>
+            </div>
+            <small class="muted">※受託中は他の依頼を受けられません。納品・報告して達成するか破棄してください。ダンジョンへは上のボタンまたは下の依頼表から直接出発できます。</small>
+          </div>`;
+        })() : '<div class="quest-box" style="margin-top:10px"><span class="chip">依頼受託枠：空き（1件受託可能）</span><span class="muted" style="margin-left:10px">※依頼を受けずにダンジョンへ潜る場合は、上部「地図」タブから自由に探索できます。</span></div>'}
+      </section><div class="grid three section-space">${contracts().map(contractHTML).join('')}</div>`;
   };
 
   rulesScreen=function() {

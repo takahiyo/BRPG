@@ -1517,8 +1517,8 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     return { prefix: '素朴な', bonus: 1, rarity: 'common' };
   }
 
-  // UI: Guild Screen (progressive map discovery + address expedition rules)
-  guildScreen = function() {
+  // UI: Atlas Screen (progressive map discovery + address expedition rules)
+  atlasScreen = function() {
     const e = ext();
     const preview = s.addressPreview;
     const maxLv = Math.max(partyLevel(), ...s.roster.map(h => h.lv), currentTown().level);
@@ -1530,6 +1530,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
       s.quests?.[m.id]?.completed
     );
     const hiddenMapCount = Math.max(0, DATA.maps.length - visibleMaps.length);
+    const actQ = typeof getActiveQuest === 'function' ? getActiveQuest() : null;
 
     // Mask materials in uiMapCard if unidentified!
     const renderMapCard = map => {
@@ -1540,8 +1541,9 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
         return kn.tier > 0 ? (en?.name || id) : '？？？';
       });
       const matNames = (map.materials || []).map(id => apparentMaterialName(id));
-      return `<article class="card atlas-card" style="--region:${esc(map.color || '#a7c291')}">
-        <div class="row between"><span class="chip">推奨 Lv.${map.level} · ${map.depths}層</span><small>${esc(map.biome || '未分類')}</small></div>
+      const isTarget = actQ && (actQ.mapId === map.id || actQ.q?.mapId === map.id || (actQ.q?.material && (map.materials || []).includes(actQ.q.material)));
+      return `<article class="card atlas-card" style="--region:${esc(map.color || '#a7c291')};${isTarget ? 'border-color:var(--gold)!important;box-shadow:0 0 10px #d7b77a33;' : ''}">
+        <div class="row between"><span class="chip">推奨 Lv.${map.level} · ${map.depths}層</span><small>${esc(map.biome || '未分類')}${isTarget ? ' · <span class="gold">📌 依頼対象</span>' : ''}</small></div>
         <h2>${esc(map.name)}</h2>
         <p class="muted">${esc(map.description || '未知の道を開拓する。')}</p>
         <div class="atlas-resource">
@@ -1560,7 +1562,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
       </article>`;
     };
 
-    return title('ATLAS & EXPLORERS GUILD', '次は、どの道を歩く？', '手探りで周辺の地理を広げ、未知の道標を調査する。') +
+    return title('ATLAS & EXPEDITION MAP', '探索地図と遠征道標', '依頼がなくても、いつでも自由に周辺のダンジョンへ潜ることができます。') +
       `<div class="grid atlas-intro">
         <section class="panel">
           <h2>🧭 道標（アドレス）から未知の街を探索開拓</h2>
@@ -1590,6 +1592,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
       <div class="grid three">${visibleMaps.map(renderMapCard).join('')}</div>
       ${(s.addressMaps || []).length ? `<h2 class="section-space">道標調査で到達した地域</h2><div class="grid three">${s.addressMaps.map(renderMapCard).join('')}</div>` : ''}`;
   };
+  guildScreen = atlasScreen;
 
   const prevUiEnemies = uiEnemies;
   uiEnemies = function() {

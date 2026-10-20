@@ -534,4 +534,102 @@ assert(newSpecials.length >= 2, 'Guild board replenished fresh special offers af
 assert(validSave(s), 'Save file remains valid after calendar and contract operations');
 console.log('PASS: Stage 15 quest 1-limit, always-replenished special contracts, deadlines/fines, calendar time advance, and job traits display.');
 
+// ============================================================================
+// Stage 16: Separate Atlas & Guild Nav Tabs + Direct Dungeon Selection from Quests
+// ============================================================================
+stopAll(); s = fresh(); render();
+// 1. Navigation tab separation: Atlas (地図) and Guild (依頼) are separate tabs
+s.view = 'town';
+render();
+const navHtml = $('nav').innerHTML;
+assert(navHtml.includes('data-view="atlas"') && navHtml.includes('地図'), 'Nav contains dedicated "地図" (atlas) tab');
+assert(navHtml.includes('data-view="guild"') && navHtml.includes('依頼'), 'Nav contains dedicated "依頼" (guild) tab');
+
+// 2. Map tab allows free dungeon diving without any quest
+s.view = 'atlas';
+render();
+const atlasHtml = $('app').innerHTML;
+assert(atlasHtml.includes('探索地図と遠征道標') && atlasHtml.includes('この地域を探索 →'), 'Atlas screen renders exploration map cards with direct dive buttons');
+assert(!atlasHtml.includes('依頼受託枠：空き'), 'Atlas screen does not display duplicate quest board');
+// Player dives into dungeon directly without taking any quest
+enterMap('forest_edge');
+assert(s.dungeon && s.dungeon.mapId === 'forest_edge', 'Player can freely dive into dungeons without a quest from the map');
+returnTown();
+
+// 3. Guild tab displays dedicated quest board without duplicating full map
+s.view = 'guild';
+render();
+const guildHtml = $('app').innerHTML;
+assert(guildHtml.includes('冒険者ギルド・依頼掲示板'), 'Guild screen renders quest board');
+assert(!guildHtml.includes('ギルドの探索地図') && !guildHtml.includes('道標（アドレス）から未知の街'), 'Guild screen does not duplicate atlas/map cards');
+assert(guildHtml.includes('依頼受託枠：空き'), 'Guild screen displays 1-quest capacity status');
+
+// 4. Accepting a quest enables direct dungeon departure buttons right on the quest table
+const resContract = BRPGFacilities.contracts().find(c => c.kind === 'resource');
+assert(resContract, 'Resource contract exists');
+BRPGFacilities.acceptContract(resContract.id);
+render();
+
+const acceptedGuildHtml = $('app').innerHTML;
+// Active quest banner at the top provides direct dungeon departure
+assert(acceptedGuildHtml.includes('📌 現在受託中の依頼：' + resContract.name), 'Top banner highlights active quest');
+assert(acceptedGuildHtml.includes('⚔ 探索先ダンジョンを選択して出発'), 'Top banner has direct dungeon departure section');
+assert(acceptedGuildHtml.includes('へ出発 →'), 'Direct dungeon departure button exists in top banner');
+
+// Contract card on the table also provides direct dungeon departure
+assert(acceptedGuildHtml.includes('⚔ 探索先ダンジョンを選択：'), 'Accepted contract card displays dungeon selection box');
+assert(acceptedGuildHtml.includes('data-action="enter-map"'), 'Direct dungeon departure button is wired to enter-map');
+
+// Clicking direct departure button enters the designated target dungeon
+enterMap(resContract.mapId);
+assert(s.dungeon && s.dungeon.mapId === resContract.mapId, 'Direct departure button successfully entered target dungeon');
+returnTown();
+
+// 5. Atlas tab highlights the target map of the accepted quest
+s.view = 'atlas';
+render();
+assert($('app').innerHTML.includes('📌 依頼対象'), 'Atlas map card shows gold badge highlighting quest target dungeon');
+
+// Cleanup: abandon contract and verify save
+BRPGFacilities.abandonContract(resContract.id);
+assert.equal(BRPGFacilities.getActiveQuest(), null, 'Contract abandoned');
+assert(validSave(s), 'Save file remains valid');
+console.log('PASS: Stage 16 separated Atlas & Guild nav tabs and direct dungeon departure from quest board.');
+
+// Stage 17: completed combat awaiting report still occupies the slot and survives deadlines.
+stopAll(); s = fresh(); render();
+BRPGFacilities.contracts();
+const boundaryBoard = s.ext.guildContracts.towns[s.townId];
+const boundaryCal = BRPGFacilities.getCalendar();
+const boundaryQuest = {id:'emergency:boundary',kind:'emergency',name:'報告待ち検証',mapId:'forest_edge',level:9,reward:500,expires:10,dueDay:boundaryCal.day+1,dueHour:18,penalty:175};
+boundaryBoard.offers.push(boundaryQuest);
+boundaryBoard.progress[boundaryQuest.id]={status:'ready',times:0};
+assert.equal(BRPGFacilities.getActiveQuest().id,boundaryQuest.id);
+BRPGFacilities.acceptContract(BRPGFacilities.contracts().find(q=>q.kind==='resource').id);
+assert(notice.includes('受注できる依頼はパーティー全体で1件のみ'));
+const boundaryGold=s.gold;
+BRPGFacilities.advanceTime(3*24*60);
+assert(boundaryBoard.offers.some(q=>q.id===boundaryQuest.id),'Ready quest survives deadline');
+assert.equal(s.gold,boundaryGold,'Completed task incurs no deadline fine');
+BRPGFacilities.deliverContract(boundaryQuest.id);
+assert.equal(s.gold,boundaryGold+500);
+assert.equal(BRPGFacilities.getActiveQuest(),null);
+BRPGFacilities.deliverContract(boundaryQuest.id);
+assert.equal(s.gold,boundaryGold+500,'Reward cannot be claimed twice');
+const beforeClock=boundaryCal.day;
+boundaryCal.lastRealDate='9999-01-01';
+BRPGFacilities.checkRealMidnight();
+assert.equal(boundaryCal.day,beforeClock,'Backward clock change must not advance deadlines');
+assert.equal(boundaryCal.lastRealDate,'9999-01-01','Keep high-water date to avoid counting days twice');
+assert(validSave(s));
+for(const [key,value] of [['day',0],['hour',24],['minute',-1],['minute','30'],['lastRealDate','2026-02-30']]){
+ const broken=JSON.parse(JSON.stringify(s));broken.calendar[key]=value;assert(!validSave(broken),'Reject malformed calendar '+key);
+}
+for(const [key,value] of [['dueDay',0],['dueHour',24],['penalty',-1],['penalty','100']]){
+ const broken=JSON.parse(JSON.stringify(s));broken.ext.guildContracts.towns[s.townId].offers[0][key]=value;assert(!validSave(broken),'Reject malformed contract '+key);
+}
+const oldCalendarSave=JSON.parse(JSON.stringify(s));delete oldCalendarSave.calendar;
+assert(validSave(oldCalendarSave),'Pre-calendar saves remain compatible');
+console.log('PASS: Stage 17 pending report, deadline rewards, backward clock and save validation boundaries.');
+
 `);

@@ -8,7 +8,7 @@ function reset(){stopAll();s=fresh();notice='';render();}
 reset();assert(validSave(s));assert(DATA.maps.length>=10);assert(Object.keys(DATA.skills).length>=100);assert.equal(Object.values(DATA.jobs).filter(j=>j.base).length,5);
 for(const m of DATA.maps){assert(m.enemies.every(id=>DATA.enemies.some(e=>e.id===id)));assert(m.materials.every(id=>DATA.materials[id]));const f=makeFloor(m,123,1);assert.deepStrictEqual(f.map,makeFloor(m,123,1).map);}
 for(const id of ['rat','bat'])assert.equal(DATA.enemies.find(e=>e.id===id).drop,null);
-for(const view of ['town','guild','party','forge','rules','supplies','journal','catalog']){s.view=view;render();assert($('app').innerHTML.length>100);}
+for(const view of ['town','atlas','guild','party','forge','rules','supplies','journal','catalog']){s.view=view;render();assert($('app').innerHTML.length>100);}
 openCharacter(1);assert($('character-dialog').open);assert($('character-body').innerHTML.includes('STR'));$('character-dialog').close();
 const hp=s.roster[0].hp;s.roster[0].hp=1;s.gold=0;rest();assert.equal(s.roster[0].hp,1);rest(true);assert(s.debt>0);assert.equal(s.roster[0].hp,stats(s.roster[0]).hp);
 reset();const a=s.roster[0],normal=stats(a),delay=walkDelay();a.sp=0;assert(stats(a).atk<=normal.atk/2);assert(walkDelay()>=delay*2);a.mp=0;assert(!alive().includes(a));s.items.ether=1;useItem('ether',a.id);assert(alive().includes(a));s.items.ration=1;assert(useItem('ration',a.id));assert(a.sp>0);
