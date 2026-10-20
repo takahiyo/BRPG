@@ -30,12 +30,15 @@ python -m http.server 8765 --bind 127.0.0.1
 
 ### 保存と検証（v3エンジン）
 
+画面下の「保存先・Google連携」でローカル保存とGoogleアカウントによるクラウド保存を選択できる。既定はローカル保存。クラウド接続時に読み込み／現在の冒険の送信を確認し、別端末との更新競合は自動上書きしない。再読み込み後は端末の控えから再開し、クラウド利用時は再ログインして接続する。クラウドの利用にはGoogle OAuth設定とCloudflare Worker/D1が必要。構成・設定・未確認事項は [CLOUD_SAVE.md](CLOUD_SAVE.md)。
+
 `ashen-atlas-v3` に自動保存。`ashen-atlas-v2` がある場合は初回に変換し、元キーは残す。v1も上書きしないが、v1からの直接変換は行わない。破損した保存は別キーへ退避し新規開始。再読み込み時に自動探索は停止状態になる。保存はブラウザ・オリジンごとに別で、localhostと127.0.0.1は異なる。
 
 ```powershell
 node test.cjs
 node test-regression.cjs
 node test-overhaul.cjs
+node test-save-manager.cjs
 ```
 
 自動検証の保証範囲と残課題・今後の統合計画は [DEVELOPMENT.md](DEVELOPMENT.md)。引き継ぎは [AGENTS.md](AGENTS.md) と [HANDOFF.md](HANDOFF.md) から開始。原案整理は [WORLD_AND_DESIGN.md](WORLD_AND_DESIGN.md)、追加職業・ステータス案は [CHARACTER_SYSTEM.md](CHARACTER_SYSTEM.md)、v3データ一覧は [CONTENT_CATALOG.md](CONTENT_CATALOG.md)。

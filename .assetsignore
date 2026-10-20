@@ -1,0 +1,16 @@
+.git/**
+.codex/**
+.agents/**
+.aws/**
+.env*
+.dev.vars*
+.wrangler/**
+node_modules/**
+worker.js
+wrangler.toml
+migrations/**
+scripts/**
+skills/**
+test*.cjs
+*.md
+*.tmp

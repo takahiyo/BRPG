@@ -3,3 +3,6 @@
 Thumbs.db
 __pycache__/
 *.py[cod]
+.dev.vars*
+.env*
+.wrangler/
