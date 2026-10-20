@@ -1,6 +1,6 @@
 'use strict';
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
-const files=['data.js','world-data.js','game.js','screens.js','systems.js'];
+const files=['data.js','world-data.js','catalog-data.js','game.js','screens.js','systems.js'];
 function harness(initial={}){const store=new Map(Object.entries(initial)),els=new Map(),timers=new Map();let next=1;const noop=()=>{},ctx=new Proxy({createRadialGradient:()=>({addColorStop:noop})},{get:(t,k)=>t[k]||noop});function el(id){if(!els.has(id))els.set(id,{style:{},dataset:{},value:'1',textContent:'',innerHTML:'',open:false,tagName:'DIV',getContext:()=>ctx,showModal(){this.open=true},close(){this.open=false}});return els.get(id);}const box={console,Date,Math,URL,structuredClone,confirm:()=>true,setInterval:(f,ms)=>{const id=next++;timers.set(id,{f,ms});return id},clearInterval:id=>timers.delete(id),document:{getElementById:el,addEventListener:noop},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},assert};vm.createContext(box);for(const f of files)vm.runInContext(fs.readFileSync(__dirname+'/'+f,'utf8'),box,{filename:f});return{box,store,timers,run:code=>vm.runInContext(code,box,{timeout:20000})};}
 if(require.main!==module)module.exports={harness};else{
 const h=harness({'ashen-atlas-v1':'preserve'});h.run(`

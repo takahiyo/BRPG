@@ -1,19 +1,24 @@
-# 灰灯の迷宮 / ASHEN ATLAS
+# 灰灯の迷宮 / ASHEN ATLAS (BRPG)
 
-依存ライブラリなしのブラウザRPG試作 v3。Obsidian原案をもとに、6人パーティー・ランダム遭遇・コマンド戦闘・素材加工・段階的な自動化を実装。
+依存ライブラリなしのブラウザRPG試作 v3 と、今後の拡張に向けた創作データ・システム設計辞典（全1,765項目＋各種ルール・検証スクリプト）を統合したリポジトリ。
 
-## 起動
+---
+
+## 1. ブラウザゲーム試作 v3（現行プレイアブル版）
+
+Obsidian原案をもとに、6人パーティー・ランダム遭遇・コマンド戦闘・素材加工・段階的な自動化を実装。
+
+### 起動
 
 `index.html` をブラウザで開くか、PowerShellで次を実行する。
 
 ```powershell
-Set-Location -LiteralPath 'C:\TEMP\GitHub\BRPG'
 python -m http.server 8765 --bind 127.0.0.1
 ```
 
 [プレイ画面](http://127.0.0.1:8765/)。既に起動している場合、サーバーの再起動は不要。ブラウザの再読み込みで変更を反映する。
 
-## 基本操作
+### 基本操作
 
 - 街の「地図と依頼」で18地域から目的地を選択。最初はLv1の林縁。依頼・素材・敵・品質を確認して出発。
 - 矢印/WASDまたは地図の矢印で歩行。ランダムで遭遇し、地図横で全行動を選び「ターン実行」。名前を押すと詳細ステータス。
@@ -23,13 +28,76 @@ python -m http.server 8765 --bind 127.0.0.1
 - 採集と戦利品は別。素材64種、付呪18種。工房で加工・品質・装備先を選ぶ。高品質ほど費用と必要素材品質が上がる。
 - 敵手帳は遭遇・討伐で数値や弱点が判明。アドレスからLv80〜300の街と探索地を発見し、高級工房や拠点購入を目指せる。
 
-## 保存と検証
+### 保存と検証（v3エンジン）
 
 `ashen-atlas-v3` に自動保存。`ashen-atlas-v2` がある場合は初回に変換し、元キーは残す。v1も上書きしないが、v1からの直接変換は行わない。破損した保存は別キーへ退避し新規開始。再読み込み時に自動探索は停止状態になる。保存はブラウザ・オリジンごとに別で、localhostと127.0.0.1は異なる。
 
 ```powershell
-Set-Location -LiteralPath 'C:\TEMP\GitHub\BRPG'
 node test.cjs
+node test-regression.cjs
 ```
 
-自動検証の保証範囲と残課題は [DEVELOPMENT.md](DEVELOPMENT.md)。引き継ぎは [AGENTS.md](AGENTS.md) から開始。原案整理は [WORLD_AND_DESIGN.md](WORLD_AND_DESIGN.md)、追加職業・ステータス案は [CHARACTER_SYSTEM.md](CHARACTER_SYSTEM.md)、データ一覧は [CONTENT_CATALOG.md](CONTENT_CATALOG.md)。
+自動検証の保証範囲と残課題・今後の統合計画は [DEVELOPMENT.md](DEVELOPMENT.md)。引き継ぎは [AGENTS.md](AGENTS.md) から開始。原案整理は [WORLD_AND_DESIGN.md](WORLD_AND_DESIGN.md)、追加職業・ステータス案は [CHARACTER_SYSTEM.md](CHARACTER_SYSTEM.md)、v3データ一覧は [CONTENT_CATALOG.md](CONTENT_CATALOG.md)。
+
+---
+
+## 2. 拡張用創作データと次期システム案（`docs/`・`scripts/`）
+
+v3ゲームシステムを今後LV1〜300規模へ本格拡張するための大規模辞典・システム仕様・Python検証スクリプト群。
+
+### 創作データとシステム案
+
+- [全資料の索引](docs/創作データ索引.md)
+- [クラフトシステム](docs/crafting/クラフトシステム設計.md)：手工・鍛冶・魔法・機械・精密加工、熟練による魔力消費と残留の変化
+- [技術発見と進行](docs/crafting/技術発見と進行設計.md)／[加工工程](docs/crafting/加工工程プロファイル.md)／[素材加工特性265件](docs/crafting/素材加工特性.md)／[加工品の方向性540件](docs/crafting/加工品クラフト方向性.md)
+- [クラフトの計算例](docs/crafting/クラフト検証例.md)
+- [自動探索](docs/exploration/自動探索システム設計.md)／[40行動・39手引書](docs/exploration/探索行動と手引書辞典.md)／[探索レベルデザイン](docs/exploration/探索レベルデザイン.md)
+- [職業・スキルの運用](docs/jobs/職業とスキルの運用規則.md)／職業300件：[冒険と戦闘](docs/jobs/職業辞典_冒険と戦闘.md)・[生活と奇想](docs/jobs/職業辞典_生活と奇想.md)
+- スキル180件：[冒険と戦闘](docs/jobs/スキル辞典_冒険と戦闘.md)・[生活と奇想](docs/jobs/スキル辞典_生活と奇想.md)
+
+既存1,765項目のフレーバーは索引から参照。`docs/` 内の自動探索40行動・職業300件・5経路クラフトは次期拡張用の仕様・辞典であり、v3エンジン（`game.js` / `systems.js`）への段階的な統合を計画している。
+
+主部材クラフトの判定例（未発見技術・設備不足も列挙する）：
+
+```powershell
+python scripts/evaluate_craft.py --material S0001 --product P0331 --route H --skill 1 --tech K01 --equipment 手工具,組立台,木工刃 --recipe-known
+```
+
+### 共通LVとモンスター
+
+全体をLV1〜300で扱うための仮配置。モンスターは脅威度LV、素材・加工品・称号は適正LV範囲を持つ。
+
+- [LV設計ルール](docs/LV設計ルール.md)
+- [モンスター設計ルール・30LV刻みの基準](docs/monsters/モンスター設計ルール.md)
+- [基礎モンスター：LV1〜150](docs/monsters/モンスター辞典_LV001-150.md)／[LV151〜300](docs/monsters/モンスター辞典_LV151-300.md)：合計400件
+- [モンスター称号：160件](docs/monsters/モンスター称号辞典.md)
+- [名前・脅威度LVの生成例：1200件](docs/monsters/モンスター生成例1200.md)
+- [モンスター画像の利用方針](docs/monsters/モンスター画像の利用方針.md)／[アセットシート共通プロンプト](docs/monsters/アセットシート共通プロンプト.md)／[画像生成リスト30枠](docs/monsters/モンスター画像生成リスト_30枠.md)
+- [素材のカテゴリ・適正LV：265件](docs/materials/素材LV辞典.md)
+
+```powershell
+python scripts/generate_monster_names.py --min-level 31 --max-level 60 --count 40 --seed 19
+python scripts/generate_monster_names.py --monster コボルト --title ジェネラル --count 1
+```
+
+### アイテム名の候補
+
+称号＋素材＋加工品名で、装備と交易品の名前を作るための資料。
+
+- [命名ルール](docs/items/アイテム命名ルール.md)
+- [称号辞典](docs/items/称号辞典.md)（400件）
+- [加工品名辞典](docs/items/加工品名辞典.md)（540件）
+- [カテゴリ・適正LVの照合規則](docs/items/アイテムカテゴリ規則.md)
+- [組合せ例](docs/items/アイテム名の組合せ例.md)
+
+名前候補の抽選例（Python 3、追加ライブラリ不要）：
+
+```powershell
+python scripts/generate_item_names.py --material 鋼 --product 槍 --level 30 --count 20 --seed 19
+```
+
+### 創作データ・スクリプトの検証
+
+```powershell
+python -m unittest discover -s scripts -p "*_test_*.py" -v
+```

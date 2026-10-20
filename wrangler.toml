@@ -1,0 +1,6 @@
+name = "brpg"
+compatibility_date = "2026-10-20"
+
+[assets]
+directory = "."
+binding = "ASSETS"
