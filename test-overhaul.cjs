@@ -437,4 +437,101 @@ function runSimulatedPlaythrough(){
 }
 const simResult=runSimulatedPlaythrough();
 console.log('PASS: Stage 11-14 multi-enchant supremacy, annealing, traversal gimmicks, cataclysm (404), and simulated playthrough:',simResult);
+
+// Stage 15: Quest 1-limit, Always-available special contracts, Deadlines & Fines, Calendar Time Advance, Job Traits Display
+s=fresh();s.gold=50000;render();
+
+// 1. Job traits display on character screen and party screen
+assert.equal(jobTraitInfo('explorer').name, '探索指導');
+assert.equal(jobTraitInfo('tactician').name, '戦術指揮');
+assert.equal(jobTraitInfo('scout').name, '罠感知・解除');
+openCharacter(3); // Hero 3 is explorer
+const expCharHtml = $('character-body').innerHTML;
+assert(expCharHtml.includes('【ジョブ特性】') && expCharHtml.includes('探索指導'), 'Character screen displays job trait for explorer');
+$('character-dialog').close();
+openCharacter(4); // Hero 4 is tactician
+const tacCharHtml = $('character-body').innerHTML;
+assert(tacCharHtml.includes('【ジョブ特性】') && tacCharHtml.includes('戦術指揮'), 'Character screen displays job trait for tactician');
+$('character-dialog').close();
+const pScreenHtml = partyScreen();
+assert(pScreenHtml.includes('探索指導') && pScreenHtml.includes('戦術指揮'), 'Party screen displays job trait chips on hero cards');
+
+// 2. Calendar and Time Advance (Resting, Traveling, Stepping, Real Midnight)
+const cal0 = BRPGFacilities.getCalendar();
+assert(cal0.day >= 1 && cal0.hour === 8, 'Initial calendar starts at day 1, 8:00 AM');
+const timeStr0 = BRPGFacilities.formatCalendar(cal0);
+assert(timeStr0.includes('冒険 1日目 08:00'), 'Calendar format outputs expected string');
+render();
+assert($('summary').innerHTML.includes('冒険 1日目 08:00'), 'Summary header shows adventure date and time');
+
+// Rest advances time to next morning (approx 24h from 8am to next 8am)
+const dayBeforeRest = cal0.day;
+rest();
+assert.equal(cal0.day, dayBeforeRest + 1, 'Resting at inn advances calendar to next day 8:00 AM');
+assert.equal(cal0.hour, 8, 'Resting sets time to 8:00 AM');
+
+// Enter map advances travel time
+const hourBeforeEnter = cal0.hour;
+enterMap('forest_edge');
+assert(cal0.hour > hourBeforeEnter || cal0.day > dayBeforeRest + 1, 'Entering dungeon advances travel time');
+
+// Stepping in dungeon advances walking time
+const minBeforeStep = cal0.minute;
+step(1, 0, true);
+assert(cal0.minute !== minBeforeStep, 'Taking steps advances time');
+BRPGFacilities.instantReturn();
+
+// Real Midnight crossing detection
+cal0.lastRealDate = '2026-01-01'; // simulate previous real session on an older date
+BRPGFacilities.checkRealMidnight();
+assert(cal0.day > dayBeforeRest + 2, 'Crossing real midnight advances game calendar significantly');
+assert.equal(cal0.hour, 8, 'Real midnight advance resets time to morning 8:00');
+
+// 3. Quest: 1-Limit Rule
+s.gold = 50000;
+const allContracts = BRPGFacilities.contracts();
+const rContract = allContracts.find(c => c.kind === 'resource');
+assert(rContract, 'Board has resource contract');
+BRPGFacilities.acceptContract(rContract.id);
+assert(BRPGFacilities.getActiveQuest(), 'Active quest is recorded');
+assert.equal(BRPGFacilities.getActiveQuest().id, rContract.id, 'Active quest matches accepted contract');
+
+// Attempting to accept a second contract must be blocked
+const secondContract = allContracts.find(c => c.id !== rContract.id);
+const noticeBefore = notice;
+BRPGFacilities.acceptContract(secondContract.id);
+assert(notice.includes('受注できる依頼はパーティー全体で1件のみ'), 'Second contract acceptance is blocked by 1-quest limit');
+
+// Map quest acceptance must also be blocked while a contract is active
+acceptQuest('forest_edge');
+assert(notice.includes('受注できる依頼はパーティー全体で1件のみ'), 'Map quest acceptance is blocked by 1-quest limit');
+
+// Abandoning contract frees up the quest slot
+BRPGFacilities.abandonContract(rContract.id);
+assert.equal(BRPGFacilities.getActiveQuest(), null, 'Abandoning contract frees active quest slot');
+
+// 4. Special/Non-permanent Contracts: Always available, with Deadlines & Fines
+const specials = BRPGFacilities.contracts().filter(c => c.kind === 'lucrative' || c.kind === 'emergency');
+assert(specials.length >= 2, 'Guild board always provides multiple special/non-permanent offers');
+const targetSpecial = specials[0];
+assert(targetSpecial.dueDay > cal0.day, 'Special contract has a future deadline day');
+assert(targetSpecial.penalty > 0, 'Special contract has a failure penalty fine');
+
+// Accept the special contract
+BRPGFacilities.acceptContract(targetSpecial.id);
+assert.equal(BRPGFacilities.getActiveQuest().id, targetSpecial.id, 'Accepted special contract');
+
+// Advance time past the deadline -> Fails and incurs fine!
+const goldBeforeFine = s.gold;
+BRPGFacilities.advanceTime((targetSpecial.dueDay - cal0.day + 1) * 24 * 60, 'Time skip to test deadline');
+assert.equal(BRPGFacilities.getActiveQuest(), null, 'Expired special contract fails and active slot is cleared');
+assert(s.gold < goldBeforeFine, 'Penalty fine was deducted from gold on deadline failure');
+assert(s.log.some(l => l.includes('依頼期限切れ') && l.includes('違約金')), 'Log notifies player of deadline failure and fine');
+
+// Verify that guild board automatically replenished new special offers
+const newSpecials = BRPGFacilities.contracts().filter(c => c.kind === 'lucrative' || c.kind === 'emergency');
+assert(newSpecials.length >= 2, 'Guild board replenished fresh special offers after expiration');
+assert(validSave(s), 'Save file remains valid after calendar and contract operations');
+console.log('PASS: Stage 15 quest 1-limit, always-replenished special contracts, deadlines/fines, calendar time advance, and job traits display.');
+
 `);

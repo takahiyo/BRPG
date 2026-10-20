@@ -147,13 +147,64 @@
   }
   function statusLabel(h) { return h.hp <= 0 ? '死亡' : h.mp <= 0 ? '気絶' : h.sp === 0 ? '疲弊' : h.poison ? '毒' : '正常'; }
 
+  const JOB_TRAITS = {
+    warrior: { name: '剛腕武勇', tag: '前衛物理', desc: '高い物理攻撃力と頑丈さ。重い武器や防具の扱いに長ける。' },
+    knight: { name: '鉄壁守護', tag: '防衛・庇い', desc: '前衛の防御要請に応え、高い防御力で仲間を庇い被害を軽減する。' },
+    mage: { name: '元素魔導', tag: '属性攻撃', desc: '炎・氷などの攻撃魔法を駆使し、敵の属性弱点を突いて大打撃を与える。' },
+    priest: { name: '神聖加護', tag: '治癒・浄化', desc: '傷ついた仲間を回復し、毒を浄化する神聖術を操る。' },
+    scout: { name: '罠感知・解除', tag: '隠密・観測', desc: '迷宮の仕掛け罠を事前に感知・解除。敵のLIFEや脅威度Lvを観測する。' },
+    ranger: { name: '魔物観測', tag: '遠隔射撃', desc: '敵のLIFEや弱点を観測し、遠距離から安全に射撃を行う。' },
+    alchemist: { name: '工房錬成', tag: '制作・調合', desc: '街の工房で自ら武具を自作・修理し、薬草や未活用素材の調合を行える。' },
+    tactician: { name: '戦術指揮', tag: '自動戦闘支援', desc: '同行中、行動書購入前でも自動戦闘で負傷者回復・解毒・弱点狙いを指揮。敵LIFE/Lvを観測。' },
+    explorer: { name: '探索指導', tag: '自動歩行・帰還', desc: '同行中、連続自動探索が可能。非戦闘時にSP3で即時帰還。敵観測や地形踏破を支援し行軍SPを軽減。' },
+    monk: { name: '気功連撃', tag: '格闘・自己治癒', desc: '拳による連撃と練気による自己治癒。' },
+    bard: { name: '戦歌鼓舞', tag: '全体強化', desc: '戦歌によって仲間全員の攻撃力を高め、士気を鼓舞する。' },
+    druid: { name: '自然調和', tag: '全体治癒・毒', desc: '大自然の力で仲間全員を癒やし、毒胞子で敵を蝕む。' },
+    elementalist: { name: '精霊招来', tag: '広域魔法', desc: '雷撃や吹雪など、敵全体に甚大な魔力ダメージを与える。' },
+    paladin: { name: '聖天守護', tag: '攻防一体', desc: '光の打撃と単体治癒、聖壁による強固な護りを併せ持つ。' },
+    warlock: { name: '暗黒呪術', tag: '呪詛・吸命', desc: '敵の生命力を吸い取って自らの傷を癒やす深淵の呪術。' },
+    lancer: { name: '突撃貫通', tag: '装甲破砕', desc: '重装甲の敵をも貫く強烈な槍の一撃。' },
+    swordsman: { name: '連環剣技', tag: '連撃・受け流し', desc: '流れるような連続剣技で敵を斬り伏せる。' },
+    pyromancer: { name: '劫火極意', tag: '超炎熱', desc: '炎属性の破壊力を極限まで高めた火炎術。' },
+    cryomancer: { name: '凍気封縛', tag: '氷結・装甲脆化', desc: '敵を凍てつかせて動きを封じ、装甲を砕く。' },
+    stormcaller: { name: '天雷召喚', tag: '高速掃討', desc: '目にも留まらぬ速さで雷雲を呼び、敵を薙ぎ払う。' },
+    duelist: { name: '決闘見切', tag: '急所突き', desc: '敵の太刀筋を見切り、反撃と急所への刺突を繰り出す。' },
+    beastmaster: { name: '獣群指揮', tag: '群勢・野生', desc: '野性の勘で危険を察知し、群れの号令で総攻撃を仕掛ける。' },
+    herbalist: { name: '野草調剤', tag: '薬草治癒', desc: '採取した薬草の知識で仲間を癒やし、工房での調合を行う。' },
+    exorcist: { name: '破邪退散', tag: '対霊特効', desc: 'アンデッドや霊体の魔物を光で払い、全体を清める。' },
+    shadowdancer: { name: '幻惑影歩', tag: '影奇襲', desc: '影に身を潜めて敵を翻弄し、致命的な一撃を刺す。' },
+    runesmith: { name: '刻印鍛冶', tag: 'ルーン防壁', desc: '古代の刻印を操り、工房自作や属性防壁を展開する。' },
+    fortress: { name: '要塞城壁', tag: '絶対防壁', desc: '動かぬ要塞のごとき重装甲で敵の猛攻を一身に受け止める。' },
+    jester: { name: '道化翻弄', tag: '奇策・歓喜', desc: 'おどけた動きで敵の意表を突き、仲間の笑いを力に変える。' },
+    whipmaster: { name: '操鞭拘束', tag: '絡め捕り', desc: '自在にしなる鞭で敵全体を拘束し、行動を妨害する。' },
+    queen: { name: '絶対服従', tag: '強権号令', desc: '絶対の号令で味方の力を引き出し、敵を屈服させる。' },
+    merchant: { name: '交易交渉', tag: '売買優遇', desc: '商才により道具屋での仕入れ値を割引(-6%)し、売却額を上乗せ(+12%)する。' },
+    samurai: { name: '居合一閃', tag: '精神集中', desc: '精神を研ぎ澄まし、一撃必殺の刃を抜く。' },
+    ninja: { name: '忍法空蝉', tag: '身代わり', desc: '神速の身のこなしと空蝉の術で攻撃を回避する。' }
+  };
+
+  function jobTraitInfo(jobId) {
+    if (JOB_TRAITS[jobId]) return JOB_TRAITS[jobId];
+    const catJ = DATA.catalog?.jobs?.[jobId];
+    if (catJ) {
+      return {
+        name: `${catJ.family || '職能'}の心得`,
+        tag: catJ.role || '専門職',
+        desc: `【${catJ.family}系】${catJ.desc || '専門的な技能と知見によりパーティーの活動を支える。'}`
+      };
+    }
+    const j = DATA.jobs[jobId];
+    return { name: '専門技術', tag: j?.name || '職業', desc: j?.skillDesc || '鍛錬された技と能力で戦いを支える。' };
+  }
+  globalThis.jobTraitInfo = jobTraitInfo;
+
   partyScreen = function() {
     const pr = partyPresets();
     return title('COMPANIONS', '仲間と隊列', 'ステータスを押すと、能力・装備・成長・体得した技を確認できます。') +
       `<section class="panel"><div class="row between"><h2>編成セット</h2><small>参加 ${s.active.length} / 6人 · 登録 ${s.roster.length} / 16人</small></div><div class="actions">${[1, 2, 3].map(n => `${btn('セット' + n + 'に保存', 'save-preset', `data-slot="${n}" ${s.dungeon || s.battle ? 'disabled' : ''}`)}${btn('セット' + n + 'を呼出' + (pr[n] ? ' (' + pr[n].active.length + '人)' : ' (空)'), 'load-preset', `data-slot="${n}" ${!pr[n] || s.dungeon || s.battle ? 'disabled' : ''}`)}`).join('')}</div></section>
       <div class="grid three section-space">${s.roster.map(h => {
         initialize(h); const j = DATA.jobs[h.job], active = s.active.includes(h.id), st = stats(h);
-        return `<article class="card party-status ${active ? '' : 'waiting'}"><button class="party-status-open" data-action="character" data-id="${h.id}" aria-label="${esc(h.name)}のステータスを開く"><span class="row between"><b>${esc(h.name)}</b><span class="gold">Lv.${h.lv}</span></span><span>${esc(j.name)} · ${GENDERS[h.gender]} · ${h.row === 'front' ? '前衛' : '後衛'}</span><span>LIFE ${h.hp}/${st.hp} · MANA ${h.mp}/${st.mp} · SP ${h.sp}/${maxSP(h)}</span><span>攻 ${st.atk} · 防 ${st.def} · 魔 ${st.mag} · 速 ${st.speed}</span><span class="muted">${active ? '探索参加中' : '街で待機'} · ${statusLabel(h)}${freePoints(h) ? ' · 成長 ' + freePoints(h) + ' Pt' : ''}　詳細 ↗</span></button><div class="actions">${btn(active ? '街で待機' : '探索に参加', 'member', `data-id="${h.id}" ${s.dungeon || s.battle || active && s.active.length === 1 ? 'disabled' : ''}`)}${btn(h.row === 'front' ? '後衛へ' : '前衛へ', 'row', `data-id="${h.id}" ${s.dungeon || s.battle ? 'disabled' : ''}`)}</div></article>`;
+        return `<article class="card party-status ${active ? '' : 'waiting'}"><button class="party-status-open" data-action="character" data-id="${h.id}" aria-label="${esc(h.name)}のステータスを開く"><span class="row between"><b>${esc(h.name)}</b><span class="gold">Lv.${h.lv}</span></span><span>${esc(j.name)} · ${GENDERS[h.gender]} · ${h.row === 'front' ? '前衛' : '後衛'} <span class="chip" style="font-size:9px;padding:1px 5px">${esc(jobTraitInfo(h.job).name)}</span></span><span>LIFE ${h.hp}/${st.hp} · MANA ${h.mp}/${st.mp} · SP ${h.sp}/${maxSP(h)}</span><span>攻 ${st.atk} · 防 ${st.def} · 魔 ${st.mag} · 速 ${st.speed}</span><span class="muted">${active ? '探索参加中' : '街で待機'} · ${statusLabel(h)}${freePoints(h) ? ' · 成長 ' + freePoints(h) + ' Pt' : ''}　詳細 ↗</span></button><div class="actions">${btn(active ? '街で待機' : '探索に参加', 'member', `data-id="${h.id}" ${s.dungeon || s.battle || active && s.active.length === 1 ? 'disabled' : ''}`)}${btn(h.row === 'front' ? '後衛へ' : '前衛へ', 'row', `data-id="${h.id}" ${s.dungeon || s.battle ? 'disabled' : ''}`)}</div></article>`;
       }).join('')}</div>`;
   };
 
@@ -206,7 +257,7 @@
       const behNames = (ck.behaviors || []).map(bid => DATA.catalog?.behaviors?.[bid]?.name || bid).join('・');
       return `<article class="skill-line ${unlocked ? '' : 'locked'}"><div class="row between"><b>${esc(ck.name)} <span class="chip">${esc(ck.kind)}</span></b><small>${unlocked ? '体得済み' : '要 Lv.' + ck.minLv}${behNames ? ' · 行動：' + esc(behNames) : ''}</small></div><p>${esc(ck.effect)}${ck.limit ? ` <small class="muted">（${esc(ck.limit)}）</small>` : ''}</p></article>`;
     }).join('')}</div>` : '';
-    return `<div class="character-pager">${btn('← 前の仲間', 'character-prev', `data-id="${h.id}" ${s.roster.length < 2 ? 'disabled' : ''}`)}<span>${index + 1} / ${s.roster.length}</span>${btn('次の仲間 →', 'character-next', `data-id="${h.id}" ${s.roster.length < 2 ? 'disabled' : ''}`)}</div><div class="hero-top"><div class="avatar">${typeof jobCrestSVG === 'function' ? jobCrestSVG(h.job) : j.icon}</div><div><p class="eyebrow">CHARACTER RECORD</p><h2>${esc(h.name)} <span class="gold">Lv.${h.lv}</span></h2><small>${esc(j.name)} / ${GENDERS[h.gender]} / ${h.row === 'front' ? '前衛' : '後衛'} / ${s.active.includes(h.id) ? '探索参加中' : '街で待機'}</small></div></div><div class="character-grid"><section class="character-section"><h3>状態</h3>${bars(h)}<p>${statusLabel(h)} · 経験値 ${h.xp} / ${xpNeeded(h)}</p><dl class="stat-grid">${Object.entries(DERIVED).map(([k, name]) => `<div><dt>${name}</dt><dd>${changeValue(comparison.before.stats[k], comparison.after.stats[k])}</dd></div>`).join('')}</dl></section><section class="character-section">${growthSection(h, comparison)}</section><section class="character-section"><h3>装備</h3>${equipmentSection(h)}</section><section class="character-section"><h3>体得した技 <small>${learned.length}種</small></h3><div class="learned-skills">${learned.map(sk => `<article class="skill-line"><div class="row between"><b>${esc(sk.name)}</b><small>MANA ${sk.mp} / SP ${sk.sp || 0}</small></div><p>${esc(skillDescription(sk.desc) || '鍛錬によって体得した技。')}</p></article>`).join('') || '<p class="muted">まだ体得した戦闘技はありません。</p>'}${catSection}</div></section></div>${s.battle && h.hp > 0 && s.active.includes(h.id) ? btn('この仲間に指示する', 'actor-close', `data-id="${h.id}"`, 'primary wide') : ''}`;
+    return `<div class="character-pager">${btn('← 前の仲間', 'character-prev', `data-id="${h.id}" ${s.roster.length < 2 ? 'disabled' : ''}`)}<span>${index + 1} / ${s.roster.length}</span>${btn('次の仲間 →', 'character-next', `data-id="${h.id}" ${s.roster.length < 2 ? 'disabled' : ''}`)}</div><div class="hero-top"><div class="avatar">${typeof jobCrestSVG === 'function' ? jobCrestSVG(h.job) : j.icon}</div><div><p class="eyebrow">CHARACTER RECORD</p><h2>${esc(h.name)} <span class="gold">Lv.${h.lv}</span></h2><small>${esc(j.name)} / ${GENDERS[h.gender]} / ${h.row === 'front' ? '前衛' : '後衛'} / ${s.active.includes(h.id) ? '探索参加中' : '街で待機'}</small></div></div><div class="quest-box" style="margin:-4px 0 16px;border-left:3px solid var(--gold)"><div class="row between"><b>【ジョブ特性】${esc(jobTraitInfo(h.job).name)}</b><span class="chip">${esc(jobTraitInfo(h.job).tag)}</span></div><p class="muted" style="margin:4px 0 0">${esc(jobTraitInfo(h.job).desc)}</p></div><div class="character-grid"><section class="character-section"><h3>状態</h3>${bars(h)}<p>${statusLabel(h)} · 経験値 ${h.xp} / ${xpNeeded(h)}</p><dl class="stat-grid">${Object.entries(DERIVED).map(([k, name]) => `<div><dt>${name}</dt><dd>${changeValue(comparison.before.stats[k], comparison.after.stats[k])}</dd></div>`).join('')}</dl></section><section class="character-section">${growthSection(h, comparison)}</section><section class="character-section"><h3>装備</h3>${equipmentSection(h)}</section><section class="character-section"><h3>体得した技 <small>${learned.length}種</small></h3><div class="learned-skills">${learned.map(sk => `<article class="skill-line"><div class="row between"><b>${esc(sk.name)}</b><small>MANA ${sk.mp} / SP ${sk.sp || 0}</small></div><p>${esc(skillDescription(sk.desc) || '鍛錬によって体得した技。')}</p></article>`).join('') || '<p class="muted">まだ体得した戦闘技はありません。</p>'}${catSection}</div></section></div>${s.battle && h.hp > 0 && s.active.includes(h.id) ? btn('この仲間に指示する', 'actor-close', `data-id="${h.id}"`, 'primary wide') : ''}`;
   };
   function refreshDetail() {
     const dialog = $('character-dialog'), h = s.roster.find(a => a.id === s.selection);

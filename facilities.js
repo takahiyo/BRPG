@@ -139,6 +139,9 @@
       if(s.debt+gap>limit){tell('宿泊立替の上限です。依頼や素材売却で返済できます。');return render();}
       s.debt+=gap;s.gold=0;
     }else s.gold-=cost;
+    const cal=getCalendar();
+    const advanceM = cal.hour < 8 ? (8 - cal.hour) * 60 - cal.minute : (24 - cal.hour + 8) * 60 - cal.minute;
+    advanceTime(Math.max(480, advanceM), '宿泊');
     for(const h of party().filter(h=>h.hp>0)){h.hp=stats(h).hp;h.mp=stats(h).mp;h.sp=maxSP(h);}
     tell('宿泊料 '+cost+' Gで休息した。死亡・毒は神殿で治療できます。');render();
   };
@@ -209,11 +212,189 @@
     if(s.townId!=='ash')return (s.addressMaps||[]).filter(m=>m.townId===s.townId);
     return DATA.maps.filter((m,i)=>i<2||m.level<=max+12||(e.visitedMaps||[]).includes(m.id)||s.quests[m.id]?.accepted||s.quests[m.id]?.completed);
   }
+
+  function currentRealDateStr() {
+    try {
+      const d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    } catch {
+      return '2026-10-20';
+    }
+  }
+  function getCalendar() {
+    s.calendar ??= { day: 1, hour: 8, minute: 0, lastRealDate: currentRealDateStr() };
+    if (!s.calendar.lastRealDate) s.calendar.lastRealDate = currentRealDateStr();
+    return s.calendar;
+  }
+  function formatCalendar(cal = getCalendar()) {
+    const h = String(cal.hour).padStart(2, '0');
+    const m = String(cal.minute).padStart(2, '0');
+    return `冒険 ${cal.day}日目 ${h}:${m}`;
+  }
+  function advanceTime(minutes, reason = '') {
+    const cal = getCalendar();
+    cal.minute += minutes;
+    if (cal.minute >= 60) {
+      cal.hour += Math.floor(cal.minute / 60);
+      cal.minute %= 60;
+    }
+    if (cal.hour >= 24) {
+      cal.day += Math.floor(cal.hour / 24);
+      cal.hour %= 24;
+    }
+    checkContractDeadlines();
+  }
+  function checkRealMidnight() {
+    const cal = getCalendar();
+    const today = currentRealDateStr();
+    if (cal.lastRealDate && cal.lastRealDate !== today) {
+      let daysPassed = 1;
+      try {
+        const prev = new Date(cal.lastRealDate).getTime();
+        const curr = new Date(today).getTime();
+        const diff = Math.floor((curr - prev) / (1000 * 60 * 60 * 24));
+        if (diff > 0) daysPassed = diff;
+      } catch {}
+      cal.day += daysPassed;
+      cal.hour = 8;
+      cal.minute = 0;
+      cal.lastRealDate = today;
+      note(`🌅 現実の日付が変わり（0時通過）、街の時間が進みました。（冒険 ${cal.day}日目 朝）`);
+      checkContractDeadlines();
+    }
+  }
+  function getActiveQuest() {
+    const all = state().guildContracts;
+    for (const [townId, board] of Object.entries(all.towns || {})) {
+      for (const [id, p] of Object.entries(board.progress || {})) {
+        if (p?.status === 'accepted') {
+          const q = (board.offers || []).find(x => x.id === id) || contracts().find(x => x.id === id) || { id, name: 'ギルド依頼' };
+          return { source: 'contract', townId, id, name: q.name, q };
+        }
+      }
+    }
+    for (const [mapId, qState] of Object.entries(s.quests || {})) {
+      if (qState?.accepted && !qState.completed) {
+        const m = worldMap(mapId);
+        return { source: 'mapQuest', mapId, id: mapId, name: m?.quest?.name || `${m?.name || mapId}の納品依頼`, q: m?.quest };
+      }
+    }
+    return null;
+  }
+  function checkContractDeadlines() {
+    const cal = getCalendar();
+    const all = state().guildContracts;
+    for (const [townId, board] of Object.entries(all.towns || {})) {
+      const remainingOffers = [];
+      for (const q of board.offers || []) {
+        const p = board.progress[q.id];
+        const isSpecial = q.kind === 'emergency' || q.kind === 'lucrative';
+        if (!isSpecial) { remainingOffers.push(q); continue; }
+        const hasDue = q.dueDay !== undefined;
+        const isExpired = hasDue && (cal.day > q.dueDay || (cal.day === q.dueDay && cal.hour >= (q.dueHour ?? 18)));
+        if (isExpired) {
+          if (p?.status === 'accepted') {
+            const penalty = q.penalty || Math.ceil(q.reward * 0.35);
+            s.gold -= penalty;
+            if (s.gold < 0) {
+              s.debt = (s.debt || 0) + (-s.gold);
+              s.gold = 0;
+            }
+            tell(`🚨【依頼期限切れ】依頼『${q.name}』は達成期限を過ぎたため失敗扱いとなりました。違約金（罰金）として ${penalty} G が徴収されました。`);
+            delete board.progress[q.id];
+          }
+        } else {
+          remainingOffers.push(q);
+        }
+      }
+      board.offers = remainingOffers;
+    }
+  }
+  function ensureSpecialOffers(townId = s.townId) {
+    const board = townBoard();
+    checkRealMidnight();
+    checkContractDeadlines();
+    const activeSpecial = (board.offers || []).filter(q => q.kind === 'lucrative' || q.kind === 'emergency');
+    if (activeSpecial.length >= 3) return;
+    const maps = knownMaps();
+    if (!maps.length) return;
+    const cal = getCalendar();
+    while ((board.offers || []).filter(q => q.kind === 'lucrative' || q.kind === 'emergency').length < 3) {
+      const m = pick(maps);
+      if (!m) break;
+      const quality = m.quality || Math.min(13, 1 + Math.floor(m.level / 25));
+      const isEmerg = random() < 0.35;
+      if (isEmerg) {
+        const level = Math.min(300, Math.max(m.level + 6, partyLevel() + 6));
+        const id = 'emergency:' + (++state().guildContracts.serial);
+        const reward = Math.ceil((1200 + level * level * 22) * currentTown().price);
+        const dueDays = 3 + Math.floor(random() * 3);
+        board.offers.push({
+          id,
+          kind: 'emergency',
+          name: '緊急：' + m.name + 'の強襲個体討伐',
+          mapId: m.id,
+          level,
+          reward,
+          expires: board.returns + 5,
+          dueDay: cal.day + dueDays,
+          dueHour: 18,
+          penalty: Math.ceil(reward * 0.3)
+        });
+      } else {
+        const material = pick(m.materials) || 'iron';
+        const amount = 4 + Math.floor(random() * 5);
+        const value = DATA.materials[material]?.cost || 10;
+        const id = 'lucrative:' + (++state().guildContracts.serial);
+        const reward = Math.ceil(value * amount * quality * 3.6);
+        const dueDays = 4 + Math.floor(random() * 4);
+        board.offers.push({
+          id,
+          kind: 'lucrative',
+          name: '好条件：' + apparentMaterialName(material) + 'の特注納品',
+          material,
+          amount,
+          quality,
+          mapId: m.id,
+          reward,
+          expires: board.returns + 6,
+          dueDay: cal.day + dueDays,
+          dueHour: 18,
+          penalty: Math.ceil(reward * 0.35)
+        });
+      }
+    }
+  }
+  function abandonContract(id) {
+    if (!townOnly()) return;
+    const board = townBoard();
+    const p = board.progress[id];
+    if (p?.status !== 'accepted') return;
+    const q = contracts().find(x => x.id === id);
+    if (!q) return;
+    if (q.kind === 'lucrative' || q.kind === 'emergency') {
+      const penalty = q.penalty || Math.ceil(q.reward * 0.35);
+      s.gold -= penalty;
+      if (s.gold < 0) {
+        s.debt = (s.debt || 0) + (-s.gold);
+        s.gold = 0;
+      }
+      delete board.progress[id];
+      board.offers = board.offers.filter(x => x.id !== id);
+      tell(`依頼『${q.name}』を破棄しました。違約金として ${penalty} G を支払いました。`);
+    } else {
+      delete board.progress[id];
+      tell(`依頼『${q.name}』を破棄しました。`);
+    }
+    render();
+  }
+
   function townBoard() {
     const all=state().guildContracts;
     return all.towns[s.townId]??={offers:[],progress:{},returns:0};
   }
   function contracts() {
+    ensureSpecialOffers();
     const seen=new Set(),list=[];
     for(const m of knownMaps())for(const material of m.materials||[]){
       if(seen.has(material))continue;seen.add(material);
@@ -246,10 +427,27 @@
   function acceptContract(id) {
     if(!townOnly())return;
     const q=contracts().find(x=>x.id===id);if(!q)return;
+    const active = getActiveQuest();
+    if (active) {
+      tell(`受注できる依頼はパーティー全体で1件のみです。現在の依頼『${active.name}』を達成するか破棄してください。`);
+      return render();
+    }
     const board=townBoard(),p=board.progress[id];
     if(p?.status==='accepted'||p?.status==='ready'||!q.repeat&&p?.status==='completed')return;
     board.progress[id]={status:'accepted',times:p?.times||0};tell(q.name+'を受注した。');render();
   }
+
+  const prevAcceptQuest = acceptQuest;
+  acceptQuest = function(id) {
+    if(!townOnly())return;
+    const active = getActiveQuest();
+    if (active) {
+      tell(`受注できる依頼はパーティー全体で1件のみです。現在の依頼『${active.name}』を達成するか破棄してください。`);
+      return render();
+    }
+    return prevAcceptQuest(id);
+  };
+
   function deliverContract(id) {
     if(!townOnly())return;
     const q=contracts().find(x=>x.id===id),p=townBoard().progress[id];if(!q||!p)return;
@@ -268,12 +466,36 @@
     tell('緊急討伐：'+q.name+'。撤退した場合は、再挑戦できます。');render();
   }
   function contractHTML(q) {
-    const p=townBoard().progress[q.id]||{},emergency=q.kind==='emergency',amount=emergency?0:availableMaterial(q.material,q.quality),accepted=p.status==='accepted',ready=emergency?p.status==='ready':accepted&&amount>=q.amount,done=p.status==='completed';
-    return `<article class="card ${q.kind==='resource'?'':'rarity-legendary'}"><div class="row between"><h3>${esc(q.name)}</h3><span class="chip">${emergency?'高難度・希少':q.repeat?'常設・繰返し可':'期間限定・一回限り'}</span></div><p>${emergency?'強襲個体を討伐 / 脅威度 Lv.'+q.level:esc(apparentMaterialName(q.material))+' Q'+q.quality+'以上 ×'+q.amount+' / 所持 '+amount}</p><p class="gold">報酬 ${q.reward} G</p><p class="muted">${esc(worldMap(q.mapId)?.name||'探索地域')} · ${done?'達成済み '+p.times+'回':ready?'報告可能':accepted?'受注中':'未受注'}</p><div class="actions">${!accepted&&!ready&&(!done||q.repeat)?btn(done?'再受注する':'依頼を受ける','contract-accept',`data-id="${q.id}"`):''}${accepted&&emergency?btn('討伐へ出発','contract-challenge',`data-id="${q.id}"`,'danger'):''}${accepted&&!emergency||ready?btn(emergency?'討伐を報告':'資源を納品','contract-deliver',`data-id="${q.id}" ${ready?'':'disabled'}`,'primary'):''}</div></article>`;
+    const p=townBoard().progress[q.id]||{},emergency=q.kind==='emergency',isSpecial=emergency||q.kind==='lucrative',amount=emergency?0:availableMaterial(q.material,q.quality),accepted=p.status==='accepted',ready=emergency?p.status==='ready':accepted&&amount>=q.amount,done=p.status==='completed';
+    const cal=getCalendar(),active=getActiveQuest();
+    let dueText='';
+    if(isSpecial&&q.dueDay!==undefined){
+      const totalCurH=cal.day*24+cal.hour,totalDueH=q.dueDay*24+(q.dueHour??18),diffH=totalDueH-totalCurH;
+      const remD=Math.max(0,Math.floor(diffH/24)),remH=Math.max(0,diffH%24);
+      dueText=`<p class="muted" style="margin:2px 0 4px">⏱️ 達成期限：冒険 ${q.dueDay}日目 ${q.dueHour??18}:00（残り ${remD}日 ${remH}時間）<br><span class="debt-note">期限切れ失敗時 違約金：${q.penalty||Math.ceil(q.reward*0.35)} G</span></p>`;
+    }
+    const cannotAccept=!accepted&&!ready&&active;
+    return `<article class="card ${q.kind==='resource'?'':emergency?'rarity-legendary':'rarity-magic'}" style="${accepted?'border-color:var(--gold)!important;box-shadow:0 0 10px #d7b77a33':''}"><div class="row between"><h3>${esc(q.name)}</h3><span class="chip">${emergency?'高難度・緊急討伐':isSpecial?'特別・好条件納品':'常設・資源調達'}</span></div><p>${emergency?'強襲個体を討伐 / 脅威度 Lv.'+q.level:esc(apparentMaterialName(q.material))+' Q'+q.quality+'以上 ×'+q.amount+' / 所持 '+amount}</p><p class="gold">報酬 ${q.reward} G</p>${dueText}<p class="muted">${esc(worldMap(q.mapId)?.name||'探索地域')} · ${done?'達成済み '+p.times+'回':ready?'報告可能':accepted?'受託中（進行中）':'未受託'}</p><div class="actions">${!accepted&&!ready&&(!done||q.repeat)?btn(cannotAccept?'別の依頼を受注中':done?'再受注する':'依頼を受ける','contract-accept',`data-id="${q.id}" ${cannotAccept?'disabled':''}`,cannotAccept?'':'primary'):''}${accepted&&emergency?btn('討伐へ出発','contract-challenge',`data-id="${q.id}"`,'danger'):''}${accepted&&!emergency||ready?btn(emergency?'討伐を報告':'資源を納品','contract-deliver',`data-id="${q.id}" ${ready?'':'disabled'}`,'primary'):''}${accepted?btn('依頼を破棄','contract-abandon',`data-id="${q.id}"`):''}</div></article>`;
   }
   const oldGuildScreen=guildScreen;
   guildScreen=function() {
-    return `<section class="panel"><h2>冒険者ギルド・依頼掲示板</h2><p class="muted">資源の調達は何度でも受注できます。探索から生還すると、商隊の好条件依頼や、まれに高報酬の緊急討伐が届きます。受注前の特別依頼は数回の遠征で掲載が終わります。</p></section><div class="grid three section-space">${contracts().map(contractHTML).join('')}</div><hr class="divider">`+oldGuildScreen();
+    ensureSpecialOffers();
+    const active = getActiveQuest();
+    const cal = getCalendar();
+    return `<section class="panel">
+      <div class="row between">
+        <h2>冒険者ギルド・依頼掲示板</h2>
+        <span class="chip gold" style="font-size:12px">📅 ${formatCalendar(cal)}</span>
+      </div>
+      <p class="muted">受託できる依頼はパーティー全体で同時に1件のみです。常設調達のほか、掲示板には商隊の好条件納品や緊急討伐などの非常設依頼が常に掲載されます。非常設依頼には達成期限があり、期限内に達成できなければ失敗扱いとなり違約金（罰金）が発生します。</p>
+      ${active ? `<div class="quest-box" style="margin-top:10px;border-left:3px solid var(--gold)">
+        <div class="row between">
+          <b>📌 現在受託中の依頼：${esc(active.name)}</b>
+          ${btn('依頼を破棄する', 'contract-abandon', `data-id="${active.id}"`)}
+        </div>
+        <small class="muted">※受託中は他の依頼を受けられません。納品・報告して達成するか、破棄してください（非常設依頼の破棄は違約金が発生します）。</small>
+      </div>` : '<div class="quest-box" style="margin-top:10px"><span class="chip">依頼受託枠：空き（1件受託可能）</span></div>'}
+    </section><div class="grid three section-space">${contracts().map(contractHTML).join('')}</div><hr class="divider">`+oldGuildScreen();
   };
 
   rulesScreen=function() {
@@ -377,6 +599,7 @@
     if(d&&sbBefore>2&&(behaviorActive('B09')||behaviorActive('B10')||partyCatalogSkills().some(x=>['SK0001','SK0013','SK0049','SK0052'].includes(x.skill.id)))&&random()<.35){
       d.sinceBattle=Math.max(0,sbBefore-1);
     }
+    advanceTime(5, '歩行');
     const res=oldStep(dx,dy,automatic);
     if(s.dungeon&&s.dungeon===d&&d.x===nx&&d.y===ny){
       const supCount=supportRoleCount();
@@ -430,6 +653,18 @@
     }
     return res;
   };
+
+  const prevEnterMap = enterMap;
+  enterMap = function(id, corpseId = null) {
+    const c = s.corpses.find(x => x.id === corpseId);
+    const m = worldMap(c ? c.floor.mapId : id);
+    if (m) {
+      const travelH = Math.min(8, Math.max(1, Math.ceil((m.level || 1) / 15)));
+      advanceTime(travelH * 60, '移動');
+    }
+    return prevEnterMap(id, corpseId);
+  };
+
   const oldToggleExpedition=toggleExpedition;
   toggleExpedition=function() {if(!s.autoExpedition&&!canAutomate()){tell('探索者が同行するか、連続探索の手引書を習得すると利用できます。');return render();}return oldToggleExpedition();};
   toggleWalk=function(){return toggleExpedition();};
@@ -472,10 +707,11 @@
   function instantReturn() {
     if(!s.dungeon||s.battle)return;
     const h=returnUser();if(!h){tell('行動できる探索者、または帰還の手引書とSP3が必要です。');return render();}
+    advanceTime(15, '道標帰還');
     const steps=s.dungeon.steps;h.sp=(h.sp??maxSP(h))-3;stopAll();s.dungeon=null;s.view='town';if(steps>0)rollSpecialOffers();tell(h.name+'が道標をたどり、SP3で街へ即時帰還した。');render();
   }
   const oldReturnTown=returnTown;
-  returnTown=function() {const before=s.dungeon;oldReturnTown();if(before&&!s.dungeon){if(before.steps>0)rollSpecialOffers();render();}};
+  returnTown=function() {const before=s.dungeon;if(before){const travelH=Math.min(8,Math.max(1,Math.ceil((before.level||1)/15)));advanceTime(travelH*60,'帰還');}oldReturnTown();if(before&&!s.dungeon){if(before.steps>0)rollSpecialOffers();render();}};
   const oldVictory=victory;
   const oldDefeat=defeat;
   defeat=function(){
@@ -515,9 +751,9 @@
   const oldHandleAction=handleAction;
   handleAction=function(event) {
     const b=event.target.closest('[data-action]');if(!b||b.disabled)return;
-    const d=b.dataset,actions={'temple-treat':()=>templeTreat(Number(d.id),d.kind,d.credit==='yes'),'merchant-buy-gear':()=>buyGear(d.id),'merchant-sell-gear':()=>sellGear(Number(d.id)),'merchant-sell-bulk-gear':sellUnusedCommonGear,'contract-accept':()=>acceptContract(d.id),'contract-deliver':()=>deliverContract(d.id),'contract-challenge':()=>challengeContract(d.id),'instant-return':instantReturn};
+    const d=b.dataset,actions={'temple-treat':()=>templeTreat(Number(d.id),d.kind,d.credit==='yes'),'merchant-buy-gear':()=>buyGear(d.id),'merchant-sell-gear':()=>sellGear(Number(d.id)),'merchant-sell-bulk-gear':sellUnusedCommonGear,'contract-accept':()=>acceptContract(d.id),'contract-deliver':()=>deliverContract(d.id),'contract-challenge':()=>challengeContract(d.id),'contract-abandon':()=>abandonContract(d.id),'instant-return':instantReturn};
     if(actions[d.action])return actions[d.action]();
     return oldHandleAction(event);
   };
-  globalThis.BRPGFacilities={contracts,acceptContract,deliverContract,challengeContract,rollSpecialOffers,discoverRule,bookPrice,bookKnown,canAutomate,observers,tacticians,supportRoleCount,instantReturn,templeTreat,templeFee,creditLimit,sellUnusedCommonGear,behaviorStatus,behaviorActive,heroCatalogSkills,partyCatalogSkills,ensureFloorHazards,scanAdjacentHazards};
+  globalThis.BRPGFacilities={getCalendar,formatCalendar,advanceTime,checkRealMidnight,getActiveQuest,checkContractDeadlines,ensureSpecialOffers,abandonContract,contracts,acceptContract,deliverContract,challengeContract,rollSpecialOffers,discoverRule,bookPrice,bookKnown,canAutomate,observers,tacticians,supportRoleCount,instantReturn,templeTreat,templeFee,creditLimit,sellUnusedCommonGear,behaviorStatus,behaviorActive,heroCatalogSkills,partyCatalogSkills,ensureFloorHazards,scanAdjacentHazards};
 })();

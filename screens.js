@@ -29,7 +29,14 @@ function townScreen() {
 function uiMapCard(map) {
   const q=map.quest,state=s.quests?.[map.id]||{},quality=map.quality||Math.min(13,1+Math.floor(map.level/25)),amount=q?availableMaterial(q.material,quality):0;
   const enemyNames=(map.enemies||[]).map(id=>DATA.enemies.find(e=>e.id===id)?.name||id);
-  return `<article class="card atlas-card" style="--region:${esc(map.color||'#a7c291')}"><div class="row between"><span class="chip">推奨 Lv.${map.level} · ${map.depths}層</span><small>${esc(map.biome||'未分類')}</small></div><h2>${esc(map.name)}</h2><p class="muted">${esc(map.description||'未知の道を開拓する。')}</p><div class="atlas-resource"><b>採れる素材</b><p>${(map.materials||[]).map(id=>esc(DATA.materials[id]?.name||id)).join('・')}</p><b>生息する魔物</b><p>${enemyNames.map(esc).join('・')}</p></div>${q?`<div class="quest-box"><b>${esc(q.name)}</b><p>${esc(DATA.materials[q.material]?.name||q.material)} Q${quality}以上 ${q.amount}個を納品 / 報酬 ${q.reward} G</p><small>所持 ${amount} / ${q.amount} · ${state.completed?'達成済み':state.accepted?'受注中':'未受注'}</small><div class="actions">${state.completed?btn('再び依頼を受ける','accept-quest',`data-id="${esc(map.id)}"`):state.accepted?btn('素材を納品','deliver-quest',`data-id="${esc(map.id)}" ${amount<q.amount?'disabled':''}`):btn('依頼を受ける','accept-quest',`data-id="${esc(map.id)}"`)}</div></div>`:''}${btn('この地域を探索 →','enter-map',`data-id="${esc(map.id)}"`,'primary wide')}</article>`;
+  return `<article class="card atlas-card" style="--region:${esc(map.color||'#a7c291')}"><div class="row between"><span class="chip">推奨 Lv.${map.level} · ${map.depths}層</span><small>${esc(map.biome||'未分類')}</small></div><h2>${esc(map.name)}</h2><p class="muted">${esc(map.description||'未知の道を開拓する。')}</p><div class="atlas-resource"><b>採れる素材</b><p>${(map.materials||[]).map(id=>esc(DATA.materials[id]?.name||id)).join('・')}</p><b>生息する魔物</b><p>${enemyNames.map(esc).join('・')}</p></div>${q?`<div class="quest-box"><b>${esc(q.name)}</b><p>${esc(DATA.materials[q.material]?.name||q.material)} Q${quality}以上 ${q.amount}個を納品 / 報酬 ${q.reward} G</p><small>所持 ${amount} / ${q.amount} · ${state.completed?'達成済み':state.accepted?'受注中（進行中）':'未受注'}</small><div class="actions">${(() => {
+    const actQ = typeof getActiveQuest === 'function' ? getActiveQuest() : null;
+    const isThis = state.accepted && !state.completed;
+    const hasOther = actQ && !isThis;
+    if (state.completed) return btn(hasOther ? '別の依頼を受注中' : '再び依頼を受ける', 'accept-quest', `data-id="${esc(map.id)}" ${hasOther ? 'disabled' : ''}`);
+    if (state.accepted) return btn('素材を納品', 'deliver-quest', `data-id="${esc(map.id)}" ${amount < q.amount ? 'disabled' : ''}`, 'primary') + btn('破棄', 'abandon-map-quest', `data-id="${esc(map.id)}"`);
+    return btn(hasOther ? '別の依頼を受注中' : '依頼を受ける', 'accept-quest', `data-id="${esc(map.id)}" ${hasOther ? 'disabled' : ''}`, hasOther ? '' : 'primary');
+  })()}</div></div>`:''}${btn('この地域を探索 →','enter-map',`data-id="${esc(map.id)}"`,'primary wide')}</article>`;
 }
 function guildScreen() {
   const preview=s.addressPreview;
