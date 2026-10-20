@@ -8,5 +8,9 @@ reset();assert.equal(Object.keys(DATA.catalog.materials).length,265);assert.equa
 const evH=evaluate5RouteCraft('wood','P0031','H'),evM=evaluate5RouteCraft('tungsten','P0031','M');assert(evH.possible&&evH.residue===0);assert(evM.possible&&evM.residue>0&&evM.manaMult>=1);
 const loot=rollHackSlashGear(85,'legendary');assert(['legendary','mythic'].includes(loot.rarity)&&loot.productId&&loot.titleId);
 for(const tab of ['v3mat','cat_mat','cat_prod','cat_title','cat_mon','cat_job']){s.ext.catalogTab=tab;s.view='catalog';render();assert($('app').innerHTML.length>500);}
-console.log('PASS: 1,765 catalog entries, 5-route craft residue/eta, Hack & Slash legendary loot roll, all 6 encyclopedia tabs.');
+reset();addMaterial('copper',2,1);addMaterial('iron',3,1);const mHtml=materialsHTML();assert((mHtml.match(/石/g)||[]).length>=2);tell('銅 Q1を採集した。');assert(notice.includes('石 Q1を採集した'));
+s.ext.identifiedMaterials.push('copper');assert(materialsHTML().includes('銅'));
+reset();$('address').value='https://high-level-test.example.com';const gBefore=s.gold;discoverAddress('https://high-level-test.example.com');assert(s.gold<gBefore&&!s.addressPreview);
+reset();openCharacter(1);const cBody=$('character-body').innerHTML;assert(!cBody.includes('解放条件')&&!cBody.includes('INT*'));$('character-dialog').close();
+console.log('PASS: 1,765 catalog entries, 5-route craft residue/eta, Hack & Slash legendary loot roll, all 6 encyclopedia tabs, stone masking, address level-gate, spoiler-free UI.');
 `);
