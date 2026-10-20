@@ -1,0 +1,35 @@
+'use strict';
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const files=['data.js','world-data.js','game.js','screens.js','systems.js'];
+function harness(initial={}){const store=new Map(Object.entries(initial)),els=new Map(),timers=new Map();let next=1;const noop=()=>{},ctx=new Proxy({createRadialGradient:()=>({addColorStop:noop})},{get:(t,k)=>t[k]||noop});function el(id){if(!els.has(id))els.set(id,{style:{},dataset:{},value:'1',textContent:'',innerHTML:'',open:false,tagName:'DIV',getContext:()=>ctx,showModal(){this.open=true},close(){this.open=false}});return els.get(id);}const box={console,Date,Math,URL,structuredClone,confirm:()=>true,setInterval:(f,ms)=>{const id=next++;timers.set(id,{f,ms});return id},clearInterval:id=>timers.delete(id),document:{getElementById:el,addEventListener:noop},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},assert};vm.createContext(box);for(const f of files)vm.runInContext(fs.readFileSync(__dirname+'/'+f,'utf8'),box,{filename:f});return{box,store,timers,run:code=>vm.runInContext(code,box,{timeout:20000})};}
+if(require.main!==module)module.exports={harness};else{
+const h=harness({'ashen-atlas-v1':'preserve'});h.run(`
+function reset(){stopAll();s=fresh();notice='';render();}
+reset();assert(validSave(s));assert(DATA.maps.length>=10);assert(Object.keys(DATA.skills).length>=100);assert.equal(Object.values(DATA.jobs).filter(j=>j.base).length,5);
+for(const m of DATA.maps){assert(m.enemies.every(id=>DATA.enemies.some(e=>e.id===id)));assert(m.materials.every(id=>DATA.materials[id]));const f=makeFloor(m,123,1);assert.deepStrictEqual(f.map,makeFloor(m,123,1).map);}
+for(const id of ['rat','bat'])assert.equal(DATA.enemies.find(e=>e.id===id).drop,null);
+for(const view of ['town','guild','party','forge','rules','supplies','journal','catalog']){s.view=view;render();assert($('app').innerHTML.length>100);}
+openCharacter(1);assert($('character-dialog').open);assert($('character-body').innerHTML.includes('STR'));$('character-dialog').close();
+const hp=s.roster[0].hp;s.roster[0].hp=1;s.gold=0;rest();assert.equal(s.roster[0].hp,1);rest(true);assert(s.debt>0);assert.equal(s.roster[0].hp,stats(s.roster[0]).hp);
+reset();const a=s.roster[0],normal=stats(a),delay=walkDelay();a.sp=0;assert(stats(a).atk<=normal.atk/2);assert(walkDelay()>=delay*2);a.mp=0;assert(!alive().includes(a));s.items.ether=1;useItem('ether',a.id);assert(alive().includes(a));s.items.ration=1;assert(useItem('ration',a.id));assert(a.sp>0);
+const derived=Object.entries(DATA.jobs).find(([,j])=>j.requirements?.job==='warrior');a.lv=300;a.learned=[];assert(!canJob(a,derived[0]));syncHero(a);assert(canJob(a,derived[0]));changeJob(a.id,derived[0]);assert.equal(a.job,derived[0]);
+reset();const bp=addressBlueprint('https://example.com/path');assert.deepStrictEqual(bp,addressBlueprint('https://example.com/path'));assert(bp.map.level>=80&&bp.map.level<=300);assert(bp.town.price>1);assert.equal(makeFloor(bp.map,bp.map.seed,1).quality,bp.town.quality);discoverAddress('https://example.com/path');assert(!JSON.stringify(s).includes('example.com'));assert(validSave(s));
+s.gold=1e9;settleTown(bp.town.id);assert.equal(s.homeTownId,bp.town.id);assert(s.towns.find(t=>t.id===bp.town.id).owned);
+reset();s.gold=1e6;for(const k in DATA.materials)addMaterial(k,100,1);craft('iron','weapon','physical');const g=s.gear.at(-1);assert.equal(g.maxDur,140);assert.equal(g.quality,1);craft('iron','weapon','magic');assert.equal(s.gear.at(-1).maxDur,90);const cg={...g,material:'crystal'};assert.equal(upgradeQuote(cg).materials.crystal,6);g.quality=13;assert(!canEquip(s.roster[0],g));
+acceptQuest('forest_edge');deliverQuest('forest_edge');assert(s.quests.forest_edge.completed);
+reset();assert.equal(knowledge('rat').tier,0);s.research.rat={encounters:1,kills:0,level:1};assert.equal(knowledge('rat').tier,1);s.research.rat.kills=1;assert.equal(knowledge('rat').tier,2);s.research.rat.kills=3;assert.equal(knowledge('rat').tier,3);s.research.rat.kills=8;assert.equal(knowledge('rat').tier,4);
+reset();enterMap('forest_edge');assert(validSave(s));toggleExpedition();assert(walkTimer);encounter();assert(s.autoExpedition&&battleTimer&&!walkTimer);s.battle.enemies.forEach(e=>damageEnemy(e,10000,'physical'));victory();assert(walkTimer&&!battleTimer&&s.autoExpedition);stopAll();
+reset();enterMap('forest_edge');encounter();assert(validSave(s));const turn=s.battle.turn;executeTurn();assert.equal(s.battle.turn,turn);autoPlans();assert(Object.values(s.battle.plans).every(p=>p.command==='attack'));executeTurn();assert(!s.battle||s.battle.turn===turn+1);
+let damage=0,wipes=0;for(let seed=1;seed<=50;seed++){reset();s.randomState=seed;enterMap('forest_edge');const before=party().reduce((n,h)=>n+h.hp,0);encounter();let t=0;while(s.battle&&t++<50){autoPlans();executeTurn();}if(!s.dungeon)wipes++;damage+=before-party().reduce((n,h)=>n+h.hp,0);}assert(damage>0);console.log('50 fresh Lv1 fights/basic attacks:',{averageDamage:damage/50,wipes});
+reset();assert.equal(Object.keys(DATA.jobs).length,36);assert.equal(Object.keys(DATA.skills).length,133);assert.equal(DATA.maps.length,18);assert.equal(Object.keys(DATA.materials).length,64);assert.equal(DATA.enemies.length,52);assert.equal(Object.keys(DATA.enchants).length,18);assert.equal(Object.keys(DATA.items).length,22);assert.equal(DATA.rules.length,10);
+enterMap('samurai_valley');s.dungeon.depth=3;s.dungeon.x=17;s.dungeon.y=11;s.dungeon.map[11][17]='!';bossChallenge();assert.equal(s.battle.enemies[0].id,'boss_shogun');stopAll();
+reset();const mPhys={id:99,material:'mithril',slot:'armor',method:'physical',enchant:'ward',quality:3,dur:100,maxDur:100},mMag={...mPhys,id:100,method:'magic'};assert(gearValue(mPhys)>gearValue(mMag));assert(enchantPower(mPhys)>enchantPower(mMag));
+const aLow={id:101,material:'adamant',slot:'weapon',method:'physical',enchant:'flame',quality:2,dur:100,maxDur:100},aHigh={...aLow,id:102,quality:7};assert(gearValue(aHigh)>gearValue(aLow)*2);
+savePreset(1);s.active=[1,2];loadPreset(1);assert.equal(s.active.length,4);
+reset();s.gold=123;save();assert(validSave(s));
+console.log('PASS: data references, screens, character details, paid inn/debt, resource depletion, job conditions, address/town/quality, crafting, quests, research, continuous auto, command gating, region bosses, material laws, presets.');
+`);
+assert.equal(h.store.get('ashen-atlas-v1'),'preserve');const raw=h.store.get('ashen-atlas-v3');assert.equal(harness({'ashen-atlas-v3':raw}).run('s.gold'),123);
+for(const bad of ['{broken',JSON.stringify({version:3})]){const b=harness({'ashen-atlas-v3':bad});assert([...b.store.keys()].some(k=>k.includes('invalid-backup')));}
+const legacy=h.run(`(()=>{const v=fresh();v.version=2;v.potions=2;v.antidotes=1;v.scrolls=2;v.bestiary=['rat'];return JSON.stringify(v)})()`);const migrated=harness({'ashen-atlas-v2':legacy});assert.equal(migrated.run('s.version'),3);assert.equal(migrated.run('s.items.potion'),2);assert.equal(migrated.store.get('ashen-atlas-v2'),legacy);console.log('PASS: v3 reboot, corrupt-save backup, v2 migration preserves original.');
+}

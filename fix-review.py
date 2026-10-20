@@ -1,0 +1,13 @@
+from pathlib import Path
+p=Path('game.js');s=p.read_text(encoding='utf-8-sig')
+s=s.replace("['heal','mp','revive','cleanse']","['heal','mp','sp','revive','cleanse']")
+s=s.replace("if(s.battle?.cover)n*=s.battle.coverPower||.65;","if(s.battle?.cover)n*=s.battle.coverPower||.65;if(s.battle?.personalGuards?.[h.id])n*=s.battle.personalGuards[h.id];")
+s=s.replace("const guardHeroes=[];","b.personalGuards={};const guardHeroes=[];")
+s=s.replace("b.cover=true;b.coverPower=Math.min(b.coverPower||1,k.power);guardHeroes", "if(k.target==='self')b.personalGuards[h.id]=k.power;else if(k.target==='ally')b.personalGuards[p.target]=k.power;else{b.cover=true;b.coverPower=Math.min(b.coverPower||1,k.power);}guardHeroes")
+s=s.replace("s.battle.cover=true;s.battle.coverPower=k.power;note('守護により、このターンの味方全体の被害を軽減。');", "if(k.target==='self'){s.battle.personalGuards??={};s.battle.personalGuards[h.id]=k.power;}else if(k.target==='ally'){s.battle.personalGuards??={};s.battle.personalGuards[ally.id]=k.power;}else{s.battle.cover=true;s.battle.coverPower=k.power;}note(k.name+'：指定対象の被害を軽減。');")
+s=s.replace("step(...DIRS[i],true);}","step(...DIRS[i],true);if(walkTimer&&s.autoExpedition&&!s.battle){stopWalk();resumeExpedition();}}")
+s=s.replace("<span>HP ${h.hp}","<span>LIFE ${h.hp}").replace("<span>MP ${h.mp}","<span>MANA ${h.mp}")
+p.write_text(s,encoding='utf-8')
+p=Path('systems.js');s=p.read_text(encoding='utf-8-sig');s=s.replace("st.atk+=Math.floor(a.DEX/12);","st.atk=Math.max(1,Math.round(a.STR*1.05)+(h.lv-1)+gearValue(item(h.weapon))+Math.floor(a.DEX/12));st.mag=Math.max(1,a.INT+(h.lv-1)+(item(h.weapon)&&DATA.materials[item(h.weapon).material].category==='gem'?gearValue(item(h.weapon)):0));")
+p.write_text(s,encoding='utf-8')
+p=Path('style.css');s=p.read_text(encoding='utf-8-sig');s+='\n.bar.sp i{background:#bca575}.dialog-close{position:sticky;top:0;float:right;z-index:2}#character-dialog{max-width:820px;width:90vw;max-height:86vh;overflow:auto} .battle-console{position:sticky;top:16px} .stat-grid{grid-template-columns:repeat(4,minmax(0,1fr))}@media(max-width:700px){.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.battle-console{position:static}}\n';p.write_text(s,encoding='utf-8')
