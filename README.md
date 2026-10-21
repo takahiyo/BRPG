@@ -43,6 +43,8 @@ node test-overhaul.cjs
 node test-equipment.cjs
 node test-exploration.cjs
 node test-save-manager.cjs
+node test-quest-travel.cjs
+node test-build-pages.cjs
 ```
 
 自動検証の保証範囲と残課題・今後の統合計画は [DEVELOPMENT.md](DEVELOPMENT.md)。引き継ぎは [AGENTS.md](AGENTS.md) と [HANDOFF.md](HANDOFF.md) から開始。原案整理は [WORLD_AND_DESIGN.md](WORLD_AND_DESIGN.md)、追加職業・ステータス案は [CHARACTER_SYSTEM.md](CHARACTER_SYSTEM.md)、v3データ一覧は [CONTENT_CATALOG.md](CONTENT_CATALOG.md)。
