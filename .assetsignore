@@ -8,6 +8,8 @@
 node_modules/**
 worker.js
 wrangler.toml
+functions/**
+dist/**
 migrations/**
 scripts/**
 skills/**

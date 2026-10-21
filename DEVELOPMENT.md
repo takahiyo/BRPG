@@ -1,5 +1,9 @@
 # 開発状況・計画・引き継ぎ
 
+## 2026-10-21 Google連携の公開段階
+
+ユーザーが `privacy.html`、`terms.html` の内容と、本変更のコミット・`dev`/`main` push、Cloudflare Pages本番公開を承認。Firebase/Google CloudのWeb OAuthクライアント、許可オリジン、Cloudflare D1スキーマ、Pages本番・プレビューの `GOOGLE_CLIENT_ID` と `DB` バインディングを設定済み。Pagesのビルドコマンドを `node scripts/build-pages.cjs`、出力を `dist` に保存済み。`functions/api/[[path]].js` は既存の保存APIをPages Functionsへ接続する。次の段階はGit反映、Pagesデプロイ確認、公開済みポリシー・規約URLのGoogle Auth Platformへの登録、実GoogleログインとD1保存の確認。現時点でOAuthアプリはテスト状態で、実ログイン・クラウド保存は未確認。
+
 ## 2026-10-21 プレイデータ保存先の選択
 
 ローカル保存／Google連携クラウド保存を選ぶUIと、Worker/D1の保存APIを追加。既定は従来のローカル保存で、保存キー・v2移行を変更しない。クラウド利用開始・読込・上書きは確認操作を伴う。詳細と設定は [CLOUD_SAVE.md](CLOUD_SAVE.md)。実サービス設定・公開は未完了。
