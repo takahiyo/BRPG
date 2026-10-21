@@ -41,6 +41,7 @@
 - 統括は工房の製作仕様計算をpreviewと実製作で共有し、部位別optgroupと性能予測を追加。既存overhaul成功。
 - 次：モンスター画像仕様と誤対応修正、formationをindexと配布allowlistへ接続、ブラウザ/回帰検証、状態文書更新。GitHub DNS失敗は再発を確認。commit/push未実施。ユーザー指示差分を保護。
 
+- push結果：commit a007325 をorigin/main・origin/devへpushし、両remote先端とも a007325 に一致。push成功を確認。CI成功は未確認（gh未導入）、公開成功は未確認。
 ## 今回の再開（2026-10-22 JST / OpenCode）
 
 - R0完了：ローカルmain/HEAD `08deef4`。`git ls-remote origin refs/heads/main refs/heads/dev` 成功、両remoteはHEADと一致。前回のDNS阻害は解消。既存の未コミットU1-U4とユーザーのAGENTS/共通規則文書を保持。
