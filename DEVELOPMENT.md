@@ -2,11 +2,11 @@
 
 ## 2026-10-21 Google連携の公開段階
 
-ユーザーが `privacy.html`、`terms.html` の内容と、本変更のコミット・`dev`/`main` push、Cloudflare Pages本番公開を承認。Firebase/Google CloudのWeb OAuthクライアント、許可オリジン、Cloudflare D1スキーマ、Pages本番・プレビューの `GOOGLE_CLIENT_ID` と `DB` バインディングを設定済み。Pagesのビルドコマンドを `node scripts/build-pages.cjs`、出力を `dist` に保存済み。`functions/api/[[path]].js` は既存の保存APIをPages Functionsへ接続する。次の段階はGit反映、Pagesデプロイ確認、公開済みポリシー・規約URLのGoogle Auth Platformへの登録、実GoogleログインとD1保存の確認。現時点でOAuthアプリはテスト状態で、実ログイン・クラウド保存は未確認。
+ユーザーが `privacy.html`、`terms.html` の内容と、本変更のコミット・`dev`/`main` push、Cloudflare Pages本番公開を承認。Firebase/Google CloudのWeb OAuthクライアント、許可オリジン、Cloudflare D1スキーマ、Pages本番・プレビューの `GOOGLE_CLIENT_ID` と `DB` バインディングを設定済み。Pagesのビルドコマンドを `node scripts/build-pages.cjs`、出力を `dist` に保存済み。`functions/api/[[path]].js` は既存の保存APIをPages Functionsへ接続する。コミット `8fffb5b` を `dev` と `main` にpushし、両環境のPagesデプロイ成功を確認。本番 `/api/config` は `cloudEnabled: true` を返し、公開ポリシー・規約の表示も確認。Google Auth Platformにも両URLを保存し、直前確認を経てアプリを一般公開。対象ページで「本番環境」を確認。実Googleログイン・D1保存・端末間同期は未確認。
 
-## 2026-10-21 プレイデータ保存先の選択
+## 2026-10-21 プレイデータ保存先の選択（以下は公開前の実装記録）
 
-ローカル保存／Google連携クラウド保存を選ぶUIと、Worker/D1の保存APIを追加。既定は従来のローカル保存で、保存キー・v2移行を変更しない。クラウド利用開始・読込・上書きは確認操作を伴う。詳細と設定は [CLOUD_SAVE.md](CLOUD_SAVE.md)。実サービス設定・公開は未完了。
+ローカル保存／Google連携クラウド保存を選ぶUIと、Worker/D1の保存APIを追加。既定は従来のローカル保存で、保存キー・v2移行を変更しない。クラウド利用開始・読込・上書きは確認操作を伴う。詳細と現在の公開状態は [CLOUD_SAVE.md](CLOUD_SAVE.md)。
 
 - 第1段階（実装済み）：`save-manager.js`、`index.html` に保存先画面、Google Identity Servicesの必要時読込、トークンのメモリ保持、約5秒間隔の自動保存、読込前1世代退避、失敗・競合時の停止を実装。ローカルへ切替／アカウント変更時は古い非同期応答を無効化。再読み込みと新規冒険はローカルへ戻る。
 - 第2段階（実装済み）：`worker.js`、`migrations/0001_saves.sql`、`wrangler.toml` にGoogle JWT署名検証・sub単位の所有者分離・Origin検査・2MiB制限・D1 revision競合制御。`.assetsignore` にバックエンド・SQL・ローカル設定等の配信除外、`.gitignore` に環境設定除外。

@@ -10,15 +10,15 @@ Firebaseアカウントで管理している既存プロジェクトを利用す
 
 今回指定された公開オリジンは `https://brpg.pages.dev` と `https://brpg.flateight.jp`。Firebaseプロジェクト「BRPG」（ID `brpg-a0775`）を作成済みで、Gemini in Firebase と Google アナリティクスは無効にした。同じGoogle CloudプロジェクトのGoogle Auth Platformにアプリ名「灰灯の迷宮」と開発者の連絡先 `brpg@flateight.jp` を設定。ウェブ用OAuthクライアント「BRPG Web」を作成し、クライアントIDは `465038567538-09uo2623nhcdeukrpe5cvfbhraotiog7.apps.googleusercontent.com`、許可JavaScript生成元は上記2つ。クライアントシークレットはこの実装では使わず、ファイルやログへ記載しない。
 
-Googleの「ユーザー サポートメール」は当面、ユーザー承認済みの個人Gmailを使用する。ユーザー指定の `brpg@flateight.jp` は選択肢に現れず、開発者の連絡先への登録だけでは同意画面の公開サポート先は変わらない。ユーザーによると `brpg@flateight.jp` でGoogleログインしても右上には個人Gmailが表示される。IAMへ同アドレスを追加しようとすると「有効な Google アカウントに関連付けられている必要があります」と表示される。OAuthアプリは現時点でテスト状態。クライアント作成時に登録された不要なリダイレクトURI 2件は削除し、再表示して空欄を確認した。
+Googleの「ユーザー サポートメール」は当面、ユーザー承認済みの個人Gmailを使用する。ユーザー指定の `brpg@flateight.jp` は選択肢に現れず、開発者の連絡先への登録だけでは同意画面の公開サポート先は変わらない。ユーザーによると `brpg@flateight.jp` でGoogleログインしても右上には個人Gmailが表示される。IAMへ同アドレスを追加しようとすると「有効な Google アカウントに関連付けられている必要があります」と表示される。OAuthアプリの公開ステータスは「本番環境」。クライアント作成時に登録された不要なリダイレクトURI 2件は削除し、再表示して空欄を確認した。
 
-両URLはCloudflare Pagesの `brpg` プロジェクトを指している。GitHubの `takahiyo/BRPG` と接続し、`main` を本番、`dev` をプレビューとして自動デプロイしている。Pagesのビルドコマンドを `node scripts/build-pages.cjs`、出力ディレクトリを `dist` に設定済み。次のデプロイで適用される。`wrangler.toml` は別の `brpg` Worker向けであり、Pagesの設定には自動適用されない。Pages用の `/functions/api/[[path]].js` は既存の `worker.js` にAPI処理を委譲する。
+両URLはCloudflare Pagesの `brpg` プロジェクトを指している。GitHubの `takahiyo/BRPG` と接続し、`main` を本番、`dev` をプレビューとして自動デプロイしている。Pagesのビルドコマンドを `node scripts/build-pages.cjs`、出力ディレクトリを `dist` に設定済み。コミット `8fffb5b` のプレビュー・本番デプロイで適用を確認した。`wrangler.toml` は別の `brpg` Worker向けであり、Pagesの設定には自動適用されない。Pages用の `/functions/api/[[path]].js` は既存の `worker.js` にAPI処理を委譲する。
 
-Cloudflareアカウント内に専用D1 `brpg-saves` を作成し、`migrations/0001_saves.sql` と同じ `player_saves` テーブル定義をD1コンソールから適用した。データベースIDは `022fadb8-fcac-46f1-935e-b1728b1de951`。Pagesの本番・プレビュー両環境に `GOOGLE_CLIENT_ID` と `DB` → `brpg-saves` を登録済み。ダッシュボード上で変更は次回デプロイ時に有効と表示された。既存の公開バージョンにはAPI関数がないため、実ログインと保存は未確認。
+Cloudflareアカウント内に専用D1 `brpg-saves` を作成し、`migrations/0001_saves.sql` と同じ `player_saves` テーブル定義をD1コンソールから適用した。データベースIDは `022fadb8-fcac-46f1-935e-b1728b1de951`。Pagesの本番・プレビュー両環境に `GOOGLE_CLIENT_ID` と `DB` → `brpg-saves` を登録済み。本番の `GET /api/config` は `cloudEnabled: true` を返した。実ログインとD1保存は未確認。
 
-Google Auth Platformのテストユーザーには、現行のプロジェクト所有者アカウントを1件登録した。OAuthアプリの公開ステータスは引き続き「テスト中」で、一般公開にはブランディング設定の完了が必要と表示されている。
+Google Auth Platformのテストユーザーには、現行のプロジェクト所有者アカウントを1件登録した。その後ブランディング設定を完了して一般公開し、公開ステータス「本番環境」を確認した。
 
-ユーザーの選択により、当面は個人Gmailを公開サポートメールとして使用する。OAuthブランディングのホームページは `https://brpg.flateight.jp/` に設定済み。Googleが外部アプリの本番公開で求めるプライバシーポリシーと利用規約は、`privacy.html` と `terms.html` に公開前の原稿を用意し、ゲームのフッターからリンクした。両ページが公開されるまではOAuth側の対応URL欄を空欄のままとし、公開操作を行わない。
+ユーザーの選択により、当面は個人Gmailを公開サポートメールとして使用する。OAuthブランディングのホームページは `https://brpg.flateight.jp/` に設定済み。`privacy.html` と `terms.html` を公開して表示を確認し、ゲームのフッターからリンクした。Google Auth Platformの対応URL欄にも両URLを保存済み。ユーザーの直前確認を経てアプリを一般公開し、公開ステータス「本番環境」を確認した。
 
 1. Google CloudでOAuth同意画面とウェブアプリケーションのOAuthクライアントを設定する。公開範囲とテストユーザーを設定し、JavaScript生成元へ実際のHTTPS配信オリジンを登録する（開発時はlocalhostのオリジンも登録）。クライアントシークレットはこの構成では使用しない。
 2. Pagesでは `functions/api/[[path]].js` を配信し、Pages設定に `GOOGLE_CLIENT_ID` とD1の `DB` を登録する。`GOOGLE_CLIENT_ID` は公開識別子で、`GET /api/config` からブラウザへ返す。
@@ -40,7 +40,7 @@ database_id = "YOUR_D1_DATABASE_ID"
 migrations_dir = "migrations"
 ```
 
-Wranglerが利用できる環境で、作業フォルダーを `C:\TEMP\GitHub\BRPG` にして `wrangler d1 migrations apply brpg-saves --local` でローカルDBを準備できる。本番D1は上記の通りCloudflareダッシュボードで作成済み。ゲーム本体とPages Functionsの公開は未実施。
+Wranglerが利用できる環境で、作業フォルダーを `C:\TEMP\GitHub\BRPG` にして `wrangler d1 migrations apply brpg-saves --local` でローカルDBを準備できる。本番D1は上記の通りCloudflareダッシュボードで作成済み。ゲーム本体とPages Functionsの公開は完了した。
 
 Pagesではスクリプトがブラウザで必要なHTML・CSS・JavaScript・画像のみを `dist` へコピーし、バックエンドソース、SQL、開発文書やローカル設定を静的公開しない。Workersのassets設定は `.assetsignore` で別途配信対象を制限する。両方の経路を混同しない。
 
