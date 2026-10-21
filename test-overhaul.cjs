@@ -102,6 +102,78 @@ catalogReload.run(`assert(DATA.jobs[s.roster[0].job].catalog);assert(validSave(s
 assert(![...catalogReload.store.keys()].some(k => k.includes('invalid-backup')), 'catalog job survives startup validation');
 
 h.run(`
+for (const sp of [0, 1, 8]) {
+  reset(); s.view = 'tavern';
+  const member = s.roster[0]; member.sp = sp;
+  const original = JSON.stringify(s), comparison = previewCharacterJob(member, 'priest');
+  assert.equal(JSON.stringify(s), original, 'job preview must not mutate the adventure');
+  assert(changeJob(member.id, 'priest'));
+  assert.deepStrictEqual(comparison.after.stats, { ...stats(member), sp: maxSP(member) }, 'job preview matches confirmed stats even when SP rounds to zero');
+  for (const key of ['hp', 'mp', 'sp']) assert.equal(comparison.hero[key], member[key]);
+}
+reset();
+s.roster[1].row = 'front';
+s.presets = { 1: { active: [1, 1, 999, 2], rows: { 1: 'back', 2: 'invalid' } } };
+assert(validSave(s), 'legacy preset data can contain unchecked IDs');
+loadPreset(1);
+assert.deepStrictEqual(s.active, [1, 2], 'preset members are unique and present');
+assert.equal(s.roster[0].row, 'back'); assert.equal(s.roster[1].row, 'front');
+assert(validSave(s), 'loading a malformed preset must preserve a valid save');
+s.presets[2] = { active: [999], rows: {} };
+loadPreset(2); assert.deepStrictEqual(s.active, [1, 2], 'empty resolved presets preserve the current party');
+save();
+`);
+const presetReload = harness({ 'ashen-atlas-v3': h.store.get('ashen-atlas-v3') });
+presetReload.run(`assert.deepStrictEqual(s.active,[1,2]);assert(validSave(s));`);
+assert(![...presetReload.store.keys()].some(k => k.includes('invalid-backup')), 'resolved preset survives reload');
+h.run(`
+reset(); s.view = 'party';
+dispatch('click', { action: 'save-preset', slot: '1' });
+assert(partyScreen().includes('現在の編成と一致'));
+s.active = [1]; dispatch('click', { action: 'load-preset', slot: '1' });
+assert.deepStrictEqual(s.active, [1,2,3,4], 'preset click restores saved members');
+reset(); s.view = 'supplies';
+dispatch('click', { action: 'shop-tab', id: 'sell' });
+assert(shopScreen().includes('id="shop-panel-buy" role="tabpanel" aria-labelledby="shop-tab-buy" hidden'));
+dispatch('click', { action: 'shop-tab', id: 'buy' });
+dispatch('click', { action: 'shop-category', id: 'weapon' });
+const shopHTML = shopScreen(), purchasePanel = shopHTML.split('id="shop-panel-buy"')[1].split('</section>')[0];
+assert(purchasePanel.includes('購入 · 武器') && purchasePanel.includes('merchant-buy-gear'));
+assert(!purchasePanel.includes('buy-item'), 'weapon category excludes consumables');
+dispatch('click', { action: 'shop-category', id: 'invalid' });
+assert(shopScreen().includes('購入 · 武器'), 'unknown categories do not replace the selection');
+reset(); s.view = 'guild';
+const request = BRPGFacilities.contracts().find(q => q.kind === 'resource' && q.material === 'wood');
+addMaterial('wood', request.amount, request.quality);
+assert(guildScreen().includes('受注後すぐ納品可能'));
+for (const group of ['📦 常設・資源調達', '◇ 特別・好条件納品', '⚔ 高難度・緊急討伐']) assert(guildScreen().includes('<h2>' + group + '</h2>'));
+dispatch('click', { action: 'contract-accept', id: request.id });
+assert(guildScreen().includes('今すぐ報告可能'));
+dispatch('click', { action: 'contract-deliver', id: request.id });
+assert(!guildScreen().includes('今すぐ報告可能'), 'report marker clears after delivery');
+for (const mode of ['workshop', 'craftsman']) {
+  reset(); s.gold = 100000; s.view = 'forge'; s.ext.forgeMode = mode;
+  s.roster[0].job = Object.keys(DATA.jobs).find(id => DATA.jobs[id].craftSpecialist); syncHero(s.roster[0]);
+  s.stock.wood = {}; s.materials.wood = 0; addMaterial('wood', 1, 1); addMaterial('wood', 20, 3);
+  s.craftMaterial = 'wood'; s.ext.identifiedMaterials.push('wood');
+  const forgeHTML = forgeScreen(), stateBeforePreview = JSON.stringify(s);
+  forgeScreen(); assert.equal(JSON.stringify(s), stateBeforePreview, 'performance preview does not consume resources or random rolls');
+  assert(forgeHTML.includes('<optgroup label='), 'craft products are grouped by equipment part');
+  const prediction = forgeHTML.match(/(?:攻撃|防御) \\+(\\d+)〜(\\d+) [/] 耐久 (\\d+) [/] 品質 Q(\\d+)/);
+  assert(prediction, 'identified material has a performance prediction in ' + mode);
+  const count = s.gear.length;
+  dispatch('click', { action: mode === 'workshop' ? 'commission-workshop' : 'craftsman-make' });
+  assert.equal(s.gear.length, count + 1, 'craft click produces equipment in ' + mode);
+  const result = s.gear.at(-1), value = gearValue(result);
+  assert(value >= Number(prediction[1]) && value <= Number(prediction[2]), 'actual craft value is within the displayed interval');
+  assert.equal(result.maxDur, Number(prediction[3])); assert.equal(result.quality, Number(prediction[4]));
+  assert.equal(result.quality, 3, 'preview and production use the highest consumed quality tier');
+  assert(validSave(s));
+}
+console.log('PASS: job preview resource ratios, malformed preset reload, preset/shop/guild clicks and craft preview/production consistency.');
+`);
+
+h.run(`
 reset(); s.gold = 100000; s.view = 'tavern'; render();
 const candidateBefore = JSON.stringify(s.ext.tavernCandidates.ash.birthAttributes);
 dispatch('change', { characterChange: 'recruit-gender' }, 'female');

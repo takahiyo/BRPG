@@ -67,13 +67,21 @@
   }
   function commandTarget(draft) {
     if (draft.command === 'defend' || draft.command === 'escape') return 'self';
-    if (draft.command === 'skill') return DATA.skills[draft.skill]?.target || 'enemy';
+    if (draft.command === 'skill') {
+      const actor = alive().find(h => h.id === s.battle?.actor);
+      return (DATA.skills[draft.skill] || (actor && globalThis.BRPGFormation?.skillDef(actor, draft.skill)))?.target || 'enemy';
+    }
     if (draft.command === 'item' && ['heal','mp','sp','revive','cleanse'].includes(DATA.items[draft.item]?.kind)) return 'ally';
     return 'enemy';
   }
   function targetOptions(draft) {
     const kind = commandTarget(draft);
-    if (kind === 'enemy') return enemyAlive().map(e => ({id:e.key,name:e.name,detail:observed()?'LIFE '+e.hp:'状態未観測'}));
+    if (kind === 'enemy' || kind === 'allEnemies') {
+      const formation = globalThis.BRPGFormation, actor = alive().find(h => h.id === s.battle?.actor);
+      const skill = draft.command === 'skill' && actor ? formation?.skillDef(actor, draft.skill) : null;
+      const foes = formation && actor ? formation.targets(actor, skill) : enemyAlive();
+      return foes.map(e => ({id:e.key,name:e.name,detail:(e.row === 'back' ? '後衛' : '前衛')+' · '+(observed()?'LIFE '+e.hp:'状態未観測')}));
+    }
     if (kind === 'ally') return party().filter(h => draft.command !== 'item' || (DATA.items[draft.item]?.kind === 'revive' ? h.hp <= 0 : h.hp > 0)).map(h => ({id:h.id,name:h.name,detail:'LIFE '+h.hp+' / MANA '+h.mp+' / SP '+(h.sp??0)}));
     return [];
   }
@@ -81,9 +89,9 @@
     const draft = draftFor(actor);
     if (!draft) return '<div class="exp-target-step"><h3>2. 対象を選ぶ</h3><p>先に行動を選ぶと、必要な対象が表示されます。</p></div>';
     const kind = commandTarget(draft), options = targetOptions(draft), name = uiPlanName({...draft,target:draft.target},actor).split(' → ')[0];
-    const fixed = kind === 'self' ? actor.name : kind === 'allAllies' ? '味方全員' : kind === 'allEnemies' ? '敵全員' : null;
+    const fixed = kind === 'self' ? actor.name : kind === 'allAllies' ? '味方全員' : kind === 'allEnemies' ? (options.length ? (globalThis.BRPGFormation ? '届く敵全員：'+options.map(o=>o.name).join('、') : '敵全員') : null) : null;
     const chosen = fixed || options.find(o => o.id === draft.target)?.name;
-    return `<div class="exp-target-step"><h3>2. ${esc(name)}の対象を選ぶ</h3>${fixed ? `<p class="exp-fixed-target">対象：${esc(fixed)}</p>` : `<div class="exp-target-picker" role="group" aria-label="行動の対象">${options.map(o => btn(`<b>${esc(o.name)}</b><small>${esc(o.detail)}</small>`,'exp-command-target',`data-id="${o.id}" aria-pressed="${draft.target === o.id}"`,draft.target===o.id?'selected':'')).join('')}</div>${!options.length?'<p>対象にできる仲間がいません。</p>':''}`}<p>${chosen ? `${esc(name)} → ${esc(chosen)}` : '対象を選んでください。'}</p>${btn('この指示を確定','exp-command-confirm',chosen?'':'disabled','primary wide')}</div>`;
+    return `<div class="exp-target-step"><h3>2. ${esc(name)}の対象を選ぶ</h3>${fixed ? `<p class="exp-fixed-target">対象：${esc(fixed)}</p>` : `<div class="exp-target-picker" role="group" aria-label="行動の対象">${options.map(o => btn(`<b>${esc(o.name)}</b><small>${esc(o.detail)}</small>`,'exp-command-target',`data-id="${o.id}" aria-pressed="${draft.target === o.id}"`,draft.target===o.id?'selected':'')).join('')}</div>${!options.length?'<p>届く対象がいません。防御または別の行動を選んでください。</p>':''}`}<p>${chosen ? `${esc(name)} → ${esc(chosen)}` : '対象を選んでください。'}</p>${btn('この指示を確定','exp-command-confirm',chosen?'':'disabled','primary wide')}</div>`;
   }
   uiBattlePanel = function() {
     const b = s.battle, heroes = alive(), actor = heroes.find(h => h.id === b.actor) || heroes[0];
@@ -92,7 +100,7 @@
     const draft = draftFor(actor), skills = uiSkillList(actor).filter(sk => sk.level <= actor.lv), items = Object.entries(DATA.items).filter(([id,it]) => uiCount(id) && it.kind !== 'escape');
     const count = heroes.filter(h => b.plans[h.id]).length, plan = b.plans[actor.id];
     const chosen = (command, id) => draft?.command === command && (!id || draft.skill === id || draft.item === id) ? ' selected' : '';
-    return `<section class="panel battle-console exp-command-console"><div class="exp-console-head"><div><p class="eyebrow">PARTY COMMAND</p><h2>仲間に指示を出す</h2></div><span class="chip">${count} / ${heroes.length}人</span></div><ol class="exp-command-flow"><li class="active">行動を選ぶ</li><li class="${draft?'active':''}">対象を選ぶ</li><li>全員で実行</li></ol><div class="exp-actor-picker" role="group" aria-label="指示する仲間">${heroes.map((h,i)=>`<button type="button" data-action="actor" data-id="${h.id}" class="${h.id===actor.id?'selected':''}" aria-pressed="${h.id===actor.id}"><span class="exp-actor-number">${b.plans[h.id]?'✓':i+1}</span><span><b>${esc(h.name)}</b><small>${b.plans[h.id]?esc(uiPlanName(b.plans[h.id],h)):'行動を選択'}</small></span></button>`).join('')}</div><div class="exp-current-actor">${typeof jobCrestSVG==='function'?jobCrestSVG(actor.job):icon('shield')}<div><b>${esc(actor.name)}</b><small>${esc(DATA.jobs[actor.job].name)} · ${plan?'変更できます':'行動を決めてください'}</small></div></div><h3 class="exp-step-label">1. 行動を選ぶ</h3><div class="exp-basic-commands">${btn(icon('sword')+'通常攻撃','command','data-command="attack"','primary'+chosen('attack'))}${btn(icon('shield')+'防御','command','data-command="defend"',chosen('defend'))}${btn(icon('walk')+'逃走','command','data-command="escape"',chosen('escape'))}</div>${skills.length?`<div class="exp-skill-section"><h3>技・魔法</h3><div class="skill-buttons">${skills.map(sk=>btn(`<b>${esc(sk.name)}</b><small>MANA ${sk.mp} / SP ${sk.sp||0}</small>`,'command',`data-command="skill" data-skill="${sk.id}" title="${esc(sk.desc||'')}" ${actor.mp<sk.mp||actor.sp<(sk.sp||0)?'disabled':''}`,chosen('skill',sk.id))).join('')}</div></div>`:''}${items.length?`<details class="battle-items" ${draft?.command==='item'?'open':''}><summary>道具を使う <small>所持 ${items.length}種類</small></summary><div class="supply-buttons">${items.map(([id,it])=>btn(`${esc(it.name)} ×${uiCount(id)}`,'command',`data-command="item" data-item="${id}" title="${esc(it.desc)}"`,chosen('item',id))).join('')}</div></details>`:''}${draftControls(actor)}<div class="exp-turn-submit"><p>${draft?'選択中の指示を確定してください。':count===heroes.length?'全員の準備ができました。':`残り${heroes.length-count}人の行動を選択してください。`}</p>${btn('全員の行動を実行 →','execute',draft||count!==heroes.length||battleTimer?'disabled':'','primary wide')}${btn('全員おまかせ入力','template',battleTimer?'disabled':'','exp-template')}</div></section>`;
+    return `<section class="panel battle-console exp-command-console"><div class="exp-console-head"><div><p class="eyebrow">PARTY COMMAND</p><h2>仲間に指示を出す</h2></div><span class="chip">${count} / ${heroes.length}人</span></div><ol class="exp-command-flow"><li class="active">行動を選ぶ</li><li class="${draft?'active':''}">対象を選ぶ</li><li>全員で実行</li></ol><div class="exp-actor-picker" role="group" aria-label="指示する仲間">${heroes.map((h,i)=>`<button type="button" data-action="actor" data-id="${h.id}" class="${h.id===actor.id?'selected':''}" aria-pressed="${h.id===actor.id}"><span class="exp-actor-number">${b.plans[h.id]?'✓':i+1}</span><span><b>${esc(h.name)}</b><small>${b.plans[h.id]?esc(uiPlanName(b.plans[h.id],h)):'行動を選択'}</small></span></button>`).join('')}</div><div class="exp-current-actor">${typeof jobCrestSVG==='function'?jobCrestSVG(actor.job):icon('shield')}<div><b>${esc(actor.name)}</b><small>${esc(DATA.jobs[actor.job].name)} · ${plan?'変更できます':'行動を決めてください'}</small></div></div><h3 class="exp-step-label">1. 行動を選ぶ</h3><div class="exp-basic-commands">${btn(icon('sword')+'通常攻撃'+(globalThis.BRPGFormation?' · '+BRPGFormation.labels[BRPGFormation.range(actor)]:''),'command','data-command="attack"','primary'+chosen('attack'))}${btn(icon('shield')+'防御','command','data-command="defend"',chosen('defend'))}${btn(icon('walk')+'逃走','command','data-command="escape"',chosen('escape'))}</div>${skills.length?`<div class="exp-skill-section"><h3>技・魔法</h3><div class="skill-buttons">${skills.map(sk=>btn(`<b>${esc(sk.name)}</b><small>MANA ${sk.mp} / SP ${sk.sp||0}${globalThis.BRPGFormation?' · '+esc(BRPGFormation.rangeText(actor,sk)):''}</small>`,'command',`data-command="skill" data-skill="${sk.id}" title="${esc(sk.desc||'')}" ${actor.mp<sk.mp||actor.sp<(sk.sp||0)?'disabled':''}`,chosen('skill',sk.id))).join('')}</div></div>`:''}${items.length?`<details class="battle-items" ${draft?.command==='item'?'open':''}><summary>道具を使う <small>所持 ${items.length}種類</small></summary><div class="supply-buttons">${items.map(([id,it])=>btn(`${esc(it.name)} ×${uiCount(id)}`,'command',`data-command="item" data-item="${id}" title="${esc(it.desc)}"`,chosen('item',id))).join('')}</div></details>`:''}${draftControls(actor)}<div class="exp-turn-submit"><p>${draft?'選択中の指示を確定してください。':count===heroes.length?'全員の準備ができました。':`残り${heroes.length-count}人の行動を選択してください。`}</p>${btn('全員の行動を実行 →','execute',draft||count!==heroes.length||battleTimer?'disabled':'','primary wide')}${btn('全員おまかせ入力','template',battleTimer?'disabled':'','exp-template')}</div></section>`;
   };
   exploreScreen = function() {
     const d=s.dungeon;if(!d)return townScreen();
@@ -131,7 +139,7 @@
         const id=Number(button.dataset.id);if(options.some(o=>o.id===id)){draft.target=id;if(kind==='enemy')s.battle.target=id;else if(kind==='ally')s.battle.allyTarget=id;}
         render();return;
       }
-      const target=kind==='self'||kind==='allAllies'?actor.id:kind==='allEnemies'?enemyAlive()[0]?.key:draft.target;
+      const target=kind==='self'||kind==='allAllies'?actor.id:kind==='allEnemies'?options[0]?.id:draft.target;
       if(target==null||options.length&&!options.some(o=>o.id===target)||['ally','enemy'].includes(kind)&&!options.length)return;
       commandDraft=null;planCommand(draft.command,target,draft.skill,draft.item);return;
     }

@@ -171,16 +171,24 @@
     s.gear=s.gear.filter(g=>!ids.has(g.id));earnGold(total);
     tell(`保管庫の通常装備 ${targets.length}点を一括売却し、${total} Gを得た。`);render();
   }
+  const SHOP_BUY_CATEGORIES = { tools: '道具', weapon: '武器', shield: '盾', head: '頭防具', armor: '胴防具', arms: '腕防具', feet: '脚防具', accessory: '装飾品' };
+  let shopSelection = null;
+  function shopSelectionState() {
+    if (shopSelection?.owner !== s) shopSelection = { owner: s, tab: 'buy', category: 'tools' };
+    return shopSelection;
+  }
   globalThis.shopScreen=function() {
-    const maxLv=Math.max(partyLevel()+5,currentTown().level+5),shopItems=Object.entries(DATA.items).filter(([id,it])=>(it.level||1)<=maxLv||uiCount(id)>0),heldMaterials=Object.entries(DATA.materials).filter(([id])=>s.materials[id]>0);
+    const selection=shopSelectionState(),maxLv=Math.max(partyLevel()+5,currentTown().level+5),shopItems=Object.entries(DATA.items).filter(([id,it])=>(it.level||1)<=maxLv||uiCount(id)>0),heldMaterials=Object.entries(DATA.materials).filter(([id])=>s.materials[id]>0);
     const sortedGear=[...s.gear].sort((a,b)=>{const ea=s.roster.some(h=>HERO_SLOTS.some(slot=>h[slot]===a.id))?1:0,eb=s.roster.some(h=>HERO_SLOTS.some(slot=>h[slot]===b.id))?1:0;return ea-eb||gearValue(b)-gearValue(a)||b.id-a.id;});
     const bulkTargets=s.gear.filter(g=>g.ownerId==null&&!s.roster.some(h=>HERO_SLOTS.some(slot=>h[slot]===g.id))&&(!g.rarity||g.rarity==='common')&&!g.enchant);
-    const bulkGold=bulkTargets.reduce((sum,g)=>sum+gearSellPrice(g),0);
+    const bulkGold=bulkTargets.reduce((sum,g)=>sum+gearSellPrice(g),0),stock=merchantGear().filter(g=>g.equipSlot===selection.category);
+    const categories=`<div class="actions" aria-label="購入品の分類">${Object.entries(SHOP_BUY_CATEGORIES).map(([id,label])=>btn(label,'shop-category',`data-id="${id}" aria-pressed="${selection.category===id}"`,selection.category===id?'selected':'')).join('')}</div>`;
+    const buyContent=selection.category==='tools'?`<div class="shop-list">${shopItems.map(([id,it])=>{const price=supplyPrice(id);return `<article><div class="row between"><h3>${esc(it.name)}</h3><span class="chip">所持 ${uiCount(id)}</span></div><p>${esc(it.desc)}</p>${btn('1個購入 / '+price+' G','buy-item',`data-id="${id}" ${s.gold<price?'disabled':''}`)}</article>`;}).join('')}</div>`:
+      `<p class="muted">購入品は空きのある仲間の持ち物へ、満杯なら街の保管庫へ送られます。職業との適性は持ち物画面で確認できます。</p><div class="grid three">${stock.map(g=>`<article class="card"><h3 class="gear-name" title="${esc(gearName(g))}">${esc(gearName(g))}</h3><p>${g.slot==='weapon'?'攻':'防'}+${gearValue(g)} / ${esc(gearRequirementText(g))} / 耐久 ${g.dur}/${g.maxDur}</p>${btn('購入 / '+gearBuyPrice(g)+' G','merchant-buy-gear',`data-id="${g.key}" ${s.gold<gearBuyPrice(g)?'disabled':''}`)}</article>`).join('')||'<p class="empty">この分類の在庫はありません。</p>'}</div>`;
     return title('TRAVEL PROVISIONS','道具屋',esc(currentTown().name)+'の旅道具と掘出し物。')+
-      `<section class="panel"><h2>旅道具</h2><div class="shop-list">${shopItems.map(([id,it])=>{const price=supplyPrice(id);return `<article><div class="row between"><h3>${esc(it.name)}</h3><span class="chip">所持 ${uiCount(id)}</span></div><p>${esc(it.desc)}</p>${btn('1個購入 / '+price+' G','buy-item',`data-id="${id}" ${s.gold<price?'disabled':''}`)}</article>`;}).join('')}</div></section>`+
-      `<section class="panel section-space"><h2>中古の武器と防具</h2><p class="muted">各部位の装備と両手武器を扱います。購入品は空きのある仲間の持ち物へ、満杯なら街の保管庫へ送られます。職業との適性は持ち物画面で確認できます。</p><div class="grid three">${merchantGear().map(g=>`<article class="card"><h3>${esc(gearName(g))}</h3><p>${g.slot==='weapon'?'攻':'防'}+${gearValue(g)} / ${esc(gearRequirementText(g))} / 耐久 ${g.dur}/${g.maxDur}</p>${btn('購入 / '+gearBuyPrice(g)+' G','merchant-buy-gear',`data-id="${g.key}" ${s.gold<gearBuyPrice(g)?'disabled':''}`)}</article>`).join('')}</div></section>`+
-      `<section class="panel section-space"><h2>素材を売る</h2><div class="grid three">${heldMaterials.map(([id])=>`<article class="card"><h3>${esc(apparentMaterialName(id))} ×${s.materials[id]}</h3>${uiSale(id)}</article>`).join('')||'<p class="empty">売却できる素材がありません。</p>'}</div></section>`+
-      `<section class="panel section-space"><div class="row between"><h2>装備を売る <small>所持 ${s.gear.length}個</small></h2>${bulkTargets.length?btn(`保管庫の通常品をまとめて売る（${bulkTargets.length}点 / +${bulkGold} G）`,'merchant-sell-bulk-gear'):''}</div><p class="muted">未装備の品を優先表示。一括売却は保管庫の通常品のみです。装備中の品は持ち物画面で外してから売却できます。</p><div class="grid three">${sortedGear.map(g=>{const owner=s.roster.find(h=>HERO_SLOTS.some(slot=>h[slot]===g.id)),equipped=!!owner;return `<article class="card rarity-${g.rarity||'common'}"><h3>${esc(gearName(g))}</h3><p>${g.slot==='weapon'?'攻':'防'}+${gearValue(g)}${g.enchant?' · 付呪+'+enchantPower(g):''} / 耐久 ${g.dur}/${g.maxDur}</p>${btn(equipped?`${esc(owner.name)}が装備中`:'売却 / '+gearSellPrice(g)+' G','merchant-sell-gear',`data-id="${g.id}" ${equipped?'disabled':''}`)}</article>`;}).join('')}</div></section>`;
+      `<div class="actions" role="tablist" aria-label="商店の取引">${[['buy','購入'],['sell','売却']].map(([id,label])=>btn(label,'shop-tab',`data-id="${id}" id="shop-tab-${id}" role="tab" aria-controls="shop-panel-${id}" aria-selected="${selection.tab===id}"`,selection.tab===id?'selected':'')).join('')}</div>`+
+      `<section class="panel section-space" id="shop-panel-buy" role="tabpanel" aria-labelledby="shop-tab-buy" ${selection.tab==='buy'?'':'hidden'}><h2>購入 · ${SHOP_BUY_CATEGORIES[selection.category]}</h2>${categories}${buyContent}</section>`+
+      `<section class="panel section-space" id="shop-panel-sell" role="tabpanel" aria-labelledby="shop-tab-sell" ${selection.tab==='sell'?'':'hidden'}><h2>素材を売る</h2><div class="grid three">${heldMaterials.map(([id])=>`<article class="card"><h3>${esc(apparentMaterialName(id))} ×${s.materials[id]}</h3>${uiSale(id)}</article>`).join('')||'<p class="empty">売却できる素材がありません。</p>'}</div><div class="row between section-space"><h2>装備を売る <small>所持 ${s.gear.length}個</small></h2>${bulkTargets.length?btn(`保管庫の通常品をまとめて売る（${bulkTargets.length}点 / +${bulkGold} G）`,'merchant-sell-bulk-gear'):''}</div><p class="muted">未装備の品を優先表示。一括売却は保管庫の通常品のみです。装備中の品は持ち物画面で外してから売却できます。</p><div class="grid three">${sortedGear.map(g=>{const owner=s.roster.find(h=>HERO_SLOTS.some(slot=>h[slot]===g.id)),equipped=!!owner;return `<article class="card rarity-${g.rarity||'common'}"><h3 class="gear-name" title="${esc(gearName(g))}">${esc(gearName(g))}</h3><p>${g.slot==='weapon'?'攻':'防'}+${gearValue(g)}${g.enchant?' · 付呪+'+enchantPower(g):''} / 耐久 ${g.dur}/${g.maxDur}</p>${btn(equipped?`${esc(owner.name)}が装備中`:'売却 / '+gearSellPrice(g)+' G','merchant-sell-gear',`data-id="${g.id}" ${equipped?'disabled':''}`)}</article>`;}).join('')||'<p class="empty">売却できる装備がありません。</p>'}</div></section>`;
   };
   suppliesScreen=function(){return shopScreen();};
   function templeFee(h,kind) { return Math.ceil((kind==='revive'?20+h.lv*5:10+h.lv*2)*currentTown().price); }
@@ -518,7 +526,7 @@
   }
   function contractHTML(q) {
     const p=townBoard().progress[q.id]||{},emergency=q.kind==='emergency',isSpecial=emergency||q.kind==='lucrative',amount=emergency?0:availableMaterial(q.material,q.quality),accepted=p.status==='accepted',ready=emergency?p.status==='ready':accepted&&amount>=q.amount,done=p.status==='completed';
-    const cal=getCalendar(),active=getActiveQuest();
+    const cal=getCalendar(),active=getActiveQuest(),canSupply=!emergency&&amount>=q.amount&&(!done||q.repeat),canReport=ready;
     let dueText='';
     if(isSpecial&&q.dueDay!==undefined){
       const totalCurH=cal.day*24+cal.hour,totalDueH=q.dueDay*24+(q.dueHour??18),diffH=totalDueH-totalCurH;
@@ -529,6 +537,7 @@
     const targetMaps = accepted && !emergency ? candidateMapsForContract(q) : [];
     return `<article class="card ${q.kind==='resource'?'':emergency?'rarity-legendary':'rarity-magic'}" style="${accepted?'border-color:var(--gold)!important;box-shadow:0 0 10px #d7b77a33':''}">
       <div class="row between"><h3>${esc(q.name)}</h3><span class="chip ${accepted?'gold':''}">${accepted?'📌 受託中':emergency?'高難度・緊急討伐':isSpecial?'特別・好条件納品':'常設・資源調達'}</span></div>
+      ${canReport?'<p class="chip gold">✅ 今すぐ報告可能</p>':canSupply?`<p class="chip gold">📦 素材が揃っています · ${active?'受託枠が空けば即納品可能':'受注後すぐ納品可能'}</p>`:''}
       <p>${emergency?'強襲個体を討伐 / 脅威度 Lv.'+q.level:esc(apparentMaterialName(q.material))+' Q'+q.quality+'以上 ×'+q.amount+' / 所持 '+amount}</p>
       <p class="gold">報酬 ${q.reward} G</p>
       ${dueText}
@@ -555,6 +564,7 @@
     ensureSpecialOffers();
     const active = getActiveQuest();
     const cal = getCalendar();
+    const offers=contracts(),groups=[['resource','📦 常設・資源調達','何度でも受けられる資源の納品依頼。'],['lucrative','◇ 特別・好条件納品','報酬が高い期限付きの納品依頼。'],['emergency','⚔ 高難度・緊急討伐','強襲個体を討伐する期限付きの依頼。']];
     return title('ADVENTURERS GUILD', '冒険者ギルド・依頼掲示板', '受託枠は1件。常設の資源調達、商隊の好条件納品や強襲個体の緊急討伐を引き受ける。') +
       `<section class="panel">
         <div class="row between">
@@ -586,7 +596,7 @@
             <small class="muted">※受託中は他の依頼を受けられません。納品・報告して達成するか破棄してください。ダンジョンへは上のボタンまたは下の依頼表から直接出発できます。</small>
           </div>`;
         })() : '<div class="quest-box" style="margin-top:10px"><span class="chip">依頼受託枠：空き（1件受託可能）</span><span class="muted" style="margin-left:10px">※依頼を受けずにダンジョンへ潜る場合は、上部「地図」タブから自由に探索できます。</span></div>'}
-      </section><div class="grid three section-space">${contracts().map(contractHTML).join('')}</div>`;
+      </section><p class="muted">📦 は指定品質・数量の素材を所持、✅ は受託済みで今すぐ納品・報告可能です。素材は依頼ごとに判定され、納品すると消費されます。</p>${groups.map(([kind,label,description])=>{const list=offers.filter(q=>q.kind===kind);return `<section class="section-space" aria-label="${label}"><div class="row between"><h2>${label}</h2><span class="chip">${list.length}件</span></div><p class="muted">${description}</p><div class="grid three">${list.map(contractHTML).join('')||'<p class="muted">現在この種別の依頼はありません。</p>'}</div></section>`;}).join('')}`;
   };
 
   rulesScreen=function() {
@@ -842,6 +852,13 @@
   const oldHandleAction=handleAction;
   handleAction=function(event) {
     const b=event.target.closest('[data-action]');if(!b||b.disabled)return;
+    if(b.dataset.action==='shop-tab'||b.dataset.action==='shop-category') {
+      if(!townOnly())return;
+      const selection=shopSelectionState(),value=b.dataset.id;
+      if(b.dataset.action==='shop-tab'&&['buy','sell'].includes(value))selection.tab=value;
+      else if(b.dataset.action==='shop-category'&&Object.hasOwn(SHOP_BUY_CATEGORIES,value))selection.category=value;
+      render();return;
+    }
     const d=b.dataset,actions={'temple-treat':()=>templeTreat(Number(d.id),d.kind,d.credit==='yes'),'merchant-buy-gear':()=>buyGear(d.id),'merchant-sell-gear':()=>sellGear(Number(d.id)),'merchant-sell-bulk-gear':sellUnusedCommonGear,'contract-accept':()=>acceptContract(d.id),'contract-deliver':()=>deliverContract(d.id),'contract-challenge':()=>challengeContract(d.id),'contract-abandon':()=>abandonContract(d.id),'instant-return':instantReturn};
     if(actions[d.action])return actions[d.action]();
     return oldHandleAction(event);

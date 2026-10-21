@@ -199,9 +199,8 @@
   globalThis.jobTraitInfo = jobTraitInfo;
 
   partyScreen = function() {
-    const pr = partyPresets();
     return title('COMPANIONS', '仲間と隊列', 'ステータスを押すと、能力・装備・成長・体得した技を確認できます。') +
-      `<section class="panel"><div class="row between"><h2>編成セット</h2><small>参加 ${s.active.length} / 6人 · 登録 ${s.roster.length} / 16人</small></div><div class="actions">${[1, 2, 3].map(n => `${btn('セット' + n + 'に保存', 'save-preset', `data-slot="${n}" ${s.dungeon || s.battle ? 'disabled' : ''}`)}${btn('セット' + n + 'を呼出' + (pr[n] ? ' (' + pr[n].active.length + '人)' : ' (空)'), 'load-preset', `data-slot="${n}" ${!pr[n] || s.dungeon || s.battle ? 'disabled' : ''}`)}`).join('')}</div></section>
+      `${partyPresetsHTML()}
       <div class="grid three section-space">${s.roster.map(h => {
         initialize(h); const j = DATA.jobs[h.job], active = s.active.includes(h.id), st = stats(h);
         return `<article class="card party-status ${active ? '' : 'waiting'}"><button class="party-status-open" data-action="character" data-id="${h.id}" aria-label="${esc(h.name)}のステータスを開く"><span class="row between"><b>${esc(h.name)}</b><span class="gold">Lv.${h.lv}</span></span><span>${esc(j.name)} · ${GENDERS[h.gender]} · ${h.row === 'front' ? '前衛' : '後衛'} <span class="chip" style="font-size:9px;padding:1px 5px">${esc(jobTraitInfo(h.job).name)}</span></span><span>LIFE ${h.hp}/${st.hp} · MANA ${h.mp}/${st.mp} · SP ${h.sp}/${maxSP(h)}</span><span>攻 ${st.atk} · 防 ${st.def} · 魔 ${st.mag} · 速 ${st.speed}</span><span class="muted">${active ? '探索参加中' : '街で待機'} · ${statusLabel(h)}${freePoints(h) ? ' · 成長 ' + freePoints(h) + ' Pt' : ''}　詳細 ↗</span></button><div class="actions">${btn(active ? '街で待機' : '探索に参加', 'member', `data-id="${h.id}" ${s.dungeon || s.battle || active && s.active.length === 1 ? 'disabled' : ''}`)}${btn(h.row === 'front' ? '後衛へ' : '前衛へ', 'row', `data-id="${h.id}" ${s.dungeon || s.battle ? 'disabled' : ''}`)}</div></article>`;
@@ -246,21 +245,35 @@
       return `<div class="detail-gear"><h4>${label} <small class="muted">所持 ${list.length}個 / 装備可能 ${list.filter(x => x.permitted).length}個</small></h4><p>${esc(current ? gearName(current) : '装備なし')}${current ? ` <span class="gold">（${statName}+${curVal}${current.enchant ? ` · 付呪+${enchantPower(current)}` : ''}）</span>` : ''}</p>${current ? `<small>耐久 ${current.dur}/${current.maxDur}${canEquip(h, current) ? '' : ' · 装備条件を満たしていません'}</small>` : ''}<label class="field">${label}を変更<select data-character-change="equip" data-hero="${h.id}" data-slot="${slot}" aria-label="${label}を変更" ${readOnly ? 'disabled' : ''}><option value="">装備を外す</option>${groups}</select></label></div>`;
     }).join('') + (readOnly ? '<p class="muted">装備の変更は街で行えます。</p>' : '');
   }
+  const equipmentViews = new Map();
+  let equipmentState = null;
+  function equipmentView(h) {
+    if (equipmentState !== s) { equipmentViews.clear(); equipmentState = s; }
+    if (!equipmentViews.has(h.id)) equipmentViews.set(h.id, { slot: 'weapon', sources: { personal: true, storage: true, companions: false, equipped: false } });
+    return equipmentViews.get(h.id);
+  }
   function inventoryEquipmentSection(h) {
     const eq = BRPGEquipment, locked = !!(s.dungeon || s.battle);
     eq.normalizeState();
     const slots = eq.slots.filter(k => k !== 'acc2' || eq.accessorySlots(h) > 1);
-    const equipment = slots.map(slot => {
+    const view = equipmentView(h), selectedSlot = slots.includes(view.slot) ? view.slot : slots[0];
+    const slotControls = slots.map(slot => {
       const g = item(h[slot]), occupied = slot === 'shield' && item(h.weapon)?.hands === 2;
-      return `<article class="equipment-slot equipment-slot-${slot} ${g ? 'filled' : ''}"><small>${eq.labels[slot]}</small><b>${esc(g ? gearName(g) : occupied ? '両手武器が使用中' : '未装備')}</b>${g ? `<span>${g.slot === 'weapon' ? '攻' : '防'} +${eq.valueFor(h, g)} · 耐久 ${g.dur}/${g.maxDur}</span><span class="${eq.suitability(h, g).suitable ? 'muted' : 'equipment-unsuitable'}">${esc(eq.suitability(h, g).text)}</span>${btn('外す', 'character-unequip', `data-id="${h.id}" data-slot="${slot}" ${locked ? 'disabled' : ''}`)}` : ''}</article>`;
+      const durability = g ? eq.durability(g) : null;
+      return `<button type="button" class="equipment-slot equipment-slot-${slot} ${g ? 'filled' : ''} ${selectedSlot === slot ? 'selected' : ''}" data-action="character-slot" data-id="${h.id}" data-slot="${slot}" aria-pressed="${selectedSlot === slot}"><span class="equipment-slot-caption"><small>${eq.labels[slot]}</small>${g ? '<b class="equipped-mark" title="装備中">✓ 装備中</b>' : ''}</span><b class="equipment-slot-name" title="${esc(g ? gearName(g) : occupied ? '両手武器が使用中' : '未装備')}">${esc(g ? gearName(g) : occupied ? '両手武器が使用中' : '未装備')}</b>${g ? `<span class="durability ${durability.level}" title="耐久 ${durability.percent}%">${durability.icon} 耐久 ${durability.percent}%</span><span>${g.slot === 'weapon' ? '攻' : '防'} +${eq.valueFor(h, g)}</span>` : ''}</button>`;
     }).join('');
     const card = (g, storage = false) => {
       const owner = eq.equippedOwner(g), suit = eq.suitability(h, g), permitted = canEquip(h, g), own = owner?.id === h.id;
       const destination = s.roster.filter(a => a.id !== h.id && a.id !== g.ownerId);
-      return `<article class="inventory-card ${own ? 'is-equipped' : ''} rarity-${g.rarity || 'common'}"><div class="row between"><h4>${esc(gearName(g))}</h4><small>${esc(eq.types[g.type].name)}${g.hands === 2 ? ' · 両手' : ''}</small></div><p>${g.slot === 'weapon' ? '攻撃' : '防御'} +${eq.valueFor(h, g)} · 耐久 ${g.dur}/${g.maxDur}${owner ? ' · ' + esc(owner.name) + 'が装備中' : ''}</p><small class="${suit.suitable ? 'muted' : 'equipment-unsuitable'}">${esc(suit.text)}</small><small>${esc(gearRequirementText(g))}${!permitted ? ' · 能力条件未達' : ''}</small><div class="actions">${btn(own ? '装備中' : 'これを装備', 'character-equip', `data-id="${h.id}" data-gear="${g.id}" ${locked || own || !permitted || storage && !eq.canReceive(h) ? 'disabled' : ''}`, own ? '' : 'primary')}${storage ? btn('所持品へ取り出す', 'character-transfer', `data-id="${h.id}" data-gear="${g.id}" ${locked || !eq.canReceive(h) ? 'disabled' : ''}`) : btn('倉庫へ預ける', 'character-transfer', `data-id="storage" data-gear="${g.id}" ${locked ? 'disabled' : ''}`)}</div>${!storage && destination.length ? `<details class="inventory-transfer"><summary>仲間へ渡す</summary><div class="actions">${destination.map(a => btn(esc(a.name) + ' (' + eq.usage(a) + '/' + eq.capacity(a) + ')', 'character-transfer', `data-id="${a.id}" data-gear="${g.id}" ${locked || !eq.canReceive(a) ? 'disabled' : ''}`)).join('')}</div></details>` : ''}</article>`;
+      const durability = eq.durability(g);
+      return `<article class="inventory-card ${own ? 'is-equipped' : ''} rarity-${g.rarity || 'common'}"><div class="row between"><h4>${esc(gearName(g))}</h4><small>${esc(eq.types[g.type].name)}${g.hands === 2 ? ' · 両手' : ''}</small></div><p>${g.slot === 'weapon' ? '攻撃' : '防御'} +${eq.valueFor(h, g)} · <span class="durability ${durability.level}">${durability.icon} ${durability.percent}%</span></p>${owner ? `<span class="equipped-badge" title="${esc(owner.name)}が装備中">✓ ${esc(owner.name)}が装備中</span>` : ''}<small class="${suit.suitable ? 'muted' : 'equipment-unsuitable'}">${esc(suit.text)}</small><small>${esc(gearRequirementText(g))}${!permitted ? ' · 能力条件未達' : ''}</small><div class="actions">${btn(own ? '✓ 装備中' : 'これを装備', 'character-equip', `data-id="${h.id}" data-gear="${g.id}" data-slot="${selectedSlot}" ${locked || own || !permitted || storage && !eq.canReceive(h) ? 'disabled' : ''}`, own ? '' : 'primary')}${storage ? btn('所持品へ取り出す', 'character-transfer', `data-id="${h.id}" data-gear="${g.id}" ${locked || !eq.canReceive(h) ? 'disabled' : ''}`) : btn('倉庫へ預ける', 'character-transfer', `data-id="storage" data-gear="${g.id}" ${locked || own ? 'disabled' : ''}`)}</div>${!storage && destination.length ? `<details class="inventory-transfer"><summary>仲間へ渡す</summary><div class="actions">${destination.map(a => btn(esc(a.name) + ' (' + eq.usage(a) + '/' + eq.capacity(a) + ')', 'character-transfer', `data-id="${a.id}" data-gear="${g.id}" ${locked || !eq.canReceive(a) ? 'disabled' : ''}`)).join('')}</div></details>` : ''}</article>`;
     };
-    const bag = eq.inventory(h), stored = s.gear.filter(g => g.ownerId === null);
-    return `<div class="equipment-paperdoll" aria-label="装備部位">${equipment}</div><div class="row between section-space"><h4>${esc(h.name)}の所持品</h4><strong class="${bag.length > eq.capacity(h) ? 'equipment-unsuitable' : 'gold'}">${bag.length} / ${eq.capacity(h)} 枠</strong></div><p class="muted">装備中の品も1枠使用します。品物のカードから装備できます。装備適性がなくても装着でき、基礎性能が半減し、付呪・称号・能力補正は働きません。${bag.length > eq.capacity(h) ? '転職前の所持品は保持します。枠を空けるまで追加できません。' : ''}</p><div class="inventory-grid">${bag.map(g => card(g)).join('') || '<p class="muted">所持品はありません。</p>'}</div><details class="equipment-storage section-space"><summary>街の倉庫 · ${stored.length}点</summary><p class="muted">個人の枠に入りきらない旧所持品・戦利品は倉庫に保管します。倉庫の品は街で取り出せます。</p><div class="inventory-grid">${stored.map(g => card(g, true)).join('') || '<p class="muted">保管品はありません。</p>'}</div>${locked ? '<p class="muted">装備変更・所持品の受渡し・倉庫利用は街で行えます。</p>' : ''}`;
+    const bag = eq.inventory(h), stored = s.gear.filter(g => g.ownerId === null), matching = g => eq.slotOf(g) === (selectedSlot.startsWith('acc') ? 'accessory' : selectedSlot), candidates = bag.filter(matching);
+    const sourceControls = [['personal', '自分の所持品'], ['storage', '倉庫品'], ['companions', '仲間の所持品'], ['equipped', '仲間の装備品']].map(([key, label]) => btn((view.sources[key] ? '☑ ' : '☐ ') + label, 'character-auto-source', `data-id="${h.id}" data-source="${key}" aria-pressed="${!!view.sources[key]}" ${locked ? 'disabled' : ''}`, view.sources[key] ? 'selected' : '')).join('');
+    const autoPanel = `<section class="slot-candidates"><h4>お任せ装備</h4><p class="muted">候補の出所を選び、攻撃・防御の合計が高くなるよう装備します。現在の装備は常に候補です。仲間の装備品を選ぶと、その仲間から装備を外して移動します。</p><div class="actions">${sourceControls}</div>${btn('選んだ範囲からお任せ装備', 'character-auto-equip', `data-id="${h.id}" ${locked ? 'disabled' : ''}`, 'primary')}</section>`;
+    const equippedIds = new Set(s.roster.flatMap(a => eq.slots.map(k => a[k]).filter(Boolean)));
+    const movable = bag.filter(g => !equippedIds.has(g.id)).length;
+    return `${autoPanel}<div class="equipment-paperdoll" aria-label="装備部位">${slotControls}</div><section class="slot-candidates"><div class="row between"><h4>${esc(eq.labels[selectedSlot])}の装備候補</h4>${h[selectedSlot] ? btn('この部位を外す', 'character-unequip', `data-id="${h.id}" data-slot="${selectedSlot}" ${locked ? 'disabled' : ''}`) : ''}</div><div class="inventory-grid">${candidates.map(g => card(g)).join('') || '<p class="muted">この部位の所持品はありません。</p>'}${stored.filter(matching).map(g => card(g, true)).join('')}</div></section><div class="row between section-space"><h4>${esc(h.name)}の所持品</h4><strong class="${bag.length > eq.capacity(h) ? 'equipment-unsuitable' : 'gold'}">${bag.length} / ${eq.capacity(h)} 枠</strong></div><p class="muted">装備中の品も1枠使用します。部位を選ぶと対応する候補に絞り込めます。装備適性がなくても装着でき、基礎性能が半減し、付呪・称号・能力補正は働きません。${bag.length > eq.capacity(h) ? '転職前の所持品は保持します。枠を空けるまで追加できません。' : ''}</p>${movable ? btn(`装備していない所持品を倉庫へまとめて移動（${movable}点）`, 'character-store-bulk', `data-id="${h.id}" ${locked ? 'disabled' : ''}`) : ''}<div class="inventory-grid">${bag.map(g => card(g)).join('') || '<p class="muted">所持品はありません。</p>'}</div><details class="equipment-storage section-space"><summary>街の倉庫 · ${stored.length}点</summary><p class="muted">倉庫の品は街で取り出せます。</p><div class="inventory-grid">${stored.map(g => card(g, true)).join('') || '<p class="muted">保管品はありません。</p>'}</div>${locked ? '<p class="muted">装備変更・所持品の受渡し・倉庫利用は街で行えます。</p>' : ''}`;
   }
   function growthSection(h, comparison) {
     const d = draftFor(h), total = draftTotal(h), remaining = freePoints(h) - total;
@@ -274,7 +287,7 @@
       const behNames = (ck.behaviors || []).map(bid => DATA.catalog?.behaviors?.[bid]?.name || bid).join('・');
       return `<article class="skill-line ${unlocked ? '' : 'locked'}"><div class="row between"><b>${esc(ck.name)} <span class="chip">${esc(ck.kind)}</span></b><small>${unlocked ? '体得済み' : '要 Lv.' + ck.minLv}${behNames ? ' · 行動：' + esc(behNames) : ''}</small></div><p>${esc(ck.effect)}${ck.limit ? ` <small class="muted">（${esc(ck.limit)}）</small>` : ''}</p></article>`;
     }).join('')}</div>` : '';
-    return `<div class="character-pager">${btn('← 前の仲間', 'character-prev', `data-id="${h.id}" ${s.roster.length < 2 ? 'disabled' : ''}`)}<span>${index + 1} / ${s.roster.length}</span>${btn('次の仲間 →', 'character-next', `data-id="${h.id}" ${s.roster.length < 2 ? 'disabled' : ''}`)}</div><div class="hero-top"><div class="avatar">${typeof jobCrestSVG === 'function' ? jobCrestSVG(h.job) : j.icon}</div><div><p class="eyebrow">CHARACTER RECORD</p><h2>${esc(h.name)} <span class="gold">Lv.${h.lv}</span></h2><small>${esc(j.name)} / ${GENDERS[h.gender]} / ${h.row === 'front' ? '前衛' : '後衛'} / ${s.active.includes(h.id) ? '探索参加中' : '街で待機'}</small></div></div><div class="quest-box" style="margin:-4px 0 16px;border-left:3px solid var(--gold)"><div class="row between"><b>【ジョブ特性】${esc(jobTraitInfo(h.job).name)}</b><span class="chip">${esc(jobTraitInfo(h.job).tag)}</span></div><p class="muted" style="margin:4px 0 0">${esc(jobTraitInfo(h.job).desc)}</p></div><div class="character-grid"><section class="character-section"><h3>状態</h3>${bars(h)}<p>${statusLabel(h)} · 経験値 ${h.xp} / ${xpNeeded(h)}</p><dl class="stat-grid">${Object.entries(DERIVED).map(([k, name]) => `<div><dt>${name}</dt><dd>${changeValue(comparison.before.stats[k], comparison.after.stats[k])}</dd></div>`).join('')}</dl></section><section class="character-section">${growthSection(h, comparison)}</section><section class="character-section"><h3>装備</h3>${equipmentSection(h)}</section><section class="character-section"><h3>体得した技 <small>${learned.length}種</small></h3><div class="learned-skills">${learned.map(sk => `<article class="skill-line"><div class="row between"><b>${esc(sk.name)}</b><small>MANA ${sk.mp} / SP ${sk.sp || 0}</small></div><p>${esc(skillDescription(sk.desc) || '鍛錬によって体得した技。')}</p></article>`).join('') || '<p class="muted">まだ体得した戦闘技はありません。</p>'}${catSection}</div></section></div>${s.battle && h.hp > 0 && s.active.includes(h.id) ? btn('この仲間に指示する', 'actor-close', `data-id="${h.id}"`, 'primary wide') : ''}`;
+    return `<div class="character-pager">${btn('← 前の仲間', 'character-prev', `data-id="${h.id}" ${s.roster.length < 2 ? 'disabled' : ''}`)}<span>${index + 1} / ${s.roster.length}</span>${btn('次の仲間 →', 'character-next', `data-id="${h.id}" ${s.roster.length < 2 ? 'disabled' : ''}`)}</div><div class="hero-top"><div class="avatar">${typeof jobCrestSVG === 'function' ? jobCrestSVG(h.job) : j.icon}</div><div><p class="eyebrow">CHARACTER RECORD</p><h2>${esc(h.name)} <span class="gold">Lv.${h.lv}</span></h2><small>${esc(j.name)} / ${GENDERS[h.gender]} / ${h.row === 'front' ? '前衛' : '後衛'} / ${s.active.includes(h.id) ? '探索参加中' : '街で待機'}</small></div></div><div class="quest-box" style="margin:-4px 0 16px;border-left:3px solid var(--gold)"><div class="row between"><b>【ジョブ特性】${esc(jobTraitInfo(h.job).name)}</b><span class="chip">${esc(jobTraitInfo(h.job).tag)}</span></div><p class="muted" style="margin:4px 0 0">${esc(jobTraitInfo(h.job).desc)}</p></div><div class="character-grid"><section class="character-section"><h3>状態</h3>${bars(h)}<p>${statusLabel(h)} · 経験値 ${h.xp} / ${xpNeeded(h)}</p><dl class="stat-grid">${Object.entries(DERIVED).map(([k, name]) => `<div><dt>${name}</dt><dd>${changeValue(comparison.before.stats[k], comparison.after.stats[k])}</dd></div>`).join('')}</dl></section><section class="character-section">${growthSection(h, comparison)}</section><section class="character-section character-equipment"><h3>装備</h3>${equipmentSection(h)}</section><section class="character-section"><h3>体得した技 <small>${learned.length}種</small></h3><div class="learned-skills">${learned.map(sk => `<article class="skill-line"><div class="row between"><b>${esc(sk.name)}</b><small>MANA ${sk.mp} / SP ${sk.sp || 0}</small></div><p>${esc(skillDescription(sk.desc) || '鍛錬によって体得した技。')}</p></article>`).join('') || '<p class="muted">まだ体得した戦闘技はありません。</p>'}${catSection}</div></section></div>${s.battle && h.hp > 0 && s.active.includes(h.id) ? btn('この仲間に指示する', 'actor-close', `data-id="${h.id}"`, 'primary wide') : ''}`;
   };
   function refreshDetail() {
     const dialog = $('character-dialog'), h = s.roster.find(a => a.id === s.selection);
@@ -310,8 +323,10 @@
     tell(h.name + 'は' + j.name + 'に転職した。'); render(); return true;
   };
   function rollCandidate() {
-    return { name: '探索者' + s.nextHero, gender: 'male', job: 'warrior', birthAttributes: Object.fromEntries(KEYS.map(k => [k, Math.floor(random() * 5) - 2])) };
+    return { name: randomRecruitName(), gender: 'male', job: 'warrior', birthAttributes: Object.fromEntries(KEYS.map(k => [k, Math.floor(random() * 5) - 2])) };
   }
+  const RECRUIT_NAMES = ['アレン', 'イリス', 'エルナ', 'オルド', 'カイ', 'キリカ', 'クルト', 'シオン', 'セラ', 'トーマ', 'ナギ', 'ニーナ', 'ノエル', 'ハル', 'フィン', 'ミラ', 'ユナ', 'リオン', 'ルカ', 'レナ'];
+  function randomRecruitName() { return RECRUIT_NAMES[Math.floor(random() * RECRUIT_NAMES.length)]; }
   function candidate() {
     const e = state(), townId = currentTown().id;
     let saved = e.tavernCandidates[townId];
@@ -319,7 +334,7 @@
     if (!recruitForm || recruitState !== s || recruitForm.townId !== townId) {
       recruitState = s; recruitForm = { townId, ...saved };
       if (!GENDERS[recruitForm.gender] || recruitForm.gender === 'unspecified') recruitForm.gender = 'male';
-      if (typeof recruitForm.name !== 'string') recruitForm.name = '探索者' + s.nextHero;
+      if (typeof recruitForm.name !== 'string') recruitForm.name = randomRecruitName();
     }
     return recruitForm;
   }
@@ -350,11 +365,56 @@
     else { delete state().tavernCandidates[currentTown().id]; recruitForm = null; }
     tell(h.name + 'を仲間に迎えた。'); render(); return true;
   };
+  let jobConsultation = null;
+  function jobConsultationState() {
+    if (jobConsultation?.owner !== s) jobConsultation = { owner: s, heroId: null, job: null };
+    return jobConsultation;
+  }
+  function jobComparisonValue(before, after) {
+    const delta = after - before;
+    return before === after ? String(before) : `${before} → <strong class="${delta < 0 ? 'equipment-unsuitable' : 'stat-change'}">${after} (${delta > 0 ? '+' : ''}${delta})</strong>`;
+  }
+  function previewJob(h, job) {
+    if (!h || !DATA.jobs[job]) return null;
+    const eq = globalThis.BRPGEquipment, index = s.roster.indexOf(h);
+    if (index < 0) return null;
+    const snapshot = hero => ({ attributes: attributes(hero), stats: { ...stats(hero), sp: maxSP(hero) }, capacity: eq?.capacity(hero), accessories: eq?.accessorySlots(hero) });
+    const before = snapshot(h), probe = structuredClone(h);
+    // Legacy combat helpers resolve equipment through the roster. Substitute only
+    // while calculating, so a preview uses the proposed job without saving it.
+    try {
+      s.roster[index] = probe; probe.job = job; syncHero(probe);
+      if (eq && eq.accessorySlots(probe) < 2) probe.acc2 = null;
+      if (job !== h.job) {
+        const st = stats(probe);
+        probe.hp = Math.min(st.hp, Math.floor(st.hp * (h.hp / before.stats.hp)));
+        probe.mp = Math.min(st.mp, Math.floor(st.mp * (h.mp / before.stats.mp)));
+        probe.sp = Math.min(maxSP(probe), Math.floor(maxSP(probe) * (h.sp / before.stats.sp)));
+      }
+      return { before, after: snapshot(probe), hero: probe };
+    } finally { s.roster[index] = h; }
+  }
+  globalThis.previewCharacterJob = previewJob;
+  function jobConsultationSection() {
+    const draft = jobConsultationState(), h = s.roster.find(a => a.id === draft.heroId);
+    const members = `<div class="actions" aria-label="転職する仲間">${s.roster.map(a => btn(esc(a.name) + ' · ' + esc(DATA.jobs[a.job].name), 'tavern-job-hero', `data-id="${a.id}" aria-pressed="${a.id === draft.heroId}"`, a.id === draft.heroId ? 'selected' : '')).join('')}</div>`;
+    if (!h) return `<section class="panel"><h2>転職の相談</h2><p class="muted">① 仲間を選ぶ → ② 転職先を選ぶ → ③ 変化を確認して確定</p>${members}<p>転職を相談する仲間を選んでください。</p></section>`;
+    const available = Object.entries(DATA.jobs).filter(([id]) => canJob(h, id));
+    if (!available.some(([id]) => id === draft.job)) draft.job = h.job;
+    const job = draft.job, j = DATA.jobs[job], trait = jobTraitInfo(job), comparison = previewJob(h, job), eq = globalThis.BRPGEquipment;
+    const equipment = eq ? eq.slots.filter(slot => h[slot]).map(slot => {
+      const g = item(h[slot]); if (!g) return '';
+      const before = eq.suitability(h, g), after = eq.suitability(comparison.hero, g), kept = comparison.hero[slot] === g.id;
+      return `<li>${esc(eq.labels[slot])}：${esc(gearName(g))} <strong>${before.suitable ? '適性あり' : '適性なし'} → ${kept ? after.suitable ? '適性あり' : '適性なし' : '所持品へ外れる'}</strong>${kept && !canEquip(comparison.hero, g) ? ' · 必要能力未達で性能無効' : ''}</li>`;
+    }).join('') : '';
+    const suitability = eq ? `<p><b>装備適性</b>：${Object.entries(eq.types).filter(([type]) => eq.suitability(comparison.hero, { type, material: 'iron' }).suitable).map(([, type]) => esc(type.name)).join('・')}</p><p class="muted">鉄製を基準にした適性です。品ごとの指定や素材によって変わります。</p><ul>${equipment || '<li>現在の装備はありません。</li>'}</ul>` : '';
+    return `<section class="panel"><h2>転職の相談</h2><p class="muted">① 仲間を選ぶ → ② 転職先を選ぶ → ③ 変化を確認して確定</p>${members}<h3>${esc(h.name)} · Lv.${h.lv}</h3><label class="field">転職先<select data-character-change="job-preview" data-hero="${h.id}">${available.map(([id, def]) => `<option value="${id}" ${id === job ? 'selected' : ''}>${esc(def.name)}${id === h.job ? '（現在）' : ''}</option>`).join('')}</select></label><article class="quest-box"><div class="row between"><h3>${esc(j.name)}</h3><span class="chip">${esc(trait.tag)}</span></div><p>${esc(j.desc || j.skillDesc || trait.desc)}</p><p><b>${esc(trait.name)}</b>：${esc(trait.desc)}</p></article><h3>${esc(DATA.jobs[h.job].name)} → ${esc(j.name)}</h3><dl class="stat-grid">${KEYS.map(k => `<div><dt>${k} · ${ATTRIBUTE_NAMES[k]}</dt><dd>${jobComparisonValue(comparison.before.attributes[k], comparison.after.attributes[k])}</dd></div>`).join('')}${Object.entries(DERIVED).map(([k, label]) => `<div><dt>${label}</dt><dd>${jobComparisonValue(comparison.before.stats[k], comparison.after.stats[k])}</dd></div>`).join('')}${eq ? `<div><dt>所持枠</dt><dd>${jobComparisonValue(comparison.before.capacity, comparison.after.capacity)}</dd></div><div><dt>装飾品枠</dt><dd>${jobComparisonValue(comparison.before.accessories, comparison.after.accessories)}</dd></div>` : ''}</dl>${eq && eq.usage(h) > comparison.after.capacity ? '<p class="equipment-unsuitable">転職後は所持枠を超えます。所持品は保持され、枠を空けるまで追加できません。</p>' : ''}${suitability}<p class="muted">レベル・成長配分・体得した技・所持品を引き継ぎ、LIFE・MANA・SPは現在の割合を保ちます。</p>${btn('この職業への転職を確定', 'tavern-job-confirm', `data-id="${h.id}" data-job="${esc(job)}" ${job === h.job ? 'disabled' : ''}`, 'primary')}</section>`;
+  }
   globalThis.tavernScreen = function() {
     const c = candidate(), cost = recruitCost(), jobs = baseJobs(c);
     if (!jobs.some(([id]) => id === c.job)) c.job = jobs[0]?.[0] || 'warrior';
     const probe = { ...makeHero(-1, c.name, c.job), gender: c.gender, birthAttributes: c.birthAttributes }, a = attributes(probe), rare = rareCandidate();
-    return title('TAVERN', '酒場・探索者の登録所', '新しい仲間との出会い、そして経験を積んだ仲間の転職。') + `<div class="grid"><section class="panel tavern-create"><h2>探索者を登録 <small>${cost} G</small></h2><p class="muted">登録 ${s.roster.length}/16人 · 探索参加 ${s.active.length}/6人</p><label class="field">名前<input id="tavern-name" data-character-change="recruit-name" maxlength="24" value="${esc(c.name)}" autocomplete="off"></label><div class="grid"><label class="field">性別<select data-character-change="recruit-gender">${Object.entries(GENDERS).filter(([id]) => id !== 'unspecified').map(([id, label]) => `<option value="${id}" ${c.gender === id ? 'selected' : ''}>${label}</option>`).join('')}</select></label><label class="field">最初の職業<select data-character-change="recruit-job">${jobs.map(([id, j]) => `<option value="${id}" ${c.job === id ? 'selected' : ''}>${esc(j.name)}</option>`).join('')}</select></label></div><h3>生まれ持った能力</h3><dl class="stat-grid recruit-preview">${KEYS.map(k => `<div><dt>${k} · ${ATTRIBUTE_NAMES[k]}</dt><dd>${a[k]} <small class="muted">(${c.birthAttributes[k] >= 0 ? '+' : ''}${c.birthAttributes[k]})</small></dd></div>`).join('')}</dl><p class="muted">括弧内は個人差です。職業や性別を選び直しても変わりません。</p><div class="actions">${btn('この探索者を登録', 'tavern-recruit', `data-job="${esc(c.job)}" ${s.gold < cost || s.roster.length >= 16 || !jobs.length ? 'disabled' : ''}`, 'primary')}${btn('別の志願者を探す', 'tavern-reroll')}</div></section><section class="panel"><h2>転職の相談</h2><p class="muted">今の仲間が就ける職業を、本人ごとに相談できます。</p>${s.roster.map(h => { const available = Object.entries(DATA.jobs).filter(([id]) => canJob(h, id)); return `<article class="detail-gear"><div class="row between"><b>${esc(h.name)}</b><small>${esc(DATA.jobs[h.job].name)} Lv.${h.lv}</small></div><label class="field">転職先<select data-character-change="job" data-hero="${h.id}" aria-label="${esc(h.name)}の転職先">${available.map(([id, j]) => `<option value="${id}" ${h.job === id ? 'selected' : ''}>${esc(j.name)}${h.job === id ? '（現在）' : ''}</option>`).join('')}</select></label></article>`; }).join('')}</section></div>${rare ? `<section class="panel section-space"><h2>見慣れぬ旅人</h2><p>${esc(rare.name)}が、この街で一行を待っている。</p>${btn('旅人を仲間に迎える · ' + cost + ' G', 'tavern-rare-recruit', `data-job="${esc(rare.job)}" ${s.gold < cost || s.roster.length >= 16 ? 'disabled' : ''}`)}</section>` : ''}`;
+    return title('TAVERN', '酒場・探索者の登録所', '新しい仲間との出会い、そして経験を積んだ仲間の転職。') + `<div class="grid"><section class="panel tavern-create"><h2>探索者を登録 <small>${cost} G</small></h2><p class="muted">登録 ${s.roster.length}/16人 · 探索参加 ${s.active.length}/6人</p><label class="field">名前<input id="tavern-name" data-character-change="recruit-name" maxlength="24" value="${esc(c.name)}" autocomplete="off"></label>${btn('名前をランダムに選ぶ', 'tavern-random-name')}<div class="grid"><label class="field">性別<select data-character-change="recruit-gender">${Object.entries(GENDERS).filter(([id]) => id !== 'unspecified').map(([id, label]) => `<option value="${id}" ${c.gender === id ? 'selected' : ''}>${label}</option>`).join('')}</select></label><label class="field">最初の職業<select data-character-change="recruit-job">${jobs.map(([id, j]) => `<option value="${id}" ${c.job === id ? 'selected' : ''}>${esc(j.name)}</option>`).join('')}</select></label></div><h3>生まれ持った能力 <span class="chip">ボーナス総計 ${Object.values(c.birthAttributes).reduce((sum, n) => sum + n, 0) >= 0 ? '+' : ''}${Object.values(c.birthAttributes).reduce((sum, n) => sum + n, 0)}</span></h3><dl class="stat-grid recruit-preview">${KEYS.map(k => `<div><dt>${k} · ${ATTRIBUTE_NAMES[k]}</dt><dd>${a[k]} <small class="muted">(${c.birthAttributes[k] >= 0 ? '+' : ''}${c.birthAttributes[k]})</small></dd></div>`).join('')}</dl><p class="muted">括弧内は個人差です。職業や性別を選び直しても変わりません。</p><div class="actions">${btn('この探索者を登録', 'tavern-recruit', `data-job="${esc(c.job)}" ${s.gold < cost || s.roster.length >= 16 || !jobs.length ? 'disabled' : ''}`, 'primary')}${btn('別の志願者を探す', 'tavern-reroll')}</div></section>${jobConsultationSection()}</div>${rare ? `<section class="panel section-space"><h2>見慣れぬ旅人</h2><p>${esc(rare.name)}が、この街で一行を待っている。</p>${btn('旅人を仲間に迎える · ' + cost + ' G', 'tavern-rare-recruit', `data-job="${esc(rare.job)}" ${s.gold < cost || s.roster.length >= 16 ? 'disabled' : ''}`)}</section>` : ''}`;
   };
 
   const previousRender = render;
@@ -373,17 +433,24 @@
       if (action === 'alloc-stat') { ev.stopImmediatePropagation(); return; }
       if (!action.startsWith('character-') && !action.startsWith('tavern-')) return;
       ev.stopImmediatePropagation();
-      if (action === 'character-prev' || action === 'character-next') {
+      if (action === 'character-slot') { const h = s.roster.find(x => x.id === id); if (h) { equipmentView(h).slot = b.dataset.slot; refreshDetail(); } }
+      else if (action === 'character-auto-source') { const h = s.roster.find(x => x.id === id); if (h && !s.dungeon && !s.battle && Object.hasOwn(equipmentView(h).sources, b.dataset.source)) { const v = equipmentView(h); v.sources[b.dataset.source] = !v.sources[b.dataset.source]; refreshDetail(); } }
+      else if (action === 'character-auto-equip') { const h = s.roster.find(x => x.id === id); if (h) BRPGEquipment.autoEquip(id, equipmentView(h).sources); }
+      else if (action === 'character-store-bulk') globalThis.BRPGEquipment?.transferUnworn(id);
+      else if (action === 'character-prev' || action === 'character-next') {
         const index = s.roster.findIndex(h => h.id === id), direction = action === 'character-next' ? 1 : -1;
         cancelGrowth(); openCharacter(s.roster[(index + direction + s.roster.length) % s.roster.length].id);
       } else if (action === 'character-growth') globalThis.adjustCharacterGrowth(id, b.dataset.stat, Number(b.dataset.step));
-      else if (action === 'character-equip') globalThis.BRPGEquipment?.equip(Number(b.dataset.gear), id);
+      else if (action === 'character-equip') globalThis.BRPGEquipment?.equip(Number(b.dataset.gear), id, b.dataset.slot);
       else if (action === 'character-unequip') globalThis.BRPGEquipment?.unequip(id, b.dataset.slot);
       else if (action === 'character-transfer') globalThis.BRPGEquipment?.transfer(Number(b.dataset.gear), b.dataset.id === 'storage' ? null : id);
       else if (action === 'character-growth-confirm') confirmGrowth(id);
       else if (action === 'character-growth-cancel') { cancelGrowth(); refreshDetail(); }
       else if (action === 'tavern-recruit') recruit(b.dataset.job);
       else if (action === 'tavern-rare-recruit') recruit(b.dataset.job, { rare: true });
+      else if (action === 'tavern-job-hero' && tavernOnly()) { const h = s.roster.find(a => a.id === id); if (h) { Object.assign(jobConsultationState(), { heroId: id, job: h.job }); render(); } }
+      else if (action === 'tavern-job-confirm' && tavernOnly()) { const draft = jobConsultationState(); if (draft.heroId === id && draft.job === b.dataset.job) changeJob(id, draft.job); }
+      else if (action === 'tavern-random-name' && tavernOnly()) { candidate().name = randomRecruitName(); state().tavernCandidates[currentTown().id].name = candidate().name; render(); }
       else if (action === 'tavern-reroll' && tavernOnly()) { state().tavernCandidates[currentTown().id] = rollCandidate(); recruitForm = null; render(); }
     }, true);
     document.addEventListener('input', ev => {
@@ -396,7 +463,7 @@
       if (d.extChange === 'subjob') { ev.stopImmediatePropagation(); return; }
       if (!action) return;
       ev.stopImmediatePropagation();
-      if (action === 'job') changeJob(Number(d.hero), ev.target.value);
+      if (action === 'job-preview' && tavernOnly()) { const draft = jobConsultationState(), h = s.roster.find(a => a.id === Number(d.hero)); if (h && draft.heroId === h.id && canJob(h, ev.target.value)) { draft.job = ev.target.value; render(); } }
       else if (action === 'recruit-gender' || action === 'recruit-job') {
         if (!tavernOnly()) return;
         const c = candidate(), value = ev.target.value;

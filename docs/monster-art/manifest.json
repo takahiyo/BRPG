@@ -1,0 +1,3303 @@
+{
+  "version": 1,
+  "layout": {
+    "columns": 5,
+    "rows": 6,
+    "width": 2560,
+    "height": 3072,
+    "cell": 512
+  },
+  "background": "transparent",
+  "batches": [
+    {
+      "id": "M0001",
+      "name": "スライム",
+      "sheet": "catalog-01",
+      "cell": 1,
+      "verified": false
+    },
+    {
+      "id": "M0002",
+      "name": "大ネズミ",
+      "sheet": "catalog-01",
+      "cell": 2,
+      "verified": false
+    },
+    {
+      "id": "M0003",
+      "name": "洞窟コウモリ",
+      "sheet": "catalog-01",
+      "cell": 3,
+      "verified": false
+    },
+    {
+      "id": "M0004",
+      "name": "大ムカデ",
+      "sheet": "catalog-01",
+      "cell": 4,
+      "verified": false
+    },
+    {
+      "id": "M0005",
+      "name": "吸血ヒル",
+      "sheet": "catalog-01",
+      "cell": 5,
+      "verified": false
+    },
+    {
+      "id": "M0006",
+      "name": "人食いカエル",
+      "sheet": "catalog-01",
+      "cell": 6,
+      "verified": false
+    },
+    {
+      "id": "M0007",
+      "name": "ジャイアントアント",
+      "sheet": "catalog-01",
+      "cell": 7,
+      "verified": false
+    },
+    {
+      "id": "M0008",
+      "name": "ゴブリン",
+      "sheet": "catalog-01",
+      "cell": 8,
+      "verified": false
+    },
+    {
+      "id": "M0009",
+      "name": "歩行キノコ",
+      "sheet": "catalog-01",
+      "cell": 9,
+      "verified": false
+    },
+    {
+      "id": "M0010",
+      "name": "鎌鼬",
+      "sheet": "catalog-01",
+      "cell": 10,
+      "verified": false
+    },
+    {
+      "id": "M0011",
+      "name": "毒蛾",
+      "sheet": "catalog-01",
+      "cell": 11,
+      "verified": false
+    },
+    {
+      "id": "M0012",
+      "name": "ウーズ",
+      "sheet": "catalog-01",
+      "cell": 12,
+      "verified": false
+    },
+    {
+      "id": "M0013",
+      "name": "ジャッカロープ",
+      "sheet": "catalog-01",
+      "cell": 13,
+      "verified": false
+    },
+    {
+      "id": "M0014",
+      "name": "マンドラゴラ",
+      "sheet": "catalog-01",
+      "cell": 14,
+      "verified": false
+    },
+    {
+      "id": "M0015",
+      "name": "コボルト",
+      "sheet": "catalog-01",
+      "cell": 15,
+      "verified": false
+    },
+    {
+      "id": "M0016",
+      "name": "大カニ",
+      "sheet": "catalog-01",
+      "cell": 16,
+      "verified": false
+    },
+    {
+      "id": "M0017",
+      "name": "スケルトン",
+      "sheet": "catalog-01",
+      "cell": 17,
+      "verified": false
+    },
+    {
+      "id": "M0018",
+      "name": "ウィルオウィスプ",
+      "sheet": "catalog-01",
+      "cell": 18,
+      "verified": false
+    },
+    {
+      "id": "M0019",
+      "name": "ジャイアントスパイダー",
+      "sheet": "catalog-01",
+      "cell": 19,
+      "verified": false
+    },
+    {
+      "id": "M0020",
+      "name": "キラービー",
+      "sheet": "catalog-01",
+      "cell": 20,
+      "verified": false
+    },
+    {
+      "id": "M0021",
+      "name": "ゾンビ",
+      "sheet": "catalog-01",
+      "cell": 21,
+      "verified": false
+    },
+    {
+      "id": "M0022",
+      "name": "ワーラット",
+      "sheet": "catalog-01",
+      "cell": 22,
+      "verified": false
+    },
+    {
+      "id": "M0023",
+      "name": "ピクシー",
+      "sheet": "catalog-01",
+      "cell": 23,
+      "verified": false
+    },
+    {
+      "id": "M0024",
+      "name": "リーフスライム",
+      "sheet": "catalog-01",
+      "cell": 24,
+      "verified": false
+    },
+    {
+      "id": "M0025",
+      "name": "大トカゲ",
+      "sheet": "catalog-01",
+      "cell": 25,
+      "verified": false
+    },
+    {
+      "id": "M0026",
+      "name": "ジャイアントスコーピオン",
+      "sheet": "catalog-01",
+      "cell": 26,
+      "verified": false
+    },
+    {
+      "id": "M0027",
+      "name": "ワイルドボア",
+      "sheet": "catalog-01",
+      "cell": 27,
+      "verified": false
+    },
+    {
+      "id": "M0028",
+      "name": "グレムリン",
+      "sheet": "catalog-01",
+      "cell": 28,
+      "verified": false
+    },
+    {
+      "id": "M0029",
+      "name": "ブラックドッグ",
+      "sheet": "catalog-01",
+      "cell": 29,
+      "verified": false
+    },
+    {
+      "id": "M0030",
+      "name": "リザードマン",
+      "sheet": "catalog-01",
+      "cell": 30,
+      "verified": false
+    },
+    {
+      "id": "M0031",
+      "name": "ホブゴブリン",
+      "sheet": "catalog-02",
+      "cell": 1,
+      "verified": false
+    },
+    {
+      "id": "M0032",
+      "name": "河童",
+      "sheet": "catalog-02",
+      "cell": 2,
+      "verified": false
+    },
+    {
+      "id": "M0033",
+      "name": "インプ",
+      "sheet": "catalog-02",
+      "cell": 3,
+      "verified": false
+    },
+    {
+      "id": "M0034",
+      "name": "ケルピー",
+      "sheet": "catalog-02",
+      "cell": 4,
+      "verified": false
+    },
+    {
+      "id": "M0035",
+      "name": "ハーピー",
+      "sheet": "catalog-02",
+      "cell": 5,
+      "verified": false
+    },
+    {
+      "id": "M0036",
+      "name": "ダイアウルフ",
+      "sheet": "catalog-02",
+      "cell": 6,
+      "verified": false
+    },
+    {
+      "id": "M0037",
+      "name": "ガーゴイル",
+      "sheet": "catalog-02",
+      "cell": 7,
+      "verified": false
+    },
+    {
+      "id": "M0038",
+      "name": "グール",
+      "sheet": "catalog-02",
+      "cell": 8,
+      "verified": false
+    },
+    {
+      "id": "M0039",
+      "name": "鵺",
+      "sheet": "catalog-02",
+      "cell": 9,
+      "verified": false
+    },
+    {
+      "id": "M0040",
+      "name": "オーガ",
+      "sheet": "catalog-02",
+      "cell": 10,
+      "verified": false
+    },
+    {
+      "id": "M0041",
+      "name": "オーク",
+      "sheet": "catalog-02",
+      "cell": 11,
+      "verified": false
+    },
+    {
+      "id": "M0042",
+      "name": "ノール",
+      "sheet": "catalog-02",
+      "cell": 12,
+      "verified": false
+    },
+    {
+      "id": "M0043",
+      "name": "バグベア",
+      "sheet": "catalog-02",
+      "cell": 13,
+      "verified": false
+    },
+    {
+      "id": "M0044",
+      "name": "トログロダイト",
+      "sheet": "catalog-02",
+      "cell": 14,
+      "verified": false
+    },
+    {
+      "id": "M0045",
+      "name": "サハギン",
+      "sheet": "catalog-02",
+      "cell": 15,
+      "verified": false
+    },
+    {
+      "id": "M0046",
+      "name": "ヴァイパースライム",
+      "sheet": "catalog-02",
+      "cell": 16,
+      "verified": false
+    },
+    {
+      "id": "M0047",
+      "name": "レッドキャップ",
+      "sheet": "catalog-02",
+      "cell": 17,
+      "verified": false
+    },
+    {
+      "id": "M0048",
+      "name": "バーヴァン・シー",
+      "sheet": "catalog-02",
+      "cell": 18,
+      "verified": false
+    },
+    {
+      "id": "M0049",
+      "name": "鉄鼠",
+      "sheet": "catalog-02",
+      "cell": 19,
+      "verified": false
+    },
+    {
+      "id": "M0050",
+      "name": "ジャイアントマンティス",
+      "sheet": "catalog-02",
+      "cell": 20,
+      "verified": false
+    },
+    {
+      "id": "M0051",
+      "name": "アーマービートル",
+      "sheet": "catalog-02",
+      "cell": 21,
+      "verified": false
+    },
+    {
+      "id": "M0052",
+      "name": "トレント",
+      "sheet": "catalog-02",
+      "cell": 22,
+      "verified": false
+    },
+    {
+      "id": "M0053",
+      "name": "ヒポグリフ",
+      "sheet": "catalog-02",
+      "cell": 23,
+      "verified": false
+    },
+    {
+      "id": "M0054",
+      "name": "崖巣の巨嘴鳥",
+      "sheet": "catalog-02",
+      "cell": 24,
+      "verified": false
+    },
+    {
+      "id": "M0055",
+      "name": "コカトリス",
+      "sheet": "catalog-02",
+      "cell": 25,
+      "verified": false
+    },
+    {
+      "id": "M0056",
+      "name": "バジリスク",
+      "sheet": "catalog-02",
+      "cell": 26,
+      "verified": false
+    },
+    {
+      "id": "M0057",
+      "name": "シーサーペント",
+      "sheet": "catalog-02",
+      "cell": 27,
+      "verified": false
+    },
+    {
+      "id": "M0058",
+      "name": "雪女",
+      "sheet": "catalog-02",
+      "cell": 28,
+      "verified": false
+    },
+    {
+      "id": "M0059",
+      "name": "ウェアウルフ",
+      "sheet": "catalog-02",
+      "cell": 29,
+      "verified": false
+    },
+    {
+      "id": "M0060",
+      "name": "ウェアベア",
+      "sheet": "catalog-02",
+      "cell": 30,
+      "verified": false
+    },
+    {
+      "id": "M0061",
+      "name": "ヘルハウンド",
+      "sheet": "catalog-03",
+      "cell": 1,
+      "verified": false
+    },
+    {
+      "id": "M0062",
+      "name": "ディープオクトパス",
+      "sheet": "catalog-03",
+      "cell": 2,
+      "verified": false
+    },
+    {
+      "id": "M0063",
+      "name": "シェイド",
+      "sheet": "catalog-03",
+      "cell": 3,
+      "verified": false
+    },
+    {
+      "id": "M0064",
+      "name": "ポルターガイスト",
+      "sheet": "catalog-03",
+      "cell": 4,
+      "verified": false
+    },
+    {
+      "id": "M0065",
+      "name": "デュラハン",
+      "sheet": "catalog-03",
+      "cell": 5,
+      "verified": false
+    },
+    {
+      "id": "M0066",
+      "name": "ガスト",
+      "sheet": "catalog-03",
+      "cell": 6,
+      "verified": false
+    },
+    {
+      "id": "M0067",
+      "name": "ボーンソルジャー",
+      "sheet": "catalog-03",
+      "cell": 7,
+      "verified": false
+    },
+    {
+      "id": "M0068",
+      "name": "クレイゴーレム",
+      "sheet": "catalog-03",
+      "cell": 8,
+      "verified": false
+    },
+    {
+      "id": "M0069",
+      "name": "ウッドゴーレム",
+      "sheet": "catalog-03",
+      "cell": 9,
+      "verified": false
+    },
+    {
+      "id": "M0070",
+      "name": "アニメイテッドアーマー",
+      "sheet": "catalog-03",
+      "cell": 10,
+      "verified": false
+    },
+    {
+      "id": "M0071",
+      "name": "犬神",
+      "sheet": "catalog-03",
+      "cell": 11,
+      "verified": false
+    },
+    {
+      "id": "M0072",
+      "name": "サラマンダー",
+      "sheet": "catalog-03",
+      "cell": 12,
+      "verified": false
+    },
+    {
+      "id": "M0073",
+      "name": "ウンディーネ",
+      "sheet": "catalog-03",
+      "cell": 13,
+      "verified": false
+    },
+    {
+      "id": "M0074",
+      "name": "シルフ",
+      "sheet": "catalog-03",
+      "cell": 14,
+      "verified": false
+    },
+    {
+      "id": "M0075",
+      "name": "ノーム",
+      "sheet": "catalog-03",
+      "cell": 15,
+      "verified": false
+    },
+    {
+      "id": "M0076",
+      "name": "スプリガン",
+      "sheet": "catalog-03",
+      "cell": 16,
+      "verified": false
+    },
+    {
+      "id": "M0077",
+      "name": "トロール",
+      "sheet": "catalog-03",
+      "cell": 17,
+      "verified": false
+    },
+    {
+      "id": "M0078",
+      "name": "エティン",
+      "sheet": "catalog-03",
+      "cell": 18,
+      "verified": false
+    },
+    {
+      "id": "M0079",
+      "name": "マンティコア",
+      "sheet": "catalog-03",
+      "cell": 19,
+      "verified": false
+    },
+    {
+      "id": "M0080",
+      "name": "ミノタウロス",
+      "sheet": "catalog-03",
+      "cell": 20,
+      "verified": false
+    },
+    {
+      "id": "M0081",
+      "name": "グリフォン",
+      "sheet": "catalog-03",
+      "cell": 21,
+      "verified": false
+    },
+    {
+      "id": "M0082",
+      "name": "ペリュトン",
+      "sheet": "catalog-03",
+      "cell": 22,
+      "verified": false
+    },
+    {
+      "id": "M0083",
+      "name": "アラクネ",
+      "sheet": "catalog-03",
+      "cell": 23,
+      "verified": false
+    },
+    {
+      "id": "M0084",
+      "name": "ラミア",
+      "sheet": "catalog-03",
+      "cell": 24,
+      "verified": false
+    },
+    {
+      "id": "M0085",
+      "name": "メデューサ",
+      "sheet": "catalog-03",
+      "cell": 25,
+      "verified": false
+    },
+    {
+      "id": "M0086",
+      "name": "エンプーサ",
+      "sheet": "catalog-03",
+      "cell": 26,
+      "verified": false
+    },
+    {
+      "id": "M0087",
+      "name": "サキュバス",
+      "sheet": "catalog-03",
+      "cell": 27,
+      "verified": false
+    },
+    {
+      "id": "M0088",
+      "name": "ナイトメア",
+      "sheet": "catalog-03",
+      "cell": 28,
+      "verified": false
+    },
+    {
+      "id": "M0089",
+      "name": "バンシー",
+      "sheet": "catalog-03",
+      "cell": 29,
+      "verified": false
+    },
+    {
+      "id": "M0090",
+      "name": "レイス",
+      "sheet": "catalog-03",
+      "cell": 30,
+      "verified": false
+    },
+    {
+      "id": "M0091",
+      "name": "ワイト",
+      "sheet": "catalog-04",
+      "cell": 1,
+      "verified": false
+    },
+    {
+      "id": "M0092",
+      "name": "レヴナント",
+      "sheet": "catalog-04",
+      "cell": 2,
+      "verified": false
+    },
+    {
+      "id": "M0093",
+      "name": "マミー",
+      "sheet": "catalog-04",
+      "cell": 3,
+      "verified": false
+    },
+    {
+      "id": "M0094",
+      "name": "スペクター",
+      "sheet": "catalog-04",
+      "cell": 4,
+      "verified": false
+    },
+    {
+      "id": "M0095",
+      "name": "ストーンゴーレム",
+      "sheet": "catalog-04",
+      "cell": 5,
+      "verified": false
+    },
+    {
+      "id": "M0096",
+      "name": "フレッシュゴーレム",
+      "sheet": "catalog-04",
+      "cell": 6,
+      "verified": false
+    },
+    {
+      "id": "M0097",
+      "name": "ブロンズコロッサス",
+      "sheet": "catalog-04",
+      "cell": 7,
+      "verified": false
+    },
+    {
+      "id": "M0098",
+      "name": "リビングスタチュー",
+      "sheet": "catalog-04",
+      "cell": 8,
+      "verified": false
+    },
+    {
+      "id": "M0099",
+      "name": "ファイアエレメンタル",
+      "sheet": "catalog-04",
+      "cell": 9,
+      "verified": false
+    },
+    {
+      "id": "M0100",
+      "name": "アイスエレメンタル",
+      "sheet": "catalog-04",
+      "cell": 10,
+      "verified": false
+    },
+    {
+      "id": "M0101",
+      "name": "ライトニングエレメンタル",
+      "sheet": "catalog-04",
+      "cell": 11,
+      "verified": false
+    },
+    {
+      "id": "M0102",
+      "name": "ウォーターエレメンタル",
+      "sheet": "catalog-04",
+      "cell": 12,
+      "verified": false
+    },
+    {
+      "id": "M0103",
+      "name": "エアエレメンタル",
+      "sheet": "catalog-04",
+      "cell": 13,
+      "verified": false
+    },
+    {
+      "id": "M0104",
+      "name": "アースエレメンタル",
+      "sheet": "catalog-04",
+      "cell": 14,
+      "verified": false
+    },
+    {
+      "id": "M0105",
+      "name": "クリスタルスライム",
+      "sheet": "catalog-04",
+      "cell": 15,
+      "verified": false
+    },
+    {
+      "id": "M0106",
+      "name": "マグマスライム",
+      "sheet": "catalog-04",
+      "cell": 16,
+      "verified": false
+    },
+    {
+      "id": "M0107",
+      "name": "フロストサーペント",
+      "sheet": "catalog-04",
+      "cell": 17,
+      "verified": false
+    },
+    {
+      "id": "M0108",
+      "name": "サンダーバード",
+      "sheet": "catalog-04",
+      "cell": 18,
+      "verified": false
+    },
+    {
+      "id": "M0109",
+      "name": "サンドワーム",
+      "sheet": "catalog-04",
+      "cell": 19,
+      "verified": false
+    },
+    {
+      "id": "M0110",
+      "name": "デスワーム",
+      "sheet": "catalog-04",
+      "cell": 20,
+      "verified": false
+    },
+    {
+      "id": "M0111",
+      "name": "アルラウネ",
+      "sheet": "catalog-04",
+      "cell": 21,
+      "verified": false
+    },
+    {
+      "id": "M0112",
+      "name": "ヴァンパイアツリー",
+      "sheet": "catalog-04",
+      "cell": 22,
+      "verified": false
+    },
+    {
+      "id": "M0113",
+      "name": "フロストジャイアント",
+      "sheet": "catalog-04",
+      "cell": 23,
+      "verified": false
+    },
+    {
+      "id": "M0114",
+      "name": "ファイアジャイアント",
+      "sheet": "catalog-04",
+      "cell": 24,
+      "verified": false
+    },
+    {
+      "id": "M0115",
+      "name": "ヒルジャイアント",
+      "sheet": "catalog-04",
+      "cell": 25,
+      "verified": false
+    },
+    {
+      "id": "M0116",
+      "name": "フォモール",
+      "sheet": "catalog-04",
+      "cell": 26,
+      "verified": false
+    },
+    {
+      "id": "M0117",
+      "name": "キマイラ",
+      "sheet": "catalog-04",
+      "cell": 27,
+      "verified": false
+    },
+    {
+      "id": "M0118",
+      "name": "ドレイク",
+      "sheet": "catalog-04",
+      "cell": 28,
+      "verified": false
+    },
+    {
+      "id": "M0119",
+      "name": "リンドヴルム",
+      "sheet": "catalog-04",
+      "cell": 29,
+      "verified": false
+    },
+    {
+      "id": "M0120",
+      "name": "ワイバーン",
+      "sheet": "catalog-04",
+      "cell": 30,
+      "verified": false
+    },
+    {
+      "id": "M0121",
+      "name": "サイクロプス",
+      "sheet": "catalog-05",
+      "cell": 1,
+      "verified": false
+    },
+    {
+      "id": "M0122",
+      "name": "双顎の墓狼",
+      "sheet": "catalog-05",
+      "cell": 2,
+      "verified": false
+    },
+    {
+      "id": "M0123",
+      "name": "獄炎ジャッカル",
+      "sheet": "catalog-05",
+      "cell": 3,
+      "verified": false
+    },
+    {
+      "id": "M0124",
+      "name": "カトブレパス",
+      "sheet": "catalog-05",
+      "cell": 4,
+      "verified": false
+    },
+    {
+      "id": "M0125",
+      "name": "ゴルゴンブル",
+      "sheet": "catalog-05",
+      "cell": 5,
+      "verified": false
+    },
+    {
+      "id": "M0126",
+      "name": "鉄甲地走竜",
+      "sheet": "catalog-05",
+      "cell": 6,
+      "verified": false
+    },
+    {
+      "id": "M0127",
+      "name": "大海溝の鋸鰻",
+      "sheet": "catalog-05",
+      "cell": 7,
+      "verified": false
+    },
+    {
+      "id": "M0128",
+      "name": "船喰いイカ",
+      "sheet": "catalog-05",
+      "cell": 8,
+      "verified": false
+    },
+    {
+      "id": "M0129",
+      "name": "群腕イソギンチャク",
+      "sheet": "catalog-05",
+      "cell": 9,
+      "verified": false
+    },
+    {
+      "id": "M0130",
+      "name": "渦巻きオウムガイ",
+      "sheet": "catalog-05",
+      "cell": 10,
+      "verified": false
+    },
+    {
+      "id": "M0131",
+      "name": "イフリート",
+      "sheet": "catalog-05",
+      "cell": 11,
+      "verified": false
+    },
+    {
+      "id": "M0132",
+      "name": "ジン",
+      "sheet": "catalog-05",
+      "cell": 12,
+      "verified": false
+    },
+    {
+      "id": "M0133",
+      "name": "マリード",
+      "sheet": "catalog-05",
+      "cell": 13,
+      "verified": false
+    },
+    {
+      "id": "M0134",
+      "name": "ダオ",
+      "sheet": "catalog-05",
+      "cell": 14,
+      "verified": false
+    },
+    {
+      "id": "M0135",
+      "name": "アイアンゴーレム",
+      "sheet": "catalog-05",
+      "cell": 15,
+      "verified": false
+    },
+    {
+      "id": "M0136",
+      "name": "ルーンガーディアン",
+      "sheet": "catalog-05",
+      "cell": 16,
+      "verified": false
+    },
+    {
+      "id": "M0137",
+      "name": "青銅鋳造巨兵",
+      "sheet": "catalog-05",
+      "cell": 17,
+      "verified": false
+    },
+    {
+      "id": "M0138",
+      "name": "ミラージュゴーレム",
+      "sheet": "catalog-05",
+      "cell": 18,
+      "verified": false
+    },
+    {
+      "id": "M0139",
+      "name": "ヴァンパイア",
+      "sheet": "catalog-05",
+      "cell": 19,
+      "verified": false
+    },
+    {
+      "id": "M0140",
+      "name": "髑髏呪術師",
+      "sheet": "catalog-05",
+      "cell": 20,
+      "verified": false
+    },
+    {
+      "id": "M0141",
+      "name": "牛鬼",
+      "sheet": "catalog-05",
+      "cell": 21,
+      "verified": false
+    },
+    {
+      "id": "M0142",
+      "name": "ドラウグル",
+      "sheet": "catalog-05",
+      "cell": 22,
+      "verified": false
+    },
+    {
+      "id": "M0143",
+      "name": "リーパー",
+      "sheet": "catalog-05",
+      "cell": 23,
+      "verified": false
+    },
+    {
+      "id": "M0144",
+      "name": "ナックラヴィー",
+      "sheet": "catalog-05",
+      "cell": 24,
+      "verified": false
+    },
+    {
+      "id": "M0145",
+      "name": "氷牙の穴熊",
+      "sheet": "catalog-05",
+      "cell": 25,
+      "verified": false
+    },
+    {
+      "id": "M0146",
+      "name": "墓荒らしの六脚狼",
+      "sheet": "catalog-05",
+      "cell": 26,
+      "verified": false
+    },
+    {
+      "id": "M0147",
+      "name": "スレイプニル",
+      "sheet": "catalog-05",
+      "cell": 27,
+      "verified": false
+    },
+    {
+      "id": "M0148",
+      "name": "山童",
+      "sheet": "catalog-05",
+      "cell": 28,
+      "verified": false
+    },
+    {
+      "id": "M0149",
+      "name": "ラタトスク",
+      "sheet": "catalog-05",
+      "cell": 29,
+      "verified": false
+    },
+    {
+      "id": "M0150",
+      "name": "山脈渡りの大鷲",
+      "sheet": "catalog-05",
+      "cell": 30,
+      "verified": false
+    },
+    {
+      "id": "M0151",
+      "name": "デーモン",
+      "sheet": "catalog-06",
+      "cell": 1,
+      "verified": false
+    },
+    {
+      "id": "M0152",
+      "name": "オニ",
+      "sheet": "catalog-06",
+      "cell": 2,
+      "verified": false
+    },
+    {
+      "id": "M0153",
+      "name": "ラクシャーサ",
+      "sheet": "catalog-06",
+      "cell": 3,
+      "verified": false
+    },
+    {
+      "id": "M0154",
+      "name": "アスラ",
+      "sheet": "catalog-06",
+      "cell": 4,
+      "verified": false
+    },
+    {
+      "id": "M0155",
+      "name": "ガンダルヴァ",
+      "sheet": "catalog-06",
+      "cell": 5,
+      "verified": false
+    },
+    {
+      "id": "M0156",
+      "name": "ガルーダ",
+      "sheet": "catalog-06",
+      "cell": 6,
+      "verified": false
+    },
+    {
+      "id": "M0157",
+      "name": "ナーガ",
+      "sheet": "catalog-06",
+      "cell": 7,
+      "verified": false
+    },
+    {
+      "id": "M0158",
+      "name": "アンフィスバエナ",
+      "sheet": "catalog-06",
+      "cell": 8,
+      "verified": false
+    },
+    {
+      "id": "M0159",
+      "name": "地底の穿岩蛇",
+      "sheet": "catalog-06",
+      "cell": 9,
+      "verified": false
+    },
+    {
+      "id": "M0160",
+      "name": "ヒュドラ",
+      "sheet": "catalog-06",
+      "cell": 10,
+      "verified": false
+    },
+    {
+      "id": "M0161",
+      "name": "ドラゴンパピー",
+      "sheet": "catalog-06",
+      "cell": 11,
+      "verified": false
+    },
+    {
+      "id": "M0162",
+      "name": "フェアリードラゴン",
+      "sheet": "catalog-06",
+      "cell": 12,
+      "verified": false
+    },
+    {
+      "id": "M0163",
+      "name": "シードラゴン",
+      "sheet": "catalog-06",
+      "cell": 13,
+      "verified": false
+    },
+    {
+      "id": "M0164",
+      "name": "マグマドレイク",
+      "sheet": "catalog-06",
+      "cell": 14,
+      "verified": false
+    },
+    {
+      "id": "M0165",
+      "name": "フロストドレイク",
+      "sheet": "catalog-06",
+      "cell": 15,
+      "verified": false
+    },
+    {
+      "id": "M0166",
+      "name": "ストームドレイク",
+      "sheet": "catalog-06",
+      "cell": 16,
+      "verified": false
+    },
+    {
+      "id": "M0167",
+      "name": "バジリスクドラゴン",
+      "sheet": "catalog-06",
+      "cell": 17,
+      "verified": false
+    },
+    {
+      "id": "M0168",
+      "name": "ワームドラゴン",
+      "sheet": "catalog-06",
+      "cell": 18,
+      "verified": false
+    },
+    {
+      "id": "M0169",
+      "name": "毒嚢竜",
+      "sheet": "catalog-06",
+      "cell": 19,
+      "verified": false
+    },
+    {
+      "id": "M0170",
+      "name": "貯水膜竜",
+      "sheet": "catalog-06",
+      "cell": 20,
+      "verified": false
+    },
+    {
+      "id": "M0171",
+      "name": "ズメイ",
+      "sheet": "catalog-06",
+      "cell": 21,
+      "verified": false
+    },
+    {
+      "id": "M0172",
+      "name": "ズラトロク",
+      "sheet": "catalog-06",
+      "cell": 22,
+      "verified": false
+    },
+    {
+      "id": "M0173",
+      "name": "バハムート",
+      "sheet": "catalog-06",
+      "cell": 23,
+      "verified": false
+    },
+    {
+      "id": "M0174",
+      "name": "岩角の巨犀",
+      "sheet": "catalog-06",
+      "cell": 24,
+      "verified": false
+    },
+    {
+      "id": "M0175",
+      "name": "嵐棚の帆翼鳥",
+      "sheet": "catalog-06",
+      "cell": 25,
+      "verified": false
+    },
+    {
+      "id": "M0176",
+      "name": "虹羽の薬喰い鳥",
+      "sheet": "catalog-06",
+      "cell": 26,
+      "verified": false
+    },
+    {
+      "id": "M0177",
+      "name": "灰羽の火喰い鳥",
+      "sheet": "catalog-06",
+      "cell": 27,
+      "verified": false
+    },
+    {
+      "id": "M0178",
+      "name": "燐火の孔雀",
+      "sheet": "catalog-06",
+      "cell": 28,
+      "verified": false
+    },
+    {
+      "id": "M0179",
+      "name": "白刃毛の山猫",
+      "sheet": "catalog-06",
+      "cell": 29,
+      "verified": false
+    },
+    {
+      "id": "M0180",
+      "name": "蛇尾の城塞亀",
+      "sheet": "catalog-06",
+      "cell": 30,
+      "verified": false
+    },
+    {
+      "id": "M0181",
+      "name": "麒麟",
+      "sheet": "catalog-07",
+      "cell": 1,
+      "verified": false
+    },
+    {
+      "id": "M0182",
+      "name": "スフィンクス",
+      "sheet": "catalog-07",
+      "cell": 2,
+      "verified": false
+    },
+    {
+      "id": "M0183",
+      "name": "アンドロスフィンクス",
+      "sheet": "catalog-07",
+      "cell": 3,
+      "verified": false
+    },
+    {
+      "id": "M0184",
+      "name": "骨砕きの沼獣",
+      "sheet": "catalog-07",
+      "cell": 4,
+      "verified": false
+    },
+    {
+      "id": "M0185",
+      "name": "ペガサス",
+      "sheet": "catalog-07",
+      "cell": 5,
+      "verified": false
+    },
+    {
+      "id": "M0186",
+      "name": "ユニコーン",
+      "sheet": "catalog-07",
+      "cell": 6,
+      "verified": false
+    },
+    {
+      "id": "M0187",
+      "name": "バイコーン",
+      "sheet": "catalog-07",
+      "cell": 7,
+      "verified": false
+    },
+    {
+      "id": "M0188",
+      "name": "エンジェル",
+      "sheet": "catalog-07",
+      "cell": 8,
+      "verified": false
+    },
+    {
+      "id": "M0189",
+      "name": "ヴァルキュリア",
+      "sheet": "catalog-07",
+      "cell": 9,
+      "verified": false
+    },
+    {
+      "id": "M0190",
+      "name": "アプサラス",
+      "sheet": "catalog-07",
+      "cell": 10,
+      "verified": false
+    },
+    {
+      "id": "M0191",
+      "name": "キンナラ",
+      "sheet": "catalog-07",
+      "cell": 11,
+      "verified": false
+    },
+    {
+      "id": "M0192",
+      "name": "ディーヴァ",
+      "sheet": "catalog-07",
+      "cell": 12,
+      "verified": false
+    },
+    {
+      "id": "M0193",
+      "name": "グレンデル",
+      "sheet": "catalog-07",
+      "cell": 13,
+      "verified": false
+    },
+    {
+      "id": "M0194",
+      "name": "フンババ",
+      "sheet": "catalog-07",
+      "cell": 14,
+      "verified": false
+    },
+    {
+      "id": "M0195",
+      "name": "ウリディンム",
+      "sheet": "catalog-07",
+      "cell": 15,
+      "verified": false
+    },
+    {
+      "id": "M0196",
+      "name": "瑠璃背の沼竜",
+      "sheet": "catalog-07",
+      "cell": 16,
+      "verified": false
+    },
+    {
+      "id": "M0197",
+      "name": "千棘の洞窟竜",
+      "sheet": "catalog-07",
+      "cell": 17,
+      "verified": false
+    },
+    {
+      "id": "M0198",
+      "name": "鎧節の砂潜り竜",
+      "sheet": "catalog-07",
+      "cell": 18,
+      "verified": false
+    },
+    {
+      "id": "M0199",
+      "name": "トライヘッドドラゴン",
+      "sheet": "catalog-07",
+      "cell": 19,
+      "verified": false
+    },
+    {
+      "id": "M0200",
+      "name": "成竜",
+      "sheet": "catalog-07",
+      "cell": 20,
+      "verified": false
+    },
+    {
+      "id": "M0201",
+      "name": "タラスク",
+      "sheet": "catalog-07",
+      "cell": 21,
+      "verified": false
+    },
+    {
+      "id": "M0202",
+      "name": "アスピドケロン",
+      "sheet": "catalog-07",
+      "cell": 22,
+      "verified": false
+    },
+    {
+      "id": "M0203",
+      "name": "グルファクシ",
+      "sheet": "catalog-07",
+      "cell": 23,
+      "verified": false
+    },
+    {
+      "id": "M0204",
+      "name": "アミメット",
+      "sheet": "catalog-07",
+      "cell": 24,
+      "verified": false
+    },
+    {
+      "id": "M0205",
+      "name": "フェンリル",
+      "sheet": "catalog-07",
+      "cell": 25,
+      "verified": false
+    },
+    {
+      "id": "M0206",
+      "name": "フレスヴェルグ",
+      "sheet": "catalog-07",
+      "cell": 26,
+      "verified": false
+    },
+    {
+      "id": "M0207",
+      "name": "吸魂の蓮池",
+      "sheet": "catalog-07",
+      "cell": 27,
+      "verified": false
+    },
+    {
+      "id": "M0208",
+      "name": "モルモー",
+      "sheet": "catalog-07",
+      "cell": 28,
+      "verified": false
+    },
+    {
+      "id": "M0209",
+      "name": "星紋の蛇巫女",
+      "sheet": "catalog-07",
+      "cell": 29,
+      "verified": false
+    },
+    {
+      "id": "M0210",
+      "name": "紅蓮角の獅子蟻",
+      "sheet": "catalog-07",
+      "cell": 30,
+      "verified": false
+    },
+    {
+      "id": "M0211",
+      "name": "火山灰を撒く鸞",
+      "sheet": "catalog-08",
+      "cell": 1,
+      "verified": false
+    },
+    {
+      "id": "M0212",
+      "name": "スキュラ",
+      "sheet": "catalog-08",
+      "cell": 2,
+      "verified": false
+    },
+    {
+      "id": "M0213",
+      "name": "カリュブディス",
+      "sheet": "catalog-08",
+      "cell": 3,
+      "verified": false
+    },
+    {
+      "id": "M0214",
+      "name": "結晶洞の糸繰り蜘蛛",
+      "sheet": "catalog-08",
+      "cell": 4,
+      "verified": false
+    },
+    {
+      "id": "M0215",
+      "name": "ゴルゴンウツボ",
+      "sheet": "catalog-08",
+      "cell": 5,
+      "verified": false
+    },
+    {
+      "id": "M0216",
+      "name": "カルカダン",
+      "sheet": "catalog-08",
+      "cell": 6,
+      "verified": false
+    },
+    {
+      "id": "M0217",
+      "name": "アンズー",
+      "sheet": "catalog-08",
+      "cell": 7,
+      "verified": false
+    },
+    {
+      "id": "M0218",
+      "name": "砂漠王朝のミイラ",
+      "sheet": "catalog-08",
+      "cell": 8,
+      "verified": false
+    },
+    {
+      "id": "M0219",
+      "name": "黒曜歩行要塞",
+      "sheet": "catalog-08",
+      "cell": 9,
+      "verified": false
+    },
+    {
+      "id": "M0220",
+      "name": "月蝕蛾",
+      "sheet": "catalog-08",
+      "cell": 10,
+      "verified": false
+    },
+    {
+      "id": "M0221",
+      "name": "腐海の菌糸母体",
+      "sheet": "catalog-08",
+      "cell": 11,
+      "verified": false
+    },
+    {
+      "id": "M0222",
+      "name": "水銀潮",
+      "sheet": "catalog-08",
+      "cell": 12,
+      "verified": false
+    },
+    {
+      "id": "M0223",
+      "name": "空洞の聖歌隊",
+      "sheet": "catalog-08",
+      "cell": 13,
+      "verified": false
+    },
+    {
+      "id": "M0224",
+      "name": "霜墓の鐘守",
+      "sheet": "catalog-08",
+      "cell": 14,
+      "verified": false
+    },
+    {
+      "id": "M0225",
+      "name": "ウルドの織機",
+      "sheet": "catalog-08",
+      "cell": 15,
+      "verified": false
+    },
+    {
+      "id": "M0226",
+      "name": "結晶樹の心臓",
+      "sheet": "catalog-08",
+      "cell": 16,
+      "verified": false
+    },
+    {
+      "id": "M0227",
+      "name": "雷雲鯨",
+      "sheet": "catalog-08",
+      "cell": 17,
+      "verified": false
+    },
+    {
+      "id": "M0228",
+      "name": "星砂の海月",
+      "sheet": "catalog-08",
+      "cell": 18,
+      "verified": false
+    },
+    {
+      "id": "M0229",
+      "name": "鏡面の捕食者",
+      "sheet": "catalog-08",
+      "cell": 19,
+      "verified": false
+    },
+    {
+      "id": "M0230",
+      "name": "黒雪の群霊",
+      "sheet": "catalog-08",
+      "cell": 20,
+      "verified": false
+    },
+    {
+      "id": "M0231",
+      "name": "石棺の騎馬兵団",
+      "sheet": "catalog-08",
+      "cell": 21,
+      "verified": false
+    },
+    {
+      "id": "M0232",
+      "name": "蒸気機甲擲弾兵",
+      "sheet": "catalog-08",
+      "cell": 22,
+      "verified": false
+    },
+    {
+      "id": "M0233",
+      "name": "迦陵頻伽",
+      "sheet": "catalog-08",
+      "cell": 23,
+      "verified": false
+    },
+    {
+      "id": "M0234",
+      "name": "夢織りのオルゴール",
+      "sheet": "catalog-08",
+      "cell": 24,
+      "verified": false
+    },
+    {
+      "id": "M0235",
+      "name": "バロール",
+      "sheet": "catalog-08",
+      "cell": 25,
+      "verified": false
+    },
+    {
+      "id": "M0236",
+      "name": "エーギル",
+      "sheet": "catalog-08",
+      "cell": 26,
+      "verified": false
+    },
+    {
+      "id": "M0237",
+      "name": "ヤクシャ",
+      "sheet": "catalog-08",
+      "cell": 27,
+      "verified": false
+    },
+    {
+      "id": "M0238",
+      "name": "ヤクシニー",
+      "sheet": "catalog-08",
+      "cell": 28,
+      "verified": false
+    },
+    {
+      "id": "M0239",
+      "name": "ナラシンハ",
+      "sheet": "catalog-08",
+      "cell": 29,
+      "verified": false
+    },
+    {
+      "id": "M0240",
+      "name": "リッチ",
+      "sheet": "catalog-08",
+      "cell": 30,
+      "verified": false
+    },
+    {
+      "id": "M0241",
+      "name": "ベヒモス",
+      "sheet": "catalog-09",
+      "cell": 1,
+      "verified": false
+    },
+    {
+      "id": "M0242",
+      "name": "ジズ",
+      "sheet": "catalog-09",
+      "cell": 2,
+      "verified": false
+    },
+    {
+      "id": "M0243",
+      "name": "シームルグ",
+      "sheet": "catalog-09",
+      "cell": 3,
+      "verified": false
+    },
+    {
+      "id": "M0244",
+      "name": "ロック鳥",
+      "sheet": "catalog-09",
+      "cell": 4,
+      "verified": false
+    },
+    {
+      "id": "M0245",
+      "name": "ブネ",
+      "sheet": "catalog-09",
+      "cell": 5,
+      "verified": false
+    },
+    {
+      "id": "M0246",
+      "name": "バラム",
+      "sheet": "catalog-09",
+      "cell": 6,
+      "verified": false
+    },
+    {
+      "id": "M0247",
+      "name": "オロバス",
+      "sheet": "catalog-09",
+      "cell": 7,
+      "verified": false
+    },
+    {
+      "id": "M0248",
+      "name": "フルフル",
+      "sheet": "catalog-09",
+      "cell": 8,
+      "verified": false
+    },
+    {
+      "id": "M0249",
+      "name": "オセ",
+      "sheet": "catalog-09",
+      "cell": 9,
+      "verified": false
+    },
+    {
+      "id": "M0250",
+      "name": "マルコシアス",
+      "sheet": "catalog-09",
+      "cell": 10,
+      "verified": false
+    },
+    {
+      "id": "M0251",
+      "name": "アンドラス",
+      "sheet": "catalog-09",
+      "cell": 11,
+      "verified": false
+    },
+    {
+      "id": "M0252",
+      "name": "マルファス",
+      "sheet": "catalog-09",
+      "cell": 12,
+      "verified": false
+    },
+    {
+      "id": "M0253",
+      "name": "ハルファス",
+      "sheet": "catalog-09",
+      "cell": 13,
+      "verified": false
+    },
+    {
+      "id": "M0254",
+      "name": "フォルネウス",
+      "sheet": "catalog-09",
+      "cell": 14,
+      "verified": false
+    },
+    {
+      "id": "M0255",
+      "name": "ラハブ",
+      "sheet": "catalog-09",
+      "cell": 15,
+      "verified": false
+    },
+    {
+      "id": "M0256",
+      "name": "アペプ",
+      "sheet": "catalog-09",
+      "cell": 16,
+      "verified": false
+    },
+    {
+      "id": "M0257",
+      "name": "ヴリトラ",
+      "sheet": "catalog-09",
+      "cell": 17,
+      "verified": false
+    },
+    {
+      "id": "M0258",
+      "name": "ウシュムガル",
+      "sheet": "catalog-09",
+      "cell": 18,
+      "verified": false
+    },
+    {
+      "id": "M0259",
+      "name": "ムシュフシュ",
+      "sheet": "catalog-09",
+      "cell": 19,
+      "verified": false
+    },
+    {
+      "id": "M0260",
+      "name": "バシュム",
+      "sheet": "catalog-09",
+      "cell": 20,
+      "verified": false
+    },
+    {
+      "id": "M0261",
+      "name": "ギルタブリル",
+      "sheet": "catalog-09",
+      "cell": 21,
+      "verified": false
+    },
+    {
+      "id": "M0262",
+      "name": "クサリク",
+      "sheet": "catalog-09",
+      "cell": 22,
+      "verified": false
+    },
+    {
+      "id": "M0263",
+      "name": "ラハム",
+      "sheet": "catalog-09",
+      "cell": 23,
+      "verified": false
+    },
+    {
+      "id": "M0264",
+      "name": "ラフム",
+      "sheet": "catalog-09",
+      "cell": 24,
+      "verified": false
+    },
+    {
+      "id": "M0265",
+      "name": "ナーガラージャ",
+      "sheet": "catalog-09",
+      "cell": 25,
+      "verified": false
+    },
+    {
+      "id": "M0266",
+      "name": "カラドリオス",
+      "sheet": "catalog-09",
+      "cell": 26,
+      "verified": false
+    },
+    {
+      "id": "M0267",
+      "name": "タロス",
+      "sheet": "catalog-09",
+      "cell": 27,
+      "verified": false
+    },
+    {
+      "id": "M0268",
+      "name": "ヘカトンケイル",
+      "sheet": "catalog-09",
+      "cell": 28,
+      "verified": false
+    },
+    {
+      "id": "M0269",
+      "name": "アトラス",
+      "sheet": "catalog-09",
+      "cell": 29,
+      "verified": false
+    },
+    {
+      "id": "M0270",
+      "name": "ゲーリュオーン",
+      "sheet": "catalog-09",
+      "cell": 30,
+      "verified": false
+    },
+    {
+      "id": "M0271",
+      "name": "アルゴス",
+      "sheet": "catalog-10",
+      "cell": 1,
+      "verified": false
+    },
+    {
+      "id": "M0272",
+      "name": "アンタイオス",
+      "sheet": "catalog-10",
+      "cell": 2,
+      "verified": false
+    },
+    {
+      "id": "M0273",
+      "name": "アロアダイ",
+      "sheet": "catalog-10",
+      "cell": 3,
+      "verified": false
+    },
+    {
+      "id": "M0274",
+      "name": "エンケラドス",
+      "sheet": "catalog-10",
+      "cell": 4,
+      "verified": false
+    },
+    {
+      "id": "M0275",
+      "name": "ポルピュリオン",
+      "sheet": "catalog-10",
+      "cell": 5,
+      "verified": false
+    },
+    {
+      "id": "M0276",
+      "name": "アルキュオネウス",
+      "sheet": "catalog-10",
+      "cell": 6,
+      "verified": false
+    },
+    {
+      "id": "M0277",
+      "name": "氷河を抱く蟹",
+      "sheet": "catalog-10",
+      "cell": 7,
+      "verified": false
+    },
+    {
+      "id": "M0278",
+      "name": "廃星の種子",
+      "sheet": "catalog-10",
+      "cell": 8,
+      "verified": false
+    },
+    {
+      "id": "M0279",
+      "name": "無音域のアメーバ",
+      "sheet": "catalog-10",
+      "cell": 9,
+      "verified": false
+    },
+    {
+      "id": "M0280",
+      "name": "エルダードラゴン",
+      "sheet": "catalog-10",
+      "cell": 10,
+      "verified": false
+    },
+    {
+      "id": "M0281",
+      "name": "ヨルムンガンド",
+      "sheet": "catalog-10",
+      "cell": 11,
+      "verified": false
+    },
+    {
+      "id": "M0282",
+      "name": "ニーズヘッグ",
+      "sheet": "catalog-10",
+      "cell": 12,
+      "verified": false
+    },
+    {
+      "id": "M0283",
+      "name": "ファフニール",
+      "sheet": "catalog-10",
+      "cell": 13,
+      "verified": false
+    },
+    {
+      "id": "M0284",
+      "name": "板翼の滑空竜",
+      "sheet": "catalog-10",
+      "cell": 14,
+      "verified": false
+    },
+    {
+      "id": "M0285",
+      "name": "アジ・ダハーカ",
+      "sheet": "catalog-10",
+      "cell": 15,
+      "verified": false
+    },
+    {
+      "id": "M0286",
+      "name": "クル",
+      "sheet": "catalog-10",
+      "cell": 16,
+      "verified": false
+    },
+    {
+      "id": "M0287",
+      "name": "イルルヤンカシュ",
+      "sheet": "catalog-10",
+      "cell": 17,
+      "verified": false
+    },
+    {
+      "id": "M0288",
+      "name": "タイフォン",
+      "sheet": "catalog-10",
+      "cell": 18,
+      "verified": false
+    },
+    {
+      "id": "M0289",
+      "name": "エキドナ",
+      "sheet": "catalog-10",
+      "cell": 19,
+      "verified": false
+    },
+    {
+      "id": "M0290",
+      "name": "ラドン",
+      "sheet": "catalog-10",
+      "cell": 20,
+      "verified": false
+    },
+    {
+      "id": "M0291",
+      "name": "ピュトン",
+      "sheet": "catalog-10",
+      "cell": 21,
+      "verified": false
+    },
+    {
+      "id": "M0292",
+      "name": "ケートス",
+      "sheet": "catalog-10",
+      "cell": 22,
+      "verified": false
+    },
+    {
+      "id": "M0293",
+      "name": "カンペー",
+      "sheet": "catalog-10",
+      "cell": 23,
+      "verified": false
+    },
+    {
+      "id": "M0294",
+      "name": "オルトロス",
+      "sheet": "catalog-10",
+      "cell": 24,
+      "verified": false
+    },
+    {
+      "id": "M0295",
+      "name": "ケルベロス",
+      "sheet": "catalog-10",
+      "cell": 25,
+      "verified": false
+    },
+    {
+      "id": "M0296",
+      "name": "フェニックス",
+      "sheet": "catalog-10",
+      "cell": 26,
+      "verified": false
+    },
+    {
+      "id": "M0297",
+      "name": "ガガンボの雷群",
+      "sheet": "catalog-10",
+      "cell": 27,
+      "verified": false
+    },
+    {
+      "id": "M0298",
+      "name": "レインボーサーペント",
+      "sheet": "catalog-10",
+      "cell": 28,
+      "verified": false
+    },
+    {
+      "id": "M0299",
+      "name": "ウクテナ",
+      "sheet": "catalog-10",
+      "cell": 29,
+      "verified": false
+    },
+    {
+      "id": "M0300",
+      "name": "ミシペシュ",
+      "sheet": "catalog-10",
+      "cell": 30,
+      "verified": false
+    },
+    {
+      "id": "M0301",
+      "name": "アフイソトル",
+      "sheet": "catalog-11",
+      "cell": 1,
+      "verified": false
+    },
+    {
+      "id": "M0302",
+      "name": "シパクトリ",
+      "sheet": "catalog-11",
+      "cell": 2,
+      "verified": false
+    },
+    {
+      "id": "M0303",
+      "name": "ツィツィミメ",
+      "sheet": "catalog-11",
+      "cell": 3,
+      "verified": false
+    },
+    {
+      "id": "M0304",
+      "name": "カマソッソ",
+      "sheet": "catalog-11",
+      "cell": 4,
+      "verified": false
+    },
+    {
+      "id": "M0305",
+      "name": "アフ・プチ",
+      "sheet": "catalog-11",
+      "cell": 5,
+      "verified": false
+    },
+    {
+      "id": "M0306",
+      "name": "フン・カメー",
+      "sheet": "catalog-11",
+      "cell": 6,
+      "verified": false
+    },
+    {
+      "id": "M0307",
+      "name": "ヴクブ・カメー",
+      "sheet": "catalog-11",
+      "cell": 7,
+      "verified": false
+    },
+    {
+      "id": "M0308",
+      "name": "ソイルの夢喰い",
+      "sheet": "catalog-11",
+      "cell": 8,
+      "verified": false
+    },
+    {
+      "id": "M0309",
+      "name": "夜明けを縫う蜘蛛",
+      "sheet": "catalog-11",
+      "cell": 9,
+      "verified": false
+    },
+    {
+      "id": "M0310",
+      "name": "熔核の女王蟻",
+      "sheet": "catalog-11",
+      "cell": 10,
+      "verified": false
+    },
+    {
+      "id": "M0311",
+      "name": "大陸根",
+      "sheet": "catalog-11",
+      "cell": 11,
+      "verified": false
+    },
+    {
+      "id": "M0312",
+      "name": "忘却の花海",
+      "sheet": "catalog-11",
+      "cell": 12,
+      "verified": false
+    },
+    {
+      "id": "M0313",
+      "name": "蒼穹の珊瑚礁",
+      "sheet": "catalog-11",
+      "cell": 13,
+      "verified": false
+    },
+    {
+      "id": "M0314",
+      "name": "影を泳ぐ海竜骨",
+      "sheet": "catalog-11",
+      "cell": 14,
+      "verified": false
+    },
+    {
+      "id": "M0315",
+      "name": "万象写本の番人",
+      "sheet": "catalog-11",
+      "cell": 15,
+      "verified": false
+    },
+    {
+      "id": "M0316",
+      "name": "星図演算体",
+      "sheet": "catalog-11",
+      "cell": 16,
+      "verified": false
+    },
+    {
+      "id": "M0317",
+      "name": "白磁近衛兵団",
+      "sheet": "catalog-11",
+      "cell": 17,
+      "verified": false
+    },
+    {
+      "id": "M0318",
+      "name": "胎海の胞子雲",
+      "sheet": "catalog-11",
+      "cell": 18,
+      "verified": false
+    },
+    {
+      "id": "M0319",
+      "name": "深淵の黒潮",
+      "sheet": "catalog-11",
+      "cell": 19,
+      "verified": false
+    },
+    {
+      "id": "M0320",
+      "name": "クラーケン",
+      "sheet": "catalog-11",
+      "cell": 20,
+      "verified": false
+    },
+    {
+      "id": "M0321",
+      "name": "リヴァイアサン",
+      "sheet": "catalog-11",
+      "cell": 21,
+      "verified": false
+    },
+    {
+      "id": "M0322",
+      "name": "ティアマト",
+      "sheet": "catalog-11",
+      "cell": 22,
+      "verified": false
+    },
+    {
+      "id": "M0323",
+      "name": "アプスー",
+      "sheet": "catalog-11",
+      "cell": 23,
+      "verified": false
+    },
+    {
+      "id": "M0324",
+      "name": "キングー",
+      "sheet": "catalog-11",
+      "cell": 24,
+      "verified": false
+    },
+    {
+      "id": "M0325",
+      "name": "アンシャル",
+      "sheet": "catalog-11",
+      "cell": 25,
+      "verified": false
+    },
+    {
+      "id": "M0326",
+      "name": "キシャル",
+      "sheet": "catalog-11",
+      "cell": 26,
+      "verified": false
+    },
+    {
+      "id": "M0327",
+      "name": "スルト",
+      "sheet": "catalog-11",
+      "cell": 27,
+      "verified": false
+    },
+    {
+      "id": "M0328",
+      "name": "ユミル",
+      "sheet": "catalog-11",
+      "cell": 28,
+      "verified": false
+    },
+    {
+      "id": "M0329",
+      "name": "スリュム",
+      "sheet": "catalog-11",
+      "cell": 29,
+      "verified": false
+    },
+    {
+      "id": "M0330",
+      "name": "ウートガルザ・ロキ",
+      "sheet": "catalog-11",
+      "cell": 30,
+      "verified": false
+    },
+    {
+      "id": "M0331",
+      "name": "ベルゲルミル",
+      "sheet": "catalog-12",
+      "cell": 1,
+      "verified": false
+    },
+    {
+      "id": "M0332",
+      "name": "フルングニル",
+      "sheet": "catalog-12",
+      "cell": 2,
+      "verified": false
+    },
+    {
+      "id": "M0333",
+      "name": "ゲイルロズ",
+      "sheet": "catalog-12",
+      "cell": 3,
+      "verified": false
+    },
+    {
+      "id": "M0334",
+      "name": "ヘル",
+      "sheet": "catalog-12",
+      "cell": 4,
+      "verified": false
+    },
+    {
+      "id": "M0335",
+      "name": "ガルム",
+      "sheet": "catalog-12",
+      "cell": 5,
+      "verified": false
+    },
+    {
+      "id": "M0336",
+      "name": "スコル",
+      "sheet": "catalog-12",
+      "cell": 6,
+      "verified": false
+    },
+    {
+      "id": "M0337",
+      "name": "ハティ",
+      "sheet": "catalog-12",
+      "cell": 7,
+      "verified": false
+    },
+    {
+      "id": "M0338",
+      "name": "ナグルファル",
+      "sheet": "catalog-12",
+      "cell": 8,
+      "verified": false
+    },
+    {
+      "id": "M0339",
+      "name": "死星を運ぶ亀",
+      "sheet": "catalog-12",
+      "cell": 9,
+      "verified": false
+    },
+    {
+      "id": "M0340",
+      "name": "地軸の穿孔虫",
+      "sheet": "catalog-12",
+      "cell": 10,
+      "verified": false
+    },
+    {
+      "id": "M0341",
+      "name": "白夜の群蝶",
+      "sheet": "catalog-12",
+      "cell": 11,
+      "verified": false
+    },
+    {
+      "id": "M0342",
+      "name": "星食い蔓",
+      "sheet": "catalog-12",
+      "cell": 12,
+      "verified": false
+    },
+    {
+      "id": "M0343",
+      "name": "満天の菌床",
+      "sheet": "catalog-12",
+      "cell": 13,
+      "verified": false
+    },
+    {
+      "id": "M0344",
+      "name": "原始海の一滴",
+      "sheet": "catalog-12",
+      "cell": 14,
+      "verified": false
+    },
+    {
+      "id": "M0345",
+      "name": "境界を溶かす霧",
+      "sheet": "catalog-12",
+      "cell": 15,
+      "verified": false
+    },
+    {
+      "id": "M0346",
+      "name": "時間樹の寄生根",
+      "sheet": "catalog-12",
+      "cell": 16,
+      "verified": false
+    },
+    {
+      "id": "M0347",
+      "name": "暦を啄む鴉",
+      "sheet": "catalog-12",
+      "cell": 17,
+      "verified": false
+    },
+    {
+      "id": "M0348",
+      "name": "記憶の砂鯨",
+      "sheet": "catalog-12",
+      "cell": 18,
+      "verified": false
+    },
+    {
+      "id": "M0349",
+      "name": "夢界の鹿",
+      "sheet": "catalog-12",
+      "cell": 19,
+      "verified": false
+    },
+    {
+      "id": "M0350",
+      "name": "黄昏庭園の主",
+      "sheet": "catalog-12",
+      "cell": 20,
+      "verified": false
+    },
+    {
+      "id": "M0351",
+      "name": "オベロン",
+      "sheet": "catalog-12",
+      "cell": 21,
+      "verified": false
+    },
+    {
+      "id": "M0352",
+      "name": "ティターニア",
+      "sheet": "catalog-12",
+      "cell": 22,
+      "verified": false
+    },
+    {
+      "id": "M0353",
+      "name": "歳月をほどく妖精",
+      "sheet": "catalog-12",
+      "cell": 23,
+      "verified": false
+    },
+    {
+      "id": "M0354",
+      "name": "アバドン",
+      "sheet": "catalog-12",
+      "cell": 24,
+      "verified": false
+    },
+    {
+      "id": "M0355",
+      "name": "サマエル",
+      "sheet": "catalog-12",
+      "cell": 25,
+      "verified": false
+    },
+    {
+      "id": "M0356",
+      "name": "アザゼル",
+      "sheet": "catalog-12",
+      "cell": 26,
+      "verified": false
+    },
+    {
+      "id": "M0357",
+      "name": "メタトロン",
+      "sheet": "catalog-12",
+      "cell": 27,
+      "verified": false
+    },
+    {
+      "id": "M0358",
+      "name": "サンダルフォン",
+      "sheet": "catalog-12",
+      "cell": 28,
+      "verified": false
+    },
+    {
+      "id": "M0359",
+      "name": "天球防衛機兵隊",
+      "sheet": "catalog-12",
+      "cell": 29,
+      "verified": false
+    },
+    {
+      "id": "M0360",
+      "name": "古竜王",
+      "sheet": "catalog-12",
+      "cell": 30,
+      "verified": false
+    },
+    {
+      "id": "M0361",
+      "name": "アナンタ",
+      "sheet": "catalog-13",
+      "cell": 1,
+      "verified": false
+    },
+    {
+      "id": "M0362",
+      "name": "ヴァースキ",
+      "sheet": "catalog-13",
+      "cell": 2,
+      "verified": false
+    },
+    {
+      "id": "M0363",
+      "name": "カーリヤ",
+      "sheet": "catalog-13",
+      "cell": 3,
+      "verified": false
+    },
+    {
+      "id": "M0364",
+      "name": "タクシャカ",
+      "sheet": "catalog-13",
+      "cell": 4,
+      "verified": false
+    },
+    {
+      "id": "M0365",
+      "name": "マカラ",
+      "sheet": "catalog-13",
+      "cell": 5,
+      "verified": false
+    },
+    {
+      "id": "M0366",
+      "name": "アイラーヴァタ",
+      "sheet": "catalog-13",
+      "cell": 6,
+      "verified": false
+    },
+    {
+      "id": "M0367",
+      "name": "ウッチャイヒシュラヴァス",
+      "sheet": "catalog-13",
+      "cell": 7,
+      "verified": false
+    },
+    {
+      "id": "M0368",
+      "name": "シャラバ",
+      "sheet": "catalog-13",
+      "cell": 8,
+      "verified": false
+    },
+    {
+      "id": "M0369",
+      "name": "ナヴァグンジャラ",
+      "sheet": "catalog-13",
+      "cell": 9,
+      "verified": false
+    },
+    {
+      "id": "M0370",
+      "name": "ガジャシンハ",
+      "sheet": "catalog-13",
+      "cell": 10,
+      "verified": false
+    },
+    {
+      "id": "M0371",
+      "name": "アマツミカボシ",
+      "sheet": "catalog-13",
+      "cell": 11,
+      "verified": false
+    },
+    {
+      "id": "M0372",
+      "name": "タケミカヅチ",
+      "sheet": "catalog-13",
+      "cell": 12,
+      "verified": false
+    },
+    {
+      "id": "M0373",
+      "name": "フツヌシ",
+      "sheet": "catalog-13",
+      "cell": 13,
+      "verified": false
+    },
+    {
+      "id": "M0374",
+      "name": "カグツチ",
+      "sheet": "catalog-13",
+      "cell": 14,
+      "verified": false
+    },
+    {
+      "id": "M0375",
+      "name": "クラオカミ",
+      "sheet": "catalog-13",
+      "cell": 15,
+      "verified": false
+    },
+    {
+      "id": "M0376",
+      "name": "シナツヒコ",
+      "sheet": "catalog-13",
+      "cell": 16,
+      "verified": false
+    },
+    {
+      "id": "M0377",
+      "name": "建木",
+      "sheet": "catalog-13",
+      "cell": 17,
+      "verified": false
+    },
+    {
+      "id": "M0378",
+      "name": "扶桑",
+      "sheet": "catalog-13",
+      "cell": 18,
+      "verified": false
+    },
+    {
+      "id": "M0379",
+      "name": "若木",
+      "sheet": "catalog-13",
+      "cell": 19,
+      "verified": false
+    },
+    {
+      "id": "M0380",
+      "name": "燭陰",
+      "sheet": "catalog-13",
+      "cell": 20,
+      "verified": false
+    },
+    {
+      "id": "M0381",
+      "name": "玄武",
+      "sheet": "catalog-13",
+      "cell": 21,
+      "verified": false
+    },
+    {
+      "id": "M0382",
+      "name": "朱雀",
+      "sheet": "catalog-13",
+      "cell": 22,
+      "verified": false
+    },
+    {
+      "id": "M0383",
+      "name": "白虎",
+      "sheet": "catalog-13",
+      "cell": 23,
+      "verified": false
+    },
+    {
+      "id": "M0384",
+      "name": "青龍",
+      "sheet": "catalog-13",
+      "cell": 24,
+      "verified": false
+    },
+    {
+      "id": "M0385",
+      "name": "混沌",
+      "sheet": "catalog-13",
+      "cell": 25,
+      "verified": false
+    },
+    {
+      "id": "M0386",
+      "name": "饕餮",
+      "sheet": "catalog-13",
+      "cell": 26,
+      "verified": false
+    },
+    {
+      "id": "M0387",
+      "name": "窮奇",
+      "sheet": "catalog-13",
+      "cell": 27,
+      "verified": false
+    },
+    {
+      "id": "M0388",
+      "name": "檮杌",
+      "sheet": "catalog-13",
+      "cell": 28,
+      "verified": false
+    },
+    {
+      "id": "M0389",
+      "name": "宇宙卵の孵化体",
+      "sheet": "catalog-13",
+      "cell": 29,
+      "verified": false
+    },
+    {
+      "id": "M0390",
+      "name": "零点の粘海",
+      "sheet": "catalog-13",
+      "cell": 30,
+      "verified": false
+    },
+    {
+      "id": "M0391",
+      "name": "因果を食む蠍",
+      "sheet": "catalog-14",
+      "cell": 1,
+      "verified": false
+    },
+    {
+      "id": "M0392",
+      "name": "恒星葬の蜂群",
+      "sheet": "catalog-14",
+      "cell": 2,
+      "verified": false
+    },
+    {
+      "id": "M0393",
+      "name": "無限回廊の骨蛇",
+      "sheet": "catalog-14",
+      "cell": 3,
+      "verified": false
+    },
+    {
+      "id": "M0394",
+      "name": "終末観測機構",
+      "sheet": "catalog-14",
+      "cell": 4,
+      "verified": false
+    },
+    {
+      "id": "M0395",
+      "name": "天蓋崩し",
+      "sheet": "catalog-14",
+      "cell": 5,
+      "verified": false
+    },
+    {
+      "id": "M0396",
+      "name": "光なき創世の胎",
+      "sheet": "catalog-14",
+      "cell": 6,
+      "verified": false
+    },
+    {
+      "id": "M0397",
+      "name": "万有の残響",
+      "sheet": "catalog-14",
+      "cell": 7,
+      "verified": false
+    },
+    {
+      "id": "M0398",
+      "name": "最後の夜を抱く鳥",
+      "sheet": "catalog-14",
+      "cell": 8,
+      "verified": false
+    },
+    {
+      "id": "M0399",
+      "name": "世界樹の枯死核",
+      "sheet": "catalog-14",
+      "cell": 9,
+      "verified": false
+    },
+    {
+      "id": "M0400",
+      "name": "終焉竜",
+      "sheet": "catalog-14",
+      "cell": 10,
+      "verified": false
+    },
+    {
+      "id": "rat",
+      "name": "洞穴ネズミ",
+      "sheet": "encounter-01",
+      "cell": 1,
+      "verified": false
+    },
+    {
+      "id": "slime",
+      "name": "苔スライム",
+      "sheet": "encounter-01",
+      "cell": 2,
+      "verified": false
+    },
+    {
+      "id": "bat",
+      "name": "夜鳴きコウモリ",
+      "sheet": "encounter-01",
+      "cell": 3,
+      "verified": false
+    },
+    {
+      "id": "spider",
+      "name": "毒糸グモ",
+      "sheet": "encounter-01",
+      "cell": 4,
+      "verified": false
+    },
+    {
+      "id": "beetle",
+      "name": "銅色コガネ",
+      "sheet": "encounter-01",
+      "cell": 5,
+      "verified": false
+    },
+    {
+      "id": "goblin",
+      "name": "坑道ゴブリン",
+      "sheet": "encounter-01",
+      "cell": 6,
+      "verified": false
+    },
+    {
+      "id": "skeleton",
+      "name": "錆びた骸兵",
+      "sheet": "encounter-01",
+      "cell": 7,
+      "verified": false
+    },
+    {
+      "id": "wisp",
+      "name": "迷い火",
+      "sheet": "encounter-01",
+      "cell": 8,
+      "verified": false
+    },
+    {
+      "id": "wolf",
+      "name": "灰牙オオカミ",
+      "sheet": "encounter-01",
+      "cell": 9,
+      "verified": false
+    },
+    {
+      "id": "fungus",
+      "name": "呪いキノコ",
+      "sheet": "encounter-01",
+      "cell": 10,
+      "verified": false
+    },
+    {
+      "id": "golem",
+      "name": "鉄くずゴーレム",
+      "sheet": "encounter-01",
+      "cell": 11,
+      "verified": false
+    },
+    {
+      "id": "specter",
+      "name": "銀霧の亡霊",
+      "sheet": "encounter-01",
+      "cell": 12,
+      "verified": false
+    },
+    {
+      "id": "sentinel",
+      "name": "魔銀の番兵",
+      "sheet": "encounter-01",
+      "cell": 13,
+      "verified": false
+    },
+    {
+      "id": "warlock",
+      "name": "深淵の呪術師",
+      "sheet": "encounter-01",
+      "cell": 14,
+      "verified": false
+    },
+    {
+      "id": "drake",
+      "name": "黒鱗ドレイク",
+      "sheet": "encounter-01",
+      "cell": 15,
+      "verified": false
+    },
+    {
+      "id": "boar",
+      "name": "荒牙イノシシ",
+      "sheet": "encounter-01",
+      "cell": 16,
+      "verified": false
+    },
+    {
+      "id": "hornhare",
+      "name": "角ウサギ",
+      "sheet": "encounter-01",
+      "cell": 17,
+      "verified": false
+    },
+    {
+      "id": "viper",
+      "name": "沼マムシ",
+      "sheet": "encounter-01",
+      "cell": 18,
+      "verified": false
+    },
+    {
+      "id": "crab",
+      "name": "石甲ガニ",
+      "sheet": "encounter-01",
+      "cell": 19,
+      "verified": false
+    },
+    {
+      "id": "leech",
+      "name": "黒沼ヒル",
+      "sheet": "encounter-01",
+      "cell": 20,
+      "verified": false
+    },
+    {
+      "id": "cavescorpion",
+      "name": "岩陰サソリ",
+      "sheet": "encounter-01",
+      "cell": 21,
+      "verified": false
+    },
+    {
+      "id": "cavebear",
+      "name": "洞窟グマ",
+      "sheet": "encounter-01",
+      "cell": 22,
+      "verified": false
+    },
+    {
+      "id": "crystalgolem",
+      "name": "水晶の造兵",
+      "sheet": "encounter-01",
+      "cell": 23,
+      "verified": false
+    },
+    {
+      "id": "bandit",
+      "name": "遺跡の追い剥ぎ",
+      "sheet": "encounter-01",
+      "cell": 24,
+      "verified": false
+    },
+    {
+      "id": "treant",
+      "name": "歩く枯樹",
+      "sheet": "encounter-01",
+      "cell": 25,
+      "verified": false
+    },
+    {
+      "id": "moth",
+      "name": "燐粉ガ",
+      "sheet": "encounter-01",
+      "cell": 26,
+      "verified": false
+    },
+    {
+      "id": "sandworm",
+      "name": "砂潜りワーム",
+      "sheet": "encounter-01",
+      "cell": 27,
+      "verified": false
+    },
+    {
+      "id": "scarab",
+      "name": "黒曜スカラベ",
+      "sheet": "encounter-01",
+      "cell": 28,
+      "verified": false
+    },
+    {
+      "id": "mummy",
+      "name": "塩の葬兵",
+      "sheet": "encounter-01",
+      "cell": 29,
+      "verified": false
+    },
+    {
+      "id": "frostwolf",
+      "name": "霜牙オオカミ",
+      "sheet": "encounter-01",
+      "cell": 30,
+      "verified": false
+    },
+    {
+      "id": "icewisp",
+      "name": "氷灯",
+      "sheet": "encounter-02",
+      "cell": 1,
+      "verified": false
+    },
+    {
+      "id": "firelizard",
+      "name": "熔岩トカゲ",
+      "sheet": "encounter-02",
+      "cell": 2,
+      "verified": false
+    },
+    {
+      "id": "ashgolem",
+      "name": "灰鉄の巨兵",
+      "sheet": "encounter-02",
+      "cell": 3,
+      "verified": false
+    },
+    {
+      "id": "drowned",
+      "name": "水底の歩兵",
+      "sheet": "encounter-02",
+      "cell": 4,
+      "verified": false
+    },
+    {
+      "id": "inkshade",
+      "name": "墨影",
+      "sheet": "encounter-02",
+      "cell": 5,
+      "verified": false
+    },
+    {
+      "id": "archivekeeper",
+      "name": "書庫の機械司書",
+      "sheet": "encounter-02",
+      "cell": 6,
+      "verified": false
+    },
+    {
+      "id": "thunderbird",
+      "name": "雷羽の大鳥",
+      "sheet": "encounter-02",
+      "cell": 7,
+      "verified": false
+    },
+    {
+      "id": "stormelemental",
+      "name": "嵐の精霊",
+      "sheet": "encounter-02",
+      "cell": 8,
+      "verified": false
+    },
+    {
+      "id": "peakguard",
+      "name": "山頂の鋼衛兵",
+      "sheet": "encounter-02",
+      "cell": 9,
+      "verified": false
+    },
+    {
+      "id": "voidhound",
+      "name": "裂け目の猟犬",
+      "sheet": "encounter-02",
+      "cell": 10,
+      "verified": false
+    },
+    {
+      "id": "stargolem",
+      "name": "星殻の造兵",
+      "sheet": "encounter-02",
+      "cell": 11,
+      "verified": false
+    },
+    {
+      "id": "abysswatcher",
+      "name": "深層の見張り",
+      "sheet": "encounter-02",
+      "cell": 12,
+      "verified": false
+    },
+    {
+      "id": "obsidianwarden",
+      "name": "観測所の黒衛兵",
+      "sheet": "encounter-02",
+      "cell": 13,
+      "verified": false
+    },
+    {
+      "id": "worldecho",
+      "name": "世界核の残響",
+      "sheet": "encounter-02",
+      "cell": 14,
+      "verified": false
+    },
+    {
+      "id": "coreconstruct",
+      "name": "境界の構造体",
+      "sheet": "encounter-02",
+      "cell": 15,
+      "verified": false
+    },
+    {
+      "id": "ronin",
+      "name": "朽ちた浪人骸骨",
+      "sheet": "encounter-02",
+      "cell": 16,
+      "verified": false
+    },
+    {
+      "id": "karakuri",
+      "name": "からくり武者",
+      "sheet": "encounter-02",
+      "cell": 17,
+      "verified": false
+    },
+    {
+      "id": "wyvern",
+      "name": "風切りの飛竜",
+      "sheet": "encounter-02",
+      "cell": 18,
+      "verified": false
+    },
+    {
+      "id": "manaleech",
+      "name": "魔喰い주蟲",
+      "sheet": "encounter-02",
+      "cell": 19,
+      "verified": false
+    },
+    {
+      "id": "clockwork_knight",
+      "name": "黄金の機甲兵",
+      "sheet": "encounter-02",
+      "cell": 20,
+      "verified": false
+    },
+    {
+      "id": "abyssdragon",
+      "name": "深淵の骸竜",
+      "sheet": "encounter-02",
+      "cell": 21,
+      "verified": false
+    },
+    {
+      "id": "seraph_idol",
+      "name": "星辰の自動天使",
+      "sheet": "encounter-02",
+      "cell": 22,
+      "verified": false
+    },
+    {
+      "id": "boss_boar",
+      "name": "森縁の主・大牙猪",
+      "sheet": "encounter-02",
+      "cell": 23,
+      "verified": false
+    },
+    {
+      "id": "boss_beetle",
+      "name": "岩道の主・重殻甲虫",
+      "sheet": "encounter-02",
+      "cell": 24,
+      "verified": false
+    },
+    {
+      "id": "guardian",
+      "name": "迷宮の守護者",
+      "sheet": "encounter-02",
+      "cell": 25,
+      "verified": false
+    },
+    {
+      "id": "boss_hydra",
+      "name": "湿原の主・泥沼の大蛇",
+      "sheet": "encounter-02",
+      "cell": 26,
+      "verified": false
+    },
+    {
+      "id": "boss_prism",
+      "name": "白晶の主・大プリズム巨兵",
+      "sheet": "encounter-02",
+      "cell": 27,
+      "verified": false
+    },
+    {
+      "id": "boss_wraith",
+      "name": "遺跡の主・樹冠の亡霊王",
+      "sheet": "encounter-02",
+      "cell": 28,
+      "verified": false
+    },
+    {
+      "id": "boss_scorp",
+      "name": "砂海の主・黄金帝サソリ",
+      "sheet": "encounter-02",
+      "cell": 29,
+      "verified": false
+    },
+    {
+      "id": "boss_frost",
+      "name": "霜紋の主・白銀の機甲将",
+      "sheet": "encounter-02",
+      "cell": 30,
+      "verified": false
+    },
+    {
+      "id": "boss_drake",
+      "name": "熔火の主・紅蓮古竜",
+      "sheet": "encounter-03",
+      "cell": 1,
+      "verified": false
+    },
+    {
+      "id": "boss_archivist",
+      "name": "書庫の主・禁忌の統括司書",
+      "sheet": "encounter-03",
+      "cell": 2,
+      "verified": false
+    },
+    {
+      "id": "boss_roc",
+      "name": "雷鳴の主・天雷の神鳥",
+      "sheet": "encounter-03",
+      "cell": 3,
+      "verified": false
+    },
+    {
+      "id": "boss_star",
+      "name": "裂谷の主・星喰いの巨像",
+      "sheet": "encounter-03",
+      "cell": 4,
+      "verified": false
+    },
+    {
+      "id": "boss_eye",
+      "name": "観測所の主・深淵の観測機構",
+      "sheet": "encounter-03",
+      "cell": 5,
+      "verified": false
+    },
+    {
+      "id": "boss_core",
+      "name": "境界の主・世界核の守護神機",
+      "sheet": "encounter-03",
+      "cell": 6,
+      "verified": false
+    },
+    {
+      "id": "boss_shogun",
+      "name": "古戦場の主・朽ちぬ大将軍",
+      "sheet": "encounter-03",
+      "cell": 7,
+      "verified": false
+    },
+    {
+      "id": "boss_elder",
+      "name": "大樹の主・世界樹の守護竜",
+      "sheet": "encounter-03",
+      "cell": 8,
+      "verified": false
+    },
+    {
+      "id": "boss_automaton",
+      "name": "機工都市の主・黄金の機神",
+      "sheet": "encounter-03",
+      "cell": 9,
+      "verified": false
+    },
+    {
+      "id": "boss_seraph",
+      "name": "天球の主・星辰の審判機構",
+      "sheet": "encounter-03",
+      "cell": 10,
+      "verified": false
+    }
+  ]
+}

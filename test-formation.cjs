@@ -1,0 +1,94 @@
+'use strict';
+const fs = require('fs'), vm = require('vm'), assert = require('assert');
+const { harness } = require('./test.cjs');
+const h = harness();
+if (!h.box.BRPGFormation) vm.runInContext(fs.readFileSync(__dirname + '/formation.js', 'utf8'), h.box, { filename: 'formation.js' });
+h.run(`
+  function resetFormation() {
+    stopAll(); s=fresh(); notice=''; render(); enterMap('forest_edge'); encounter(); stopAll();
+    const sample=s.battle.enemies[0];
+    s.battle.enemies=[{...sample,key:0,row:'front',hp:5000,maxhp:5000,ai:'attack',def:0},{...sample,key:1,row:'back',hp:5000,maxhp:5000,ai:'hex',def:0}];
+    for(const a of party()){a.lv=30;syncHero(a);a.hp=stats(a).hp;a.mp=stats(a).mp;a.sp=maxSP(a);}
+    const weapon=item(s.roster[0].weapon);weapon.type='sword';weapon.dur=weapon.maxDur=999;weapon.hands=1;BRPGEquipment.enrich(weapon);
+    return s.roster[0];
+  }
+  function keys(a,skill=null){return BRPGFormation.targets(a,skill).map(e=>e.key).join(',');}
+  const actor=resetFormation(),front=s.battle.enemies[0],rear=s.battle.enemies[1],w=item(actor.weapon);
+  assert.equal(keys(actor),'0','Near attacks target only enemy front');
+  heroAttack(actor,rear);assert(front.hp<5000&&rear.hp===5000,'A stale rear target retargets the reachable front');
+  actor.row='back';assert.equal(keys(actor),'','A protected back row cannot make near attacks');
+  const beforeSP=actor.sp;heroAttack(actor,front);assert.equal(actor.sp,beforeSP,'Unreachable attacks spend no resource');
+  w.type='spear';BRPGEquipment.enrich(w);assert.equal(keys(actor),'0');assert.equal(physicalDamage(actor),stats(actor).atk);
+  w.type='whip';BRPGEquipment.enrich(w);assert.equal(keys(actor),'0');
+  w.type='bow';BRPGEquipment.enrich(w);assert.equal(keys(actor),'0,1');
+  heroAttack(actor,rear);assert(rear.hp<5000,'Bows can attack rear from allied rear');
+  w.type='staff';BRPGEquipment.enrich(w);assert.equal(keys(actor),'0,1');
+  w.type='sword';BRPGEquipment.enrich(w);front.hp=0;actor.row='front';assert.equal(keys(actor),'1','Enemy rear is exposed after front dies');
+  actor.row='back';party().filter(a=>a.row==='front').forEach(a=>a.hp=0);assert.equal(keys(actor),'1','Allied rear engages when front dies');
+  resetFormation();
+  const a=s.roster[0];a.learned.push('sweep','firestorm','spores');
+  const f=s.battle.enemies[0],r=s.battle.enemies[1];
+  cast(a,1,'sweep');assert(f.hp<5000&&r.hp===5000,'Physical area skills use the same range boundary');
+  f.hp=r.hp=5000;cast(a,1,'firestorm');assert(f.hp<5000&&r.hp<5000,'Magic area skills hit both rows');
+  f.hp=r.hp=5000;cast(a,1,'spores');assert(f.poison>0&&!r.poison,'Unreachable area targets do not receive poison');
+  f.hp=1;r.hp=5000;a.sp=maxSP(a);cast(a,0,'sweep');assert.equal(r.hp,5000,'An area strike does not cascade into the rear after killing the front');
+  resetFormation();
+  const b=s.roster[0];b.row='back';b.learned=[];s.battle.actor=b.id;
+  planCommand('attack',1);assert(!s.battle.plans[b.id],'Manual unreachable attacks cannot be confirmed');
+  autoPlans();assert.equal(s.battle.plans[b.id].command,'defend','Auto input defends when nothing reaches');
+  b.learned.push('firestorm');autoPlans();assert.equal(s.battle.plans[b.id].skill,'firestorm','Auto input uses a learned reachable skill');
+  for(const member of alive()){
+    const p=s.battle.plans[member.id],sk=p.command==='skill'?BRPGFormation.skillDef(member,p.skill):null;
+    if(p.command==='attack'||p.command==='skill'&&['enemy','allEnemies'].includes(sk.target))assert(BRPGFormation.targets(member,sk).some(e=>e.key===p.target));
+  }
+  resetFormation();
+  const victim=party().find(a=>a.row==='back'),enemy=s.battle.enemies[0];
+  const rearHP=victim.hp,frontHP=party().filter(a=>a.row==='front').reduce((n,a)=>n+a.hp,0);
+  enemyTurn(enemy,new Set());assert.equal(victim.hp,rearHP);assert(party().filter(a=>a.row==='front').reduce((n,a)=>n+a.hp,0)<frontHP,'Melee enemy targets front');
+  enemy.ai='cleave';s.battle.turn=2;enemyTurn(enemy,new Set());assert.equal(victim.hp,rearHP,'Melee area attacks spare protected rear');
+  enemy.row='back';enemy.ai='attack';assert.equal(BRPGFormation.enemyRange(enemy),'medium');
+  const prior=party().filter(a=>a.row==='front').reduce((n,a)=>n+a.hp,0);enemyTurn(enemy,new Set());assert(party().filter(a=>a.row==='front').reduce((n,a)=>n+a.hp,0)<prior,'Rear physical enemies can attack the front');
+  enemy.ai='hex';assert.equal(BRPGFormation.enemyRange(enemy),'long');
+  party().filter(a=>a.row==='front').forEach(a=>a.hp=0);const backBefore=party().reduce((n,a)=>n+a.hp,0);enemyTurn(enemy,new Set());assert(party().reduce((n,a)=>n+a.hp,0)<backBefore,'Enemy switches to the exposed rear');
+  stopAll();s=fresh();s.roster.forEach(a=>a.row='front');BRPGFormation.normalize();
+  assert.equal(party().filter(a=>a.row==='front').length,3);assert.equal(party().filter(a=>a.row==='back').length,1);
+  const ids=s.active.join(',');assert(validSave(s));const legacy=JSON.parse(JSON.stringify(s));assert(validSave(legacy));assert.equal(ids,legacy.active.join(','));
+  assert.equal((strip().match(/formation-empty/g)||[]).length,2);assert(partyScreen().includes('各列3枠'));
+  const mage=makeHero(99,'魔法使い','mage');mage.lv=300;syncHero(mage);
+  const metal={id:999,material:'iron',type:'sword',slot:'weapon',method:'physical',dur:100,maxDur:100,quality:1};BRPGEquipment.enrich(metal);
+  assert(!canEquip(mage,metal),'Magic jobs cannot equip metal');assert(!BRPGEquipment.effectsActive(mage,metal),'Legacy incompatible equipment grants no effects');assert.equal(BRPGEquipment.valueFor(mage,metal),0);
+  const shield={...metal,type:'shield',material:'wood'};BRPGEquipment.enrich(shield);assert(!canEquip(mage,shield));
+  const staff={...metal,type:'staff',material:'wood'};BRPGEquipment.enrich(staff);assert(canEquip(mage,staff));
+  assert(heroSkills(s.roster[0]).every(sk=>sk.desc.includes('距離')||sk.desc.includes('支援')));
+  assert.equal(gearName(s.gear[0]),'硬木の棍棒','Range descriptions preserve concrete item names');
+  assert(gearRequirementText(s.gear[0]).includes('近距離'),'Weapon descriptions include range');
+  resetFormation();
+  for(const e of s.battle.enemies){s.research[e.id]={encounters:12,kills:8,level:e.level};e.ecology='観測済みの生態';}
+  const lifeText=s.battle.enemies[0].hp+' / '+s.battle.enemies[0].maxhp;
+  assert(uiEnemies().includes('LIFE '+lifeText),'An observer exposes current LIFE');
+  assert(uiEnemies().includes('脅威度 Lv.'));assert(uiEnemies().includes('<div class="bar">'));assert(uiEnemies().includes('観測済みの生態'));
+  s.roster.forEach(a=>a.job='warrior');
+  const hiddenHTML=uiEnemies();
+  assert(!hiddenHTML.includes('LIFE '+lifeText)&&!hiddenHTML.includes('HP '+lifeText),'Research history alone cannot expose current LIFE');
+  assert(!hiddenHTML.includes('脅威度 Lv.'));assert(!hiddenHTML.includes('<div class="bar">'));
+  assert(hiddenHTML.includes('formation-front')&&hiddenHTML.includes('formation-back'),'Observer gating preserves both formation rows');
+  function formationClick(action,fields={}) { const button={dataset:{action,...fields},disabled:false};handleAction({target:{closest:()=>button}}); }
+  resetFormation();s.battle.actor=s.roster[0].id;
+  formationClick('command',{command:'attack'});
+  let consoleHTML=uiBattlePanel();
+  assert(consoleHTML.includes('data-action="exp-command-target" data-id="0"'));
+  assert(!consoleHTML.includes('data-action="exp-command-target" data-id="1"'),'Manual picker excludes protected rear');
+  formationClick('exp-command-target',{id:'1'});formationClick('exp-command-confirm');assert(!s.battle.plans[s.roster[0].id]);
+  formationClick('exp-command-target',{id:'0'});formationClick('exp-command-confirm');assert.equal(s.battle.plans[s.roster[0].id].target,0);
+  s.battle.actor=s.roster[0].id;s.roster[0].learned.push('sweep');formationClick('command',{command:'skill',skill:'sweep'});
+  consoleHTML=uiBattlePanel();assert(consoleHTML.includes('届く敵全員：'));assert(consoleHTML.includes('中距離')||consoleHTML.includes('近距離'));
+  formationClick('exp-command-confirm');assert.equal(s.battle.plans[s.roster[0].id].skill,'sweep');
+  s.battle.actor=s.roster[0].id;s.roster[0].row='back';formationClick('command',{command:'attack'});
+  assert(uiBattlePanel().includes('届く対象がいません'));
+  formationClick('exp-command-confirm');assert.equal(s.battle.plans[s.roster[0].id].skill,'sweep','An unreachable draft cannot overwrite a valid plan');
+  console.log('PASS: formation normalization/save compatibility, near/medium/long targeting, area/poison boundaries, manual/auto input, enemy AI, range descriptions, magic equipment restrictions.');
+`);
+// Reload old saves lacking enemy rows and verify the actual UI targets use the shared API.
+const html = h.run(`(()=>{s=fresh();enterMap('forest_edge');encounter();stopAll();return exploreScreen();})()`);
+assert(html.includes('formation-front') && html.includes('formation-back'));
+assert(html.includes('通常攻撃 · 近距離'));

@@ -125,7 +125,7 @@ h.run(`
   assert(uiBattlePanel().includes('対象：'+party().find(h=>h.id===first).name));
   click('exp-command-confirm');assert.equal(s.battle.plans[first].command,'defend');
   click('actor',{id:String(first)});party().find(h=>h.id===first).lv=10;syncHero(party().find(h=>h.id===first));
-  click('command',{command:'skill',skill:'sweep'});assert(uiBattlePanel().includes('対象：敵全員'));
+  click('command',{command:'skill',skill:'sweep'});assert(uiBattlePanel().includes('対象：届く敵全員'));
   click('exp-command-confirm');assert.equal(s.battle.plans[first].skill,'sweep');
 
   // An unfinished change blocks submission even when earlier plans exist.

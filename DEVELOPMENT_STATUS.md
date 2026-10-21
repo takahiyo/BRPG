@@ -21,3 +21,43 @@
 3. 未作成のモンスター画像は配置仕様を確認して別段階で制作する。
 
 終了時差分：ユーザーのAGENTS.mdとVIBE_STARTER_KIT_REVISED_v3.mdのみを未共有として保持。この最終記録を別の文書チェックポイントとして共有する。
+
+## 2026-10-22追加依頼の復旧点
+
+- 状態：U1（装備UI）実装・検証完了（ローカル）。`characters.js` の部位選択ボタンと部位別候補一覧、1行省略表示、装備中バッジ、未装備品一括倉庫移動を追加。`equipment.js` に0/10/25/50% durability状態関数と安全な一括移動を追加。`equipment.css` は縦1行部位表示、状態色、装備中の視認性を設定。`index.html` のキャッシュキー更新。テストは `test-equipment.cjs` に部位UI・一括移動・耐久境界確認を追加。
+- 依頼全体は装備、ギルド、編成、モンスター画像制作仕様、隊列/距離戦闘、工房、酒場、商店を含み、計画をU1-U4へ分割。
+- 現在ブランチ `main`、基準HEAD `08deef4`。作業開始時 `git status --short` はユーザーの `AGENTS.md` 変更と `VIBE_STARTER_KIT_REVISED_v3.md` のみ。これらは保持しstageしない。
+- remote設定は計画記載の `origin` / dev・main（devはPagesプレビュー、mainはPages本番ビルド）。ただし現在 `git ls-remote` はDNS解決失敗で再確認不可。push/commit前にremoteと保護状況を再確認し、接続不可ならローカル差分を残す。
+- 既存UIでは所持品カードから装備、個別倉庫移動、装備部位の非操作表示が実装済み。U1ではこれを部位起点の選択、視認性、まとめて倉庫へ送る操作、耐久しきい値色/アイコンに改善する。
+- U1受入条件：部位を選ぶと対応装備候補に絞れる。装備中はアイコン/色で識別される。耐久率50/25/10/0%境界が表示に反映。一括倉庫移動は非装備品だけを対象とする。装備競合・所持枠・旧セーブを壊さない。
+- 検証済み：`node test-equipment.cjs`, `test.cjs`, `test-regression.cjs`, `test-overhaul.cjs`, `test-exploration.cjs`, `test-save-manager.cjs`, `test-quest-travel.cjs`, `test-build-pages.cjs` がすべて成功。`git diff --check` 成功（既存ユーザーAGENTS含む改行変換警告のみ）。実ブラウザ視覚QAは未実施。
+- 作業差分：上記に加えて `DEVELOPMENT_PLAN.md` / `DEVELOPMENT_STATUS.md`。ユーザーの `AGENTS.md` と `VIBE_STARTER_KIT_REVISED_v3.md` は未stageで保持。commit/pushは未実施、remote DNSは再確認時に利用不可。
+- 次の具体操作： (1) 接続回復後にremote先端と保護設定を照合し、今回の作業だけをstage対象にしてcheckpointを保存・共有 (2) U2のギルド依頼グルーピング/即達成アイコン、編成セット内容の表示改善を実装・検証 (3) 以降U3/U4を順に実施。
+
+## 継続作業中のチェックポイント（2026-10-22 JST）
+
+- U1追加：部位別候補へ倉庫品を追加、装飾2の指定を保持。お任せ装備は4出所のチェックと攻防合計の組合せ最適化（両手/盾、装飾重複、所持枠保護）。`test-equipment.cjs` 成功。
+- 分担：guild_presets（Sol medium指定）はfacilities.jsのギルドとsystems.jsのセットを完了、統括がcharacters.jsへ表示統合。tavern_shop（Sol high指定）は酒場・商店を実装、統合確認待ち。formation_combat（Sol high指定）はformation.js/cssとexploration-ui.jsの隊列/距離戦闘を実装・検証中。モデルの実適用メタデータは未確認。
+- 統括は工房の製作仕様計算をpreviewと実製作で共有し、部位別optgroupと性能予測を追加。既存overhaul成功。
+- 次：モンスター画像仕様と誤対応修正、formationをindexと配布allowlistへ接続、ブラウザ/回帰検証、状態文書更新。GitHub DNS失敗は再発を確認。commit/push未実施。ユーザー指示差分を保護。
+
+## 今回の再開（2026-10-22 JST / OpenCode）
+
+- R0完了：ローカルmain/HEAD `08deef4`。`git ls-remote origin refs/heads/main refs/heads/dev` 成功、両remoteはHEADと一致。前回のDNS阻害は解消。既存の未コミットU1-U4とユーザーのAGENTS/共通規則文書を保持。
+- 記録との差：formation.js/cssは既にindex.htmlと配布allowlistへ接続済み。docs/MONSTER_ART_SPEC.mdとdocs/monster-art/の制作リストも存在。統合の二重実装はしない。
+- R1完了（ローカル）：読み取り専用explore担当が施設/編成差分をレビュー。転職SP比率の端数処理と重複プリセットIDの2件を確認し、characters.js/systems.jsを最小修正。test-overhaul.cjsにSP 0/1/8でのプレビュー一致・状態不変・重複/不在IDの保存再読込を追加。編成/商店/依頼のクリック経路、工房の委託/自作の予測値・耐久・消費品質と実製作の一致も検証。追加テストの修正前失敗と修正後成功を確認。
+- R2完了（自動検証・ローカル）：`node --test test.cjs test-regression.cjs test-overhaul.cjs test-equipment.cjs test-exploration.cjs test-save-manager.cjs test-quest-travel.cjs test-build-pages.cjs test-formation.cjs` は最終コードで9件成功。`python -m unittest discover -s scripts -p "*_test_*.py" -v` は44件成功。初回Pythonで新規画像文書のfrontmatter不足により1件失敗したため、MONSTER_ART_SPEC.mdと制作リスト17文書に既存の創作タグを追加して再実行。`node scripts/build-pages.cjs`、characters.js/systems.jsの `node --check`、`git diff --check` 成功（LF/CRLF警告のみ）。distは再生成済み・Git管理対象外。
+- U1-U4の現在地：装備・依頼/セット・施設・隊列/距離戦闘はローカル実装と自動検証済み、実画面QAと戦闘バランスの受入確認は未完了。画像仕様/制作リストは用意済み、新規画像は未制作。旧シートの誤対応/未存在シート参照は取り除かれ、未検品画像はアイコンへフォールバックする。
+- 今回変更：characters.js、systems.js、test-overhaul.cjs、README.md、DEVELOPMENT_PLAN.md、DEVELOPMENT_STATUS.md、docs/MONSTER_ART_SPEC.md、docs/monster-art/*.md。前回の装備/施設/隊列/配布/テスト差分も未コミットのまま保持。ユーザーのAGENTS.md・VIBE_STARTER_KIT_REVISED_v3.mdは未編集。
+- 制約：gh未導入でCI状態未確認。Playwright/Puppeteer未導入で実ブラウザQA未実施。新規パッケージ導入や有料API切替は行っていない。今回のGit書き込みは明示依頼がないため未実施（no_git）。公開成功は判断しない。
+- 次の操作：(1) PC/狭幅の実ブラウザで装備・酒場転職・商店・編成・距離対象選択をQA (2) 明示依頼時に差分を選別してcommit/pushし、CI/公開結果を別途確認 (3) Google実ログイン/D1/二端末同期と画像制作・検品を別段階で進める。
+
+## 実ブラウザ継続の復旧点（2026-10-22 JST）
+
+- B0完了：既存Chromeを確認。test-browser.cjsを新設し、Node組込みWebSocket/CDPで隔離headlessブラウザを起動。一時プロファイル・ループバック限定サーバーを終了時に削除/停止する。追加パッケージ・外部サービス不要。普段のブラウザ/保存領域は使用しない。
+- B1完了（ローカル）：`node test-browser.cjs` で1280/390/320pxの主要8画面、装備ダイアログ、装備解除/再装着、編成保存/呼出し、転職プレビュー/確定、商店切替/購入、工房委託、保存画面、近距離対象選択/ターン実行が成功。未捕捉例外なし。テスト自身の評価変数再宣言を修正済み。
+- B1修正：空白なし英字24文字の名前で390pxのページ/詳細が横溢れし、折返し追加後も320pxの装備中バッジがはみ出す問題を実ブラウザで再現。style.cssの折返し、equipment.cssのバッジ幅と折返しを最小修正、index.htmlのCSSキャッシュキーを更新。修正後は3幅とも横溢れなし。通常名の320px詳細と390px戦闘をPNGでも確認（作業用画像は一時ディレクトリ内）。
+- B2完了（ローカル）：最終CSSでNode 9スイート成功（前節記載の `node --test ...`）、Python 44件成功、`node scripts/build-pages.cjs` 成功。`node test-browser.cjs --dist` も1280/390/320pxすべて成功し、配布画面で長い名前・装備/編成/転職/商店購入/工房/保存画面/戦闘ターンを確認。`node --check test-browser.cjs` と `git diff --check` 成功（改行変換警告のみ）。
+- 今回の変更はtest-browser.cjs、style.css、equipment.css、index.html、README.md、計画/状態文書。READMEにブラウザ検証手順と保証範囲を追加。既存未コミット差分を保持し、Git書き込みなし。remote main/devは再照合して `08deef4` のまま。起動した専用サーバー・Chromeは各実行後に終了、一時プロファイルは削除済み。`--screenshots` のPNGのみ一時ディレクトリに保持。
+- 残課題：headless Chromeの主要スモークQAは完了。実機タッチ/全組合せの表示・戦闘バランス受入・Google実認証/D1/二端末同期・画像制作/検品・CI/公開確認は未完了。普段の保存・Google認証・本番サービスは操作していない。
+- 次の操作：(1) 距離戦闘を含む複数シード・編成別のバランス計測を追加 (2) Google実認証や画像制作は利用可能な検証環境/素材に応じて別段階で進める (3) 明示依頼時に関連差分をレビューしてcommit/pushし、CI/公開結果を区別して確認。

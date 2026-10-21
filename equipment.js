@@ -86,6 +86,10 @@
   }
   function capacity(h) { return DATA.jobs[h.job]?.inventoryCapacity || ({ merchant: 20, explorer: 16, artisan: 14, martial: 12, magic: 8 })[jobProfile(h)]; }
   function accessorySlots(h) { return DATA.jobs[h.job]?.accessorySlots || (['magic', 'merchant', 'artisan'].includes(jobProfile(h)) ? 2 : 1); }
+  function durability(g) {
+    const percent = g?.maxDur > 0 ? Math.max(0, Math.min(100, Math.floor(g.dur / g.maxDur * 100))) : 0;
+    return { percent, level: percent === 0 ? 'broken' : percent <= 10 ? 'critical' : percent <= 25 ? 'low' : percent <= 50 ? 'worn' : 'healthy', icon: percent === 0 ? '✖' : percent <= 10 ? '‼' : percent <= 25 ? '⚠' : percent <= 50 ? '◒' : '●' };
+  }
   function inventory(h) { return s.gear.filter(g => g.ownerId === h.id); }
   function usage(h) { return inventory(h).length; }
   function canReceive(h, count = 1) { return !!h && usage(h) + count <= capacity(h); }
@@ -204,14 +208,14 @@
     if (!quiet) { tell(h.name + 'の装備を外した。'); render(); }
     return true;
   }
-  function equipItem(id, heroId) {
+  function equipItem(id, heroId, requestedSlot = null) {
     if (!townOnly()) return false;
     normalizeState();
     const h = s.roster.find(a => a.id === Number(heroId)), g = item(Number(id));
     if (!h || !g || !canEquip(h, g)) { if (g) { tell(gearRequirementText(g)); render(); } return false; }
     if (g.ownerId !== h.id && !canReceive(h)) { tell(h.name + 'の所持枠がいっぱいです。倉庫へ預けるか、仲間へ渡してください。'); render(); return false; }
     let slot = slotOf(g);
-    if (slot === 'accessory') slot = h.acc1 === g.id ? 'acc1' : h.acc2 === g.id ? 'acc2' : !h.acc1 ? 'acc1' : accessorySlots(h) > 1 && !h.acc2 ? 'acc2' : 'acc1';
+    if (slot === 'accessory') slot = ['acc1', 'acc2'].includes(requestedSlot) && (requestedSlot !== 'acc2' || accessorySlots(h) > 1) ? requestedSlot : h.acc1 === g.id ? 'acc1' : h.acc2 === g.id ? 'acc2' : !h.acc1 ? 'acc1' : accessorySlots(h) > 1 && !h.acc2 ? 'acc2' : 'acc1';
     for (const a of s.roster) for (const k of SLOTS) if (a[k] === g.id) a[k] = null;
     if (slot === 'weapon' && g.hands === 2) h.shield = null;
     if (slot === 'shield' && item(h.weapon)?.hands === 2) h.weapon = null;
@@ -230,6 +234,63 @@
     g.ownerId = h?.id ?? null;
     tell(gearName(g) + (h ? 'を' + h.name + 'に渡した。' : 'を街の倉庫へ預けた。')); render();
     return true;
+  }
+  function transferUnworn(heroId) {
+    if (!townOnly()) return false;
+    const h = s.roster.find(a => a.id === Number(heroId));
+    if (!h) return false;
+    const equipped = new Set(s.roster.flatMap(a => SLOTS.map(k => a[k]).filter(Boolean)));
+    const targets = inventory(h).filter(g => !equipped.has(g.id));
+    for (const g of targets) g.ownerId = null;
+    tell(targets.length ? `${targets.length}点の未装備品を街の倉庫へ移動した。` : '倉庫へ移動できる未装備品はありません。');
+    render(); return targets.length;
+  }
+  // Pure proposal: no links, owners, capacity or durability change until confirmed.
+  function autoLoadout(h, sources = {}) {
+    const owned = new Set(SLOTS.map(k => h[k]).filter(Boolean));
+    const candidates = s.gear.filter(g => {
+      const owner = equippedOwner(g);
+      return g.dur > 0 && canEquip(h, g) && (owned.has(g.id) || g.ownerId === h.id && sources.personal || g.ownerId === null && sources.storage || owner && owner.id !== h.id && sources.equipped || !owner && g.ownerId !== null && g.ownerId !== h.id && sources.companions);
+    });
+    const score = g => g ? valueFor(h, g) : 0;
+    const bySlot = slot => {
+      const sorted = candidates.filter(g => slotOf(g) === slot).sort((a, b) => score(b) - score(a) || Number(!owned.has(a.id)) - Number(!owned.has(b.id)) || b.dur / b.maxDur - a.dur / a.maxDur || a.id - b.id);
+      const buckets = new Map();
+      return sorted.filter(g => { const key = `${g.ownerId === h.id}:${g.hands === 2}`; const count = buckets.get(key) || 0; buckets.set(key, count + 1); return count < (slot === 'accessory' ? 2 : 1); });
+    };
+    const slots = SLOTS.filter(k => k !== 'acc2' || accessorySlots(h) > 1), result = Object.fromEntries(slots.map(k => [k, null]));
+    // Cross-owner transfers consume bag space. Select the best complete plan
+    // with a small dynamic program, including the two-hand/one-hand choice.
+    const free = Math.max(0, capacity(h) - usage(h));
+    const cost = g => g && g.ownerId !== h.id ? 1 : 0;
+    let states = new Map([[0, { score: 0, result }]]);
+    const handOptions = [{ weapon: null, shield: null }];
+    for (const w of [null, ...bySlot('weapon')]) for (const shield of w?.hands === 2 ? [null] : [null, ...bySlot('shield')]) handOptions.push({ weapon: w, shield });
+    const groups = [handOptions, ...['head', 'armor', 'arms', 'feet'].map(slot => [null, ...bySlot(slot)].map(g => ({ [slot]: g })))];
+    const rings = bySlot('accessory');
+    groups.push([null, ...rings].flatMap(a => accessorySlots(h) > 1 ? [null, ...rings.filter(b => b !== a)].map(b => ({ acc1: a, acc2: b })) : [{ acc1: a }]));
+    for (const options of groups) {
+      const next = new Map();
+      for (const [used, state] of states) for (const option of options) {
+        const selected = Object.values(option).filter(Boolean), count = used + selected.reduce((n, g) => n + cost(g), 0);
+        if (count > free) continue;
+        const total = state.score + selected.reduce((n, g) => n + score(g), 0);
+        if (!next.has(count) || next.get(count).score < total) next.set(count, { score: total, result: { ...state.result, ...Object.fromEntries(Object.entries(option).map(([k, g]) => [k, g?.id ?? null])) } });
+      }
+      states = next;
+    }
+    return [...states.values()].sort((a, b) => b.score - a.score)[0] || { score: 0, result };
+  }
+  function autoEquip(heroId, sources) {
+    if (!townOnly()) return false;
+    normalizeState();
+    const h = s.roster.find(a => a.id === Number(heroId));
+    if (!h) return false;
+    const plan = autoLoadout(h, sources), ids = new Set(Object.values(plan.result).filter(Boolean));
+    for (const a of s.roster) for (const slot of SLOTS) if (a.id === h.id || ids.has(a[slot])) a[slot] = null;
+    for (const [slot, id] of Object.entries(plan.result)) if (id) { item(id).ownerId = h.id; h[slot] = id; }
+    tell(`${h.name}のお任せ装備を適用。攻撃・防御の評価合計 ${plan.score}。${sources.equipped ? '仲間から選んだ装備は移動しました。' : ''}`);
+    render(); return true;
   }
   equipmentProductName = function(g) { return TYPES[g?.type]?.name || previousProductName(g); };
   // Keep the existing identification mask, rarity labels, and multi-enchant names.
@@ -269,7 +330,7 @@
     }
     return true;
   }
-  globalThis.BRPGEquipment = { slots: SLOTS, labels: LABELS, types: TYPES, enrich, slotOf, equippedOwner, inventoryOwner, capacity, accessorySlots, inventory, usage, canReceive, receive, normalizeState, suitability, effectsActive, valueFor, equip: equipItem, unequip, transfer, validateSave };
+  globalThis.BRPGEquipment = { slots: SLOTS, labels: LABELS, types: TYPES, enrich, slotOf, equippedOwner, inventoryOwner, capacity, accessorySlots, durability, inventory, usage, canReceive, receive, normalizeState, suitability, effectsActive, valueFor, autoLoadout, autoEquip, equip: equipItem, unequip, transfer, transferUnworn, validateSave };
   const previousRender = render;
   render = function() { normalizeState(); return previousRender(); };
   const previousFresh = fresh;

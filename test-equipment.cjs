@@ -61,7 +61,7 @@ assert(eq.equip(greatsword.id, fighter.id)); assert.equal(fighter.shield, null, 
 assert(eq.equip(shield.id, fighter.id)); assert.equal(fighter.weapon, null, 'equipping shield returns twohand weapon to bag');
 assert(eq.inventory(fighter).some(g => g.id === greatsword.id), 'displaced gear stays in personal inventory');
 assert(eq.validateSave(s)); assert(validSave(s));
-const magicSword = makeTestGear('sword', { material: 'iron', enchant: 'flame', bonusStats: { INT: 30 }, titleBonus: 20 });
+const magicSword = makeTestGear('sword', { material: 'wood', enchant: 'flame', bonusStats: { INT: 30 }, titleBonus: 20 });
 assert(eq.equip(magicSword.id, priest.id), 'unsuitable job can still equip');
 assert.equal(eq.suitability(priest, magicSword).suitable, false);
 assert.equal(enchantPower(magicSword), 0, 'unsuitable enchant has no numerical effect');
@@ -73,7 +73,8 @@ const suitable = gearValue(magicSword); assert(eq.equip(magicSword.id, priest.id
 assert(gearValue(magicSword) < suitable, 'unsuitable basic performance is reduced');
 const e = enemyStatsAt(DATA.enemies[0], 1); e.hp = e.maxhp = 10000; e.weak = 'fire';
 const seen = [], oldDamageEnemy = damageEnemy; damageEnemy = (target, power, element) => { seen.push(element); return 1; };
-heroAttack(priest, e, 1, null, false); damageEnemy = oldDamageEnemy;
+const oldRowForAttack = priest.row; priest.row = 'front'; e.key = 0; e.row = 'front'; s.battle = { enemies: [e], plans: {}, turn: 1 };
+heroAttack(priest, e, 1, null, false); damageEnemy = oldDamageEnemy; s.battle = null; priest.row = oldRowForAttack;
 assert.equal(seen[0], 'physical', 'unsuitable elemental attack rider is disabled');
 assert.equal(magicSword.enchant, 'flame', 'disabled effect is retained on the item');
 assert(eq.transfer(helmet.id, priest.id)); assert.equal(fighter.head, null); assert.equal(helmet.ownerId, priest.id);
@@ -87,6 +88,15 @@ assert(eq.validateSave(s)); assert(validSave(s));
 assert(!characterScreen(fighter).includes('data-character-change="equip"'), 'inventory cards replace equip dropdowns');
 assert(characterScreen(fighter).includes('equipment-paperdoll'));
 assert(characterScreen(fighter).includes('character-equip'));
+assert(characterScreen(fighter).includes('data-action="character-slot"'), 'equipment slots are direct selection controls');
+assert(characterScreen(fighter).includes('equipment-slot-name'), 'equipment names use a single-line layout');
+assert(characterScreen(fighter).includes('equipped-badge'), 'equipped gear has a visual badge');
+assert(characterScreen(fighter).includes('character-store-bulk'), 'bulk storage action is available');
+assert.deepEqual([0, 10, 25, 50, 51, 100].map(n => eq.durability({ dur: n, maxDur: 100 }).level), ['broken', 'critical', 'low', 'worn', 'healthy', 'healthy']);
+const unworn = makeTestGear('club'), equippedBeforeStorage = new Set(s.roster.flatMap(a => eq.slots.map(k => a[k]).filter(Boolean)));
+eq.transferUnworn(fighter.id);
+assert(unworn.ownerId === null, 'bulk storage moves an unequipped item');
+assert([...equippedBeforeStorage].every(id => s.gear.find(g => g.id === id)?.ownerId !== null), 'bulk storage preserves equipped item ownership');
 const malformed = structuredClone(s); malformed.gear.push({ ...malformed.gear[0] }); assert(!eq.validateSave(malformed), 'duplicate gear is rejected');
 const conflicting = structuredClone(s); const testFighter = conflicting.roster.find(a => a.id === fighter.id); testFighter.weapon = greatsword.id; assert(!eq.validateSave(conflicting), 'twohand plus shield is rejected');
 const originalRing = eq.inventory(priest).find(g => g.type === 'ring');
@@ -205,5 +215,33 @@ for (const version of [2, 3]) {
   assert(![...loaded.store.keys()].some(key => key.includes('-invalid-backup-')), 'legacy v' + version + ' loads without rejection');
   if (version === 2) assert.equal(loaded.store.get(key), raw, 'legacy key remains intact');
 }
+h.run(`
+{
+  resetEquipment();
+  const hero = s.roster[0], ally = s.roster[1], eq = BRPGEquipment;
+  s.gear = []; for (const a of s.roster) for (const slot of eq.slots) a[slot] = null;
+  const make = (type, material, ownerId) => { const g = eq.enrich({ id: s.nextGear++, material, type, slot: 'weapon', method: 'physical', quality: 1, dur: 60, maxDur: 60, ownerId }); s.gear.push(g); return g; };
+  const weak = make('club', 'wood', hero.id), strong = make('club', 'iron', null), companion = make('dagger', 'iron', ally.id);
+  hero.weapon = weak.id; ally.weapon = companion.id;
+  const before = JSON.stringify(s);
+  const plan = eq.autoLoadout(hero, { personal: true });
+  assert.equal(plan.result.weapon, weak.id);
+  assert.equal(JSON.stringify(s), before, 'auto proposal does not mutate links or inventories');
+  eq.autoEquip(hero.id, { personal: true, storage: true });
+  assert.equal(hero.weapon, strong.id, 'storage candidates improve loadout');
+  assert.equal(ally.weapon, companion.id, 'unchecked companion equipment remains linked');
+  assert.equal(strong.ownerId, hero.id);
+  strong.dur = 0;
+  eq.autoEquip(hero.id, { personal: true, equipped: true });
+  assert.equal(hero.weapon, companion.id, 'checked companion equipment can move');
+  assert.equal(ally.weapon, null);
+  assert.equal(companion.ownerId, hero.id);
+  assert(eq.usage(hero) <= eq.capacity(hero)); assert(eq.validateSave(s)); assert(validSave(s));
+  const ring1 = make('ring', 'wood', ally.id), ring2 = make('ring', 'wood', ally.id);
+  assert(eq.equip(ring1.id, ally.id, 'acc1'));
+  assert(eq.equip(ring2.id, ally.id, 'acc2'));
+  assert.equal(ally.acc2, ring2.id, 'explicit second accessory slot is honored');
+}
+`);
 console.log('Equipment checks passed (simulated DOM).');
 

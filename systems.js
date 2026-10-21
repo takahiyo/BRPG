@@ -52,10 +52,14 @@ victory=function(){const b=s.battle,d=s.dungeon;if(b&&d){for(const e of b.enemie
 const reserveAutoPlans=autoPlans;
 autoPlans=function(){reserveAutoPlans();const b=s.battle;if(!b)return;const poisoned=alive().find(h=>h.poison>0);if(poisoned&&s.battleRules.includes('cleanse_rule')&&unlocked('cleanse_rule')){for(const h of alive()){const p=b.plans[h.id];if(p?.command!=='attack')continue;const sk=heroSkills(h).find(k=>k.kind==='cleanse'&&k.level<=h.lv&&k.mp<=h.mp&&(k.sp||0)<=h.sp);if(sk){b.plans[h.id]={command:'skill',skill:sk.id,target:poisoned.id};break;}const it=['antidote','purewater'].find(id=>s.items[id]>0);if(it){b.plans[h.id]={command:'item',item:it,target:poisoned.id};break;}}}if(enemyAlive().length>=2&&s.battleRules.includes('aoe_rule')&&unlocked('aoe_rule')){for(const h of alive()){const p=b.plans[h.id];if(p?.command!=='attack')continue;const aoe=heroSkills(h).find(k=>k.target==='allEnemies'&&['attack','damage','poison'].includes(k.kind)&&k.level<=h.lv&&k.mp<h.mp&&(k.sp||0)<=h.sp&&!belowReserve(h,'mana')&&!belowReserve(h,'sp'));if(aoe)b.plans[h.id]={command:'skill',skill:aoe.id,target:enemyAlive()[0].key};}}};
 function partyPresets(){s.presets??={};return s.presets;}
-function savePreset(slot){if(!townOnly())return;partyPresets()[slot]={active:[...s.active],rows:Object.fromEntries(s.roster.map(h=>[h.id,h.row]))};tell('編成セット'+slot+'を保存した。');render();}
-function loadPreset(slot){if(!townOnly())return;const p=partyPresets()[slot];if(!p){tell('編成セット'+slot+'は未保存です。');return render();}const valid=p.active.filter(id=>s.roster.some(h=>h.id===id)).slice(0,6);if(!valid.length)return;s.active=valid;for(const h of s.roster)if(p.rows?.[h.id])h.row=p.rows[h.id];tell('編成セット'+slot+'を呼び出した。');render();}
+function presetMembers(p){return [...new Set(Array.isArray(p?.active)?p.active:[])].map(id=>s.roster.find(h=>h.id===id)).filter(Boolean).slice(0,6);}
+function presetRow(p,h){return ['front','back'].includes(p?.rows?.[h.id])?p.rows[h.id]:h.row;}
+function presetSummary(p){const members=presetMembers(p);return ['front','back'].map(row=>`<p><b>${row==='front'?'🛡 前衛':'🏹 後衛'}</b>：${members.filter(h=>presetRow(p,h)===row).map(h=>esc(h.name)).join(' / ')||'<span class="muted">なし</span>'}</p>`).join('');}
+function savePreset(slot){if(!townOnly()||![1,2,3].includes(slot))return;partyPresets()[slot]={active:[...s.active],rows:Object.fromEntries(s.roster.map(h=>[h.id,h.row]))};tell('編成セット'+slot+'を保存した。参加メンバー：'+party().map(h=>h.name+'（'+(h.row==='front'?'前衛':'後衛')+'）').join(' / '));render();}
+function loadPreset(slot){if(!townOnly()||![1,2,3].includes(slot))return;const p=partyPresets()[slot];if(!p){tell('編成セット'+slot+'は未保存です。');return render();}const valid=presetMembers(p).map(h=>h.id);if(!valid.length){tell('このセットに呼び出せる仲間がいません。現在の編成を保存し直してください。');return render();}s.active=valid;for(const h of s.roster)h.row=presetRow(p,h);tell('編成セット'+slot+'を呼び出した。現在の参加メンバー：'+party().map(h=>h.name+'（'+(h.row==='front'?'前衛':'後衛')+'）').join(' / '));render();}
 const oldPartyScreen=partyScreen;
-partyScreen=function(){const pr=partyPresets();return `<section class="panel" style="margin-bottom:18px"><div class="row between"><h2>編成セット保存・切替</h2><span class="muted">探索用・ボス戦用などの隊列と参加メンバーを即座に切り替え</span></div><div class="actions">${[1,2,3].map(n=>`${btn('セット'+n+'に保存','save-preset',`data-slot="${n}"`)}${btn('セット'+n+'を呼出'+(pr[n]?' ('+pr[n].active.length+'人)':' (空)'),'load-preset',`data-slot="${n}" ${pr[n]?'':'disabled'}`,'primary')}`).join('')}</div></section>`+oldPartyScreen();};
+function partyPresetsHTML(){const pr=partyPresets(),current={active:s.active,rows:Object.fromEntries(s.roster.map(h=>[h.id,h.row]))},locked=!!(s.dungeon||s.battle);return `<section class="panel" style="margin-bottom:18px"><h2>編成セット保存・切替</h2><p class="muted">参加メンバーと全員の前衛・後衛を保存します。呼び出すと参加メンバーと隊列を切り替えます。装備・職業は保存対象に含みません。</p><div class="quest-box"><h3>現在の編成 · この内容を保存</h3>${presetSummary(current)}<small class="muted">参加 ${s.active.length}人 / 街で待機 ${s.roster.length-s.active.length}人</small></div>${locked?'<p class="gold">街に戻ると保存・呼び出しできます。</p>':''}<div class="grid three section-space">${[1,2,3].map(n=>{const p=pr[n],members=presetMembers(p),same=!!p&&members.length===s.active.length&&members.every((h,i)=>h.id===s.active[i])&&s.roster.every(h=>presetRow(p,h)===h.row);return `<article class="card"><div class="row between"><h3>セット${n}</h3><span class="chip ${same?'gold':''}">${same?'✓ 現在の編成と一致':p?'保存済み':'未保存'}</span></div>${p?presetSummary(p):'<p class="muted">現在の編成を保存すると、ここにメンバーと隊列が表示されます。</p>'}${p?`<small class="muted">参加 ${members.length}人 / 街で待機 ${s.roster.length-members.length}人${members.length!==(p.active||[]).length?' · 不在の仲間は呼び出せません':''}</small>`:''}<div class="actions">${btn(p?'現在の編成で上書き':'現在の編成を保存','save-preset',`data-slot="${n}" ${locked?'disabled':''}`)}${btn('このセットを呼び出す','load-preset',`data-slot="${n}" ${locked||!members.length?'disabled':''}`,'primary')}</div></article>`;}).join('')}</div></section>`;}
+partyScreen=function(){return partyPresetsHTML()+oldPartyScreen();};
 const oldJournalScreen=journalScreen;
 journalScreen=function(){const extra=Object.values(DATA.bosses||{}).filter(b=>b.id!==DATA.boss.id&&!DATA.enemies.some(e=>e.id===b.id));DATA.enemies.push(...extra);try{return oldJournalScreen();}finally{DATA.enemies.length-=extra.length;}};
 boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b||b.disabled)return;if(b.dataset.action==='save-preset')savePreset(Number(b.dataset.slot));if(b.dataset.action==='load-preset')loadPreset(Number(b.dataset.slot));});document.addEventListener('change',e=>{const k=e.target.dataset.reserve;if(!k||!unlocked('reserve'))return;const r=reserveSettings();if(k==='mode'){if(e.target.value==='absolute'&&!unlocked('precise'))return;r.mode=e.target.value;}else r[k]=Math.max(0,Math.min(r.mode==='percent'?100:9999,Number(e.target.value)||0));render();});initialBoot();};
@@ -73,22 +77,19 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     mythic: { id: 'mythic', name: '✦神話', mult: 2.0, color: '#ff8a7a', bg: '#4d1f1b' }
   };
 
-  // v3 Enemy ID -> M0001..M0040 Sprite Sheet Mapping (5 cols x 8 rows)
-  const ENEMY_SHEET_MAP = {
-    slime: 1, rat: 2, bat: 3, leech: 5, goblin: 8, fungus: 9,
-    wisp: 18, spider: 19, skeleton: 17, crab: 16, cavescorpion: 26,
-    boar: 27, boss_boar: 27, wolf: 36, frostwolf: 36, voidhound: 29,
-    firelizard: 25, hornhare: 13, moth: 11, mummy: 21, drowned: 21 }; const ENEMY_SHEET2_MAP = { gargoyle: 6, treant: 11, golem: 12, wyvern: 16, lich: 19, demon: 23, dragon: 27, warden: 30, boss_treant: 11, boss_golem: 12, boss_wyvern: 16, boss_lich: 19, boss_dragon: 27, boss_shogun: 23, boss_seraph: 30
-  };
-
-  function monsterThumbHTML(enemyId, mId) {
-    let idx = ENEMY_SHEET_MAP[enemyId] || 0;
-    if (!idx && mId && /^M00([0-3]\d|40)$/.test(mId)) idx = parseInt(mId.slice(1), 10);
-    if (!idx || idx < 1 || idx > 40) { const idx2 = ENEMY_SHEET2_MAP[enemyId] || (mId && /^M00(4[1-9]|[56]\d|70)$/.test(mId) ? parseInt(mId.slice(1), 10) - 40 : 0); if (!idx2 || idx2 < 1 || idx2 > 30) return ''; const c2 = (idx2 - 1) % 5, r2 = Math.floor((idx2 - 1) / 5); return `<div class="monster-thumb monster-thumb-s2" style="background-position:${(c2 / 4 * 100).toFixed(2)}% ${(r2 / 5 * 100).toFixed(2)}%" title="図鑑シート2 #${idx2}"></div>`; }
-    const col = (idx - 1) % 5, row = Math.floor((idx - 1) / 5);
-    const xPct = (col / 4 * 100).toFixed(2), yPct = (row / 7 * 100).toFixed(2);
-    return `<div class="monster-thumb" style="background-position:${xPct}% ${yPct}%" title="図鑑シート #${idx}"></div>`;
+  // Only reviewed assets are registered. Old look-alike/index fallbacks were
+  // wrong for several names and contained parchment frames and baked-in text.
+  const monsterArt = globalThis.BRPGMonsterArt = { sheets: {}, cells: {} };
+  function monsterThumbHTML(enemyId, catalogId) {
+    const entry = monsterArt.cells[enemyId] || monsterArt.cells[catalogId];
+    const sheet = entry && monsterArt.sheets[entry.sheet];
+    if (!entry?.verified || !sheet || !Number.isInteger(entry.cell) || entry.cell < 1 || entry.cell > sheet.columns * sheet.rows) return '';
+    const col = (entry.cell - 1) % sheet.columns, row = Math.floor((entry.cell - 1) / sheet.columns);
+    const x = sheet.columns > 1 ? col / (sheet.columns - 1) * 100 : 0;
+    const y = sheet.rows > 1 ? row / (sheet.rows - 1) * 100 : 0;
+    return `<div class="monster-thumb" role="img" aria-label="${esc(entry.name)}" style="background-image:url('${esc(sheet.src)}');background-size:${sheet.columns * 100}% ${sheet.rows * 100}%;background-position:${x}% ${y}%"></div>`;
   }
+  globalThis.monsterThumbHTML = monsterThumbHTML;
 
   function ext() {
     s.ext ??= {};
@@ -1517,6 +1518,49 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     return { prefix: '素朴な', bonus: 1, rarity: 'common' };
   }
 
+  function craftEquipmentSpec(mat, prod, skill, workshop, route, usedQ, tInfo) {
+    const town = currentTown(), self = !workshop;
+    const ev = self ? evaluate5RouteCraft(mat, prod.id, route) : null;
+    const maxDur = (workshop ? 110 : route === 'M' ? 90 : 130) + skill;
+    return { material: mat, slot: ['防具', '装身具'].includes(prod.category) ? 'armor' : 'weapon',
+      method: self && route === 'M' ? 'magic' : 'physical', enchant: null,
+      quality: Math.max(usedQ, Math.min(town.quality, 1 + Math.floor(skill / 25))),
+      dur: maxDur, maxDur, rarity: tInfo.rarity, productId: prod.id,
+      customTitle: tInfo.prefix, titleBonus: tInfo.bonus, route: workshop ? 'H' : route,
+      craftQ: self ? Math.max(ev.calcQ, Math.min(100, 52 + Math.floor(skill / 2))) : Math.min(100, 50 + Math.floor(skill / 3)),
+      ...(self ? { residue: ev.residue, eta: ev.eta } : {}) };
+  }
+  function consumedQuality(mat, amount) {
+    let quality = 1;
+    for (const tier of Object.keys(s.stock[mat] || {}).map(Number).sort((a, b) => a - b)) {
+      const used = Math.min(amount, s.stock[mat][tier] || 0);
+      if (used > 0) quality = Math.max(quality, tier);
+      amount -= used;
+      if (amount <= 0) break;
+    }
+    return quality;
+  }
+  function productOptions(products, selected) {
+    const groups = new Map();
+    for (const p of products) {
+      const probe = globalThis.BRPGEquipment?.enrich({ material: 'wood', slot: ['防具', '装身具'].includes(p.category) ? 'armor' : 'weapon', productId: p.id });
+      const slot = probe ? BRPGEquipment.slotOf(probe) : null;
+      const label = `${p.category || 'その他'} / ${slot === 'accessory' ? '装飾' : BRPGEquipment?.labels[slot] || p.part || 'その他'}`;
+      if (!groups.has(label)) groups.set(label, []);
+      groups.get(label).push(p);
+    }
+    return [...groups].sort(([a], [b]) => a.localeCompare(b, 'ja')).map(([label, list]) => `<optgroup label="${esc(label)}">${list.map(p => `<option value="${p.id}" ${p.id === selected ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</optgroup>`).join('');
+  }
+  function craftPerformanceHTML(mat, prod, skill, workshop, route, amount) {
+    if (!prod) return '';
+    if (!isMaterialIdentified(mat)) return '<p class="status">素材未識別：完成前の性能は不明です。識別後に攻撃・防御・耐久の予測を確認できます。</p>';
+    const quality = consumedQuality(mat, amount);
+    const variants = [0, .999].map(roll => craftEquipmentSpec(mat, prod, skill, workshop, route, quality, getTitleByCraftSkill(skill, () => roll)));
+    const values = variants.map(g => gearValue(g)), g = variants[0], eq = globalThis.BRPGEquipment;
+    if (eq) eq.enrich(g);
+    return `<div class="craft-preview"><b>完成品の性能予測</b><p class="gold">${g.slot === 'weapon' ? '攻撃' : '防御'} +${Math.min(...values)}〜${Math.max(...values)} / 耐久 ${g.maxDur} / 品質 Q${g.quality}</p><small>${eq ? esc(eq.labels[eq.slotOf(g)] || '装飾') + ' / ' + esc(eq.types[g.type].name) : ''}${g.hands === 2 ? '（両手）' : ''} · ${esc(gearRequirementText(g))}</small><p class="muted">称号が抽選されるため性能に幅があります。装備する仲間の適性と能力で実効性能が変わります。</p></div>`;
+  }
+
   // UI: Atlas Screen (progressive map discovery + address expedition rules)
   atlasScreen = function() {
     const e = ext();
@@ -1678,7 +1722,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
           <p class="muted">この街の工房が知っている加工品目を、工房の腕前に応じた素材数と工賃で請け負ってもらいます。<br>※同じ「石の斧」でも、持ち込んだ「石」の正体が実は鉄鉱石や黒曜石だった場合、思いがけない性能の品が仕上がることがあります！</p>
           <label class="field">街工房のお品書き（この街で扱える加工品）
             <select data-ext-change="product">
-              ${wsProds.map(p => `<option value="${p.id}" ${activeWsProd?.id === p.id ? 'selected' : ''}>${esc(p.name)}（${esc(p.category)}）</option>`).join('')}
+              ${productOptions(wsProds, activeWsProd?.id)}
             </select>
           </label>
           ${ws.taughtRecipes?.length ? `<div class="quest-box">
@@ -1695,6 +1739,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
             <p class="gold">必要素材：${esc(apparentMaterialName(mat))} × ${wsMatNeeded}個 ／ 請負工賃：${wsGoldCost} G</p>
             <small class="muted">※工房の腕前によって必要素材数や費用、付与される称号が変化します。</small>
           </div>
+          ${craftPerformanceHTML(mat, activeWsProd, ws.effectiveSkill, true, 'H', wsMatNeeded)}
           ${btn('この内容で工房に製作を依頼する', 'commission-workshop', s.gold < wsGoldCost || (s.materials[mat] || 0) < wsMatNeeded ? 'disabled' : '', 'primary wide')}
         </section>
         <section class="panel">
@@ -1726,7 +1771,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
           </label>
           <label class="field">製作する加工品（自分が発見・習得した品目のみ）
             <select data-ext-change="product">
-              ${craftProdList.map(p => `<option value="${p.id}" ${activeCraftProd?.id === p.id ? 'selected' : ''}>${esc(p.name)}（${esc(p.category)}）</option>`).join('')}
+              ${productOptions(craftProdList, activeCraftProd?.id)}
             </select>
           </label>
           <label class="field">使用する素材
@@ -1740,6 +1785,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
             ${(() => { const heldRes = Object.entries(DATA.materials).filter(([id, m]) => m.craftable === false && (s.materials[id] || 0) > 0); return heldRes.length ? `<div style="margin-top:8px;padding-top:6px;border-top:1px dashed #4a5d4b"><b>🏺 未活用素材・遺物・薬草の工房解析と調合</b><div class="actions" style="margin-top:4px">${heldRes.map(([id]) => btn(`${esc(apparentMaterialName(id))}（所持${s.materials[id]}）を解析・調合`, 'research-uncraftable', `data-id="${id}"`)).join('')}</div></div>` : ''; })()}
           </div>
           <div class="actions">
+            ${craftPerformanceHTML(mat, activeCraftProd, crafterSkill, false, e.selectedRoute || 'H', craftMatNeeded)}
             ${btn('工房を借りて自作する', 'craftsman-make', !craftsmen.length || s.gold < rentalFee || (s.materials[mat] || 0) < craftMatNeeded ? 'disabled' : '', 'primary')}
             ${btn('手探りで新加工品の試作研究を行う (' + (rentalFee * 2) + ' G)', 'discover-recipe', s.gold < rentalFee * 2 ? 'disabled' : '')}
           </div>
@@ -1766,7 +1812,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
         const owner = s.roster.find(h => HERO_SLOTS.some(slot => h[slot] === g.id));
         const enchants = Object.entries(DATA.enchants).filter(([id, en]) => (en.slot || (id === 'ward' ? 'armor' : 'weapon')) === g.slot);
         return `<article class="card item-card rarity-${g.rarity || 'common'}">
-          <h3>${esc(gearName(g))}</h3>
+          <h3 class="gear-name" title="${esc(gearName(g))}">${esc(gearName(g))}</h3>
           <p class="gold">${g.slot === 'weapon' ? '攻撃性能' : '防御性能'} +${gearValue(g)}${gearEnchants(g).length ? ` / 付呪効果 +${enchantPower(g)}（${gearEnchants(g).length}/${maxEnchantSlots(g)}枠）` : `（付呪枠 0/${maxEnchantSlots(g)}）`}<br>品質 Q${g.quality || 1}${g.craftQ ? ` (指数Q${g.craftQ}·残留R${g.residue || 0}%)` : ''} / 耐久 ${g.dur} / ${g.maxDur}</p>
           <small>${owner ? esc(owner.name) + 'が装備中' : '未装備'}${g.dur ? '' : ' / 破損中'}</small>
           <div class="actions">
@@ -2032,23 +2078,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
         const slot = ['防具','装身具'].includes(prod?.category) ? 'armor' : 'weapon';
         const tInfo = getTitleByCraftSkill(ws.effectiveSkill);
         // Even if the stone was unidentified ("石"), its true underlying material stats (e.g. iron / obsidian) take effect!
-        const maxDur = 110 + ws.effectiveSkill;
-        const g = {
-          id: s.nextGear++,
-          material: mat,
-          slot,
-          method: 'physical',
-          enchant: null,
-          quality: Math.max(usedQ, Math.min(town.quality, 1 + Math.floor(ws.effectiveSkill / 25))),
-          dur: maxDur,
-          maxDur,
-          rarity: tInfo.rarity,
-          productId: prod?.id || 'P0031',
-          customTitle: tInfo.prefix,
-          titleBonus: tInfo.bonus,
-          route: 'H',
-          craftQ: Math.min(100, 50 + Math.floor(ws.effectiveSkill / 3))
-        };
+        const g = { id: s.nextGear++, ...craftEquipmentSpec(mat, prod, ws.effectiveSkill, true, 'H', usedQ, tInfo) };
         s.gear.push(g);
         playSE('loot');
         const sneakyNote = !isMaterialIdentified(mat) && (DATA.materials[mat]?.atk >= 10 || DATA.materials[mat]?.def >= 10)
@@ -2085,25 +2115,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
         const route = e.selectedRoute || 'H';
         const slot = ['防具','装身具'].includes(prod?.category) ? 'armor' : 'weapon';
         const tInfo = getTitleByCraftSkill(crafterSkill);
-        const maxDur = (route === 'M' ? 90 : 130) + crafterSkill;
-        const g = {
-          id: s.nextGear++,
-          material: mat,
-          slot,
-          method: route === 'M' ? 'magic' : 'physical',
-          enchant: null,
-          quality: Math.max(usedQ, Math.min(town.quality, 1 + Math.floor(crafterSkill / 25))),
-          dur: maxDur,
-          maxDur,
-          rarity: tInfo.rarity,
-          productId: prod?.id || 'P0031',
-          customTitle: tInfo.prefix,
-          titleBonus: tInfo.bonus,
-          route,
-          craftQ: Math.max(evaluate5RouteCraft(mat, prod?.id || 'P0031', route).calcQ, Math.min(100, 52 + Math.floor(crafterSkill / 2))),
-          residue: evaluate5RouteCraft(mat, prod?.id || 'P0031', route).residue,
-          eta: evaluate5RouteCraft(mat, prod?.id || 'P0031', route).eta
-        };
+        const g = { id: s.nextGear++, ...craftEquipmentSpec(mat, prod, crafterSkill, false, route, usedQ, tInfo) };
         s.gear.push(g);
         e.craftLv = Math.min(ws.worldCap, e.craftLv + 1);
         // Record this specific (productId + matKey + route) recipe in Craftsman's notebook!

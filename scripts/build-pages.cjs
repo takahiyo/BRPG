@@ -9,7 +9,7 @@ const files = [
   'data.js', 'world-data.js', 'catalog-data.js', 'jobs-data.js',
   'game.js', 'screens.js', 'systems.js', 'characters.js',
   'facilities.js', 'equipment.js', 'equipment.css', 'exploration-ui.js', 'exploration-ui.css',
-  'save-manager.js', '幻想モンスター図鑑 40種.png'
+  'formation.js', 'formation.css', 'save-manager.js', '幻想モンスター図鑑 40種.png'
 ];
 
 // Reject missing assets before replacing the last successful build. Keep the
