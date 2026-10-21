@@ -221,10 +221,15 @@
     return `<section class="town-hero">${title('A LIGHT IN THE WILDERNESS',esc(t.name),'旅の準備を整え、地図から探索へ挑むか、ギルドの依頼を選ぼう。')}<div class="town-facts"><span class="chip">街 Lv.${t.level}</span><span class="chip">施設品質 Q${t.quality}</span><span class="chip">物価 ×${t.price}</span>${s.debt?`<span class="chip">宿泊立替 ${s.debt} G</span>`:''}</div><div class="actions">${btn('地図から探索へ →','view','data-view="atlas"','primary')}${btn('ギルドの依頼','view','data-view="guild"')}${btn('宿と道具','view','data-view="supplies"')}</div></section><div class="sectionhead"><h2>今日のパーティー</h2><span class="muted">${party().length}/6人 · 平均Lv.${partyLevel()}</span></div>${strip()}<div class="grid three town-facilities section-space">${facilities.map(([id,name,desc])=>`<button class="panel facility" data-action="view" data-view="${id}"><b>${name}</b><small>${desc}</small></button>`).join('')}</div>${s.homeTownId!==t.id?btn('拠点へ戻る','home-town'):''}`;
   };
 
-  function knownMaps() {
-    const e=state(),max=Math.max(partyLevel(),...s.roster.map(h=>h.lv),currentTown().level);
-    if(s.townId!=='ash')return (s.addressMaps||[]).filter(m=>m.townId===s.townId);
-    return DATA.maps.filter((m,i)=>i<2||m.level<=max+12||(e.visitedMaps||[]).includes(m.id)||s.quests[m.id]?.accepted||s.quests[m.id]?.completed);
+  function townById(id) {
+    if (!id || id === 'ash') return (s.towns || []).find(t => t.id === 'ash') || { id: 'ash', name: '灰の街アッシュ', level: 1, quality: 1, price: 1 };
+    return (s.towns || []).find(t => t.id === id) || (s.townId === id ? currentTown() : { id, name: id, level: 1, quality: 1, price: 1 });
+  }
+
+  function knownMaps(targetTownId = s.townId) {
+    const e = state(), t = townById(targetTownId), max = Math.max(partyLevel(), ...s.roster.map(h => h.lv), t.level || 1);
+    if (targetTownId !== 'ash') return (s.addressMaps || []).filter(m => m.townId === targetTownId);
+    return DATA.maps.filter((m, i) => i < 2 || m.level <= max + 12 || (e.visitedMaps || []).includes(m.id) || s.quests[m.id]?.accepted || s.quests[m.id]?.completed);
   }
 
   function currentRealDateStr() {
@@ -283,7 +288,7 @@
     for (const [townId, board] of Object.entries(all.towns || {})) {
       for (const [id, p] of Object.entries(board.progress || {})) {
         if (p?.status === 'accepted' || p?.status === 'ready') {
-          const q = (board.offers || []).find(x => x.id === id) || contracts().find(x => x.id === id) || { id, name: 'ギルド依頼' };
+          const q = (board.offers || []).find(x => x.id === id) || permanentContracts(townId).find(x => x.id === id) || { id, name: 'ギルド依頼' };
           return { source: 'contract', townId, id, name: q.name, q };
         }
       }
@@ -385,10 +390,15 @@
   }
   function abandonContract(id) {
     if (!townOnly()) return;
-    const board = townBoard();
+    const active = getActiveQuest();
+    let board = townBoard(), qTownId = s.townId;
+    if (active && active.id === id && active.townId) {
+      qTownId = active.townId;
+      board = state().guildContracts.towns?.[qTownId] || townBoard();
+    }
     const p = board.progress[id];
     if (p?.status !== 'accepted') return;
-    const q = contracts().find(x => x.id === id);
+    const q = (board.offers || []).find(x => x.id === id) || permanentContracts(qTownId).find(x => x.id === id) || (active?.id === id ? active.q : null);
     if (!q) return;
     if (q.kind === 'lucrative' || q.kind === 'emergency') {
       const penalty = q.penalty || Math.ceil(q.reward * 0.35);
@@ -407,22 +417,27 @@
     render();
   }
 
-  function townBoard() {
-    const all=state().guildContracts;
-    return all.towns[s.townId]??={offers:[],progress:{},returns:0};
+  function townBoard(targetTownId = s.townId) {
+    const all = state().guildContracts;
+    return all.towns[targetTownId] ??= { offers: [], progress: {}, returns: 0 };
   }
-  function contracts() {
-    ensureSpecialOffers();
-    const seen=new Set(),list=[];
-    for(const m of knownMaps())for(const material of m.materials||[]){
-      if(seen.has(material))continue;seen.add(material);
-      const quality=m.quality||Math.min(13,1+Math.floor(m.level/25));
-      for(const [size,label,mult] of [[3,'小口',1.35],[8,'まとめ',1.6]]){
-        const value=DATA.materials[material]?.cost||10;
-        list.push({id:'supply:'+material+':'+size,kind:'resource',name:label+'資源調達：'+apparentMaterialName(material),material,amount:size,quality,mapId:m.id,reward:Math.ceil(value*size*mult*quality),repeat:true});
+  function permanentContracts(targetTownId = s.townId) {
+    const seen = new Set(), list = [];
+    for (const m of knownMaps(targetTownId)) for (const material of m.materials || []) {
+      if (seen.has(material)) continue; seen.add(material);
+      const quality = m.quality || Math.min(13, 1 + Math.floor(m.level / 25));
+      for (const [size, label, mult] of [[3, '小口', 1.35], [8, 'まとめ', 1.6]]) {
+        const value = DATA.materials[material]?.cost || 10;
+        list.push({ id: 'supply:' + material + ':' + size, kind: 'resource', name: label + '資源調達：' + apparentMaterialName(material), material, amount: size, quality, mapId: m.id, reward: Math.ceil(value * size * mult * quality), repeat: true });
       }
     }
-    const board=townBoard();return [...board.offers,...list];
+    return list;
+  }
+  function contracts(targetTownId = s.townId) {
+    if (targetTownId === s.townId) ensureSpecialOffers();
+    const all = state().guildContracts;
+    const board = all.towns[targetTownId] ??= { offers: [], progress: {}, returns: 0 };
+    return [...board.offers, ...permanentContracts(targetTownId)];
   }
   function rollSpecialOffers() {
     const board=townBoard();board.returns++;
@@ -468,7 +483,8 @@
 
   function deliverContract(id) {
     if(!townOnly())return;
-    const q=contracts().find(x=>x.id===id),p=townBoard().progress[id];if(!q||!p)return;
+    const board = townBoard(), p = board.progress[id]; if (!p) return;
+    const q = contracts().find(x => x.id === id); if (!q) return;
     if(q.kind==='emergency'){if(p.status!=='ready')return;}
     else {if(p.status!=='accepted'||!consumeMaterial(q.material,q.amount,q.quality))return;}
     p.status='completed';p.times++;earnGold(q.reward);tell(q.name+'を達成。報酬 '+q.reward+' G。'+(q.repeat?'再受注できます。':''));render();
@@ -550,11 +566,14 @@
           const actQ = active.q || active;
           const isEmerg = actQ?.kind === 'emergency';
           const targetMaps = isEmerg ? (actQ.mapId ? [worldMap(actQ.mapId)].filter(Boolean) : []) : candidateMapsForContract(actQ);
+          const repTown = townById(active.townId);
+          const repTownName = repTown?.name || (active.townId === 'ash' ? '灰の街アッシュ' : active.townId);
           return `<div class="quest-box" style="margin-top:10px;border-left:3px solid var(--gold);background:#1a271c">
             <div class="row between">
               <b>📌 現在受託中の依頼：${esc(active.name)}</b>
               ${btn('依頼を破棄する', 'contract-abandon', `data-id="${active.id}"`)}
             </div>
+            <p class="muted" style="margin:4px 0">報告先：${esc(repTownName)}</p>
             <div style="margin:8px 0">
               <small class="gold"><b>⚔ 探索先ダンジョンを選択して出発：</b></small>
               <div class="actions" style="margin-top:4px">
