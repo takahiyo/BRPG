@@ -145,5 +145,65 @@ assert(activeItems.every(id => item(id))); assert(validSave(s));
 `);
 const reload = harness({ 'ashen-atlas-v3': h.store.get('ashen-atlas-v3') });
 reload.run(`assert(validSave(s)); assert(BRPGEquipment.validateSave(s)); assert(s.gear.some(g => g.ownerId === null));`);
+
+// Exercise the boundary before equipment.js can normalize malformed input.
+const boundaryBase = JSON.parse(h.run('JSON.stringify(fresh())'));
+boundaryBase.gold = 987654;
+const equipmentTypes = JSON.parse(h.run('JSON.stringify(BRPGEquipment.types)'));
+const rejectedSaves = [];
+function checkBoundary(value, expected, message) {
+  const serialized = JSON.stringify(value);
+  assert.equal(h.run(`BRPGEquipment.validateSave(${serialized})`), expected, 'equipment validation: ' + message);
+  assert.equal(h.run(`validSave(${serialized})`), expected, 'initial save validation: ' + message);
+  if (!expected) rejectedSaves.push(value);
+}
+for (const [type, definition] of Object.entries(equipmentTypes)) {
+  const value = structuredClone(boundaryBase), hero = value.roster[0], gear = value.gear[0];
+  hero.weapon = null;
+  Object.assign(gear, { type, slot: definition.slot === 'weapon' ? 'weapon' : 'armor', equipSlot: definition.slot, hands: 1 });
+  hero[definition.slot === 'accessory' ? 'acc1' : definition.slot] = gear.id;
+  checkBoundary(value, true, type + ' accepts its correct part');
+  const optionalPart = structuredClone(value);
+  delete optionalPart.gear[0].equipSlot;
+  delete optionalPart.gear[0].hands;
+  checkBoundary(optionalPart, true, type + ' accepts omitted optional fields');
+  const wrongClass = structuredClone(value);
+  wrongClass.gear[0].slot = gear.slot === 'weapon' ? 'armor' : 'weapon';
+  delete wrongClass.gear[0].equipSlot;
+  checkBoundary(wrongClass, false, type + ' rejects a contradictory legacy class');
+  const wrongPart = structuredClone(value);
+  wrongPart.gear[0].equipSlot = definition.slot === 'head' ? 'feet' : 'head';
+  checkBoundary(wrongPart, false, type + ' rejects a contradictory equipment part');
+  const wrongLink = structuredClone(value), badHero = wrongLink.roster[0];
+  delete wrongLink.gear[0].equipSlot;
+  badHero[definition.slot === 'accessory' ? 'acc1' : definition.slot] = null;
+  badHero[definition.slot === 'head' ? 'feet' : 'head'] = gear.id;
+  checkBoundary(wrongLink, false, type + ' checks the link even without equipSlot');
+  if (definition.hands === 2) for (const hands of [undefined, 1, 2]) {
+    const conflict = structuredClone(value), weapon = conflict.gear[0], owner = conflict.roster[0];
+    if (hands === undefined) delete weapon.hands; else weapon.hands = hands;
+    const shield = { ...weapon, id: conflict.nextGear++, type: 'shield', slot: 'armor', equipSlot: 'shield', hands: 1 };
+    conflict.gear.push(shield); owner.shield = shield.id;
+    checkBoundary(conflict, false, type + ' plus shield is rejected with hands=' + hands);
+  }
+}
+for (const value of rejectedSaves) {
+  const raw = JSON.stringify(value), loaded = harness({ 'ashen-atlas-v3': raw });
+  assert(loaded.run('s.gold !== 987654'), 'invalid initial save starts fresh');
+  assert([...loaded.store].some(([key, data]) => key.startsWith('ashen-atlas-v3-invalid-backup-') && data === raw), 'invalid initial save preserves the exact source');
+}
+
+const legacyInitial = JSON.parse(h.run('JSON.stringify(legacy)'));
+legacyInitial.gold = 987654;
+for (const gear of legacyInitial.gear) for (const key of ['type', 'equipSlot', 'hands', 'ownerId']) delete gear[key];
+const legacyOwner = legacyInitial.roster[0], legacyArmor = legacyInitial.gear.find(gear => gear.id === legacyOwner.shield);
+legacyOwner.armor = legacyArmor.id; legacyOwner.shield = null;
+for (const version of [2, 3]) {
+  const value = { ...structuredClone(legacyInitial), version }, key = 'ashen-atlas-v' + version, raw = JSON.stringify(value);
+  const loaded = harness({ [key]: raw });
+  loaded.run(`assert.equal(s.gold, 987654); assert.equal(s.roster[0].armor, null); assert.equal(s.roster[0].shield, ${legacyArmor.id}); assert(validSave(s)); assert(BRPGEquipment.validateSave(s));`);
+  assert(![...loaded.store.keys()].some(key => key.includes('-invalid-backup-')), 'legacy v' + version + ' loads without rejection');
+  if (version === 2) assert.equal(loaded.store.get(key), raw, 'legacy key remains intact');
+}
 console.log('Equipment checks passed (simulated DOM).');
 

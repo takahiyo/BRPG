@@ -3,25 +3,26 @@
   const SLOTS = ['weapon', 'shield', 'head', 'armor', 'arms', 'feet', 'acc1', 'acc2'];
   const LABELS = { weapon: '武器・右手', shield: '盾・左手', head: '頭', armor: '胴', arms: '腕', feet: '脚', acc1: '装飾品1', acc2: '装飾品2' };
   const TYPES = {
-    club: { name: '棍棒', slot: 'weapon', group: 'universal' },
-    dagger: { name: '短剣', slot: 'weapon', group: 'light' },
-    sword: { name: '剣', slot: 'weapon', group: 'martial' },
-    greatsword: { name: '両手剣', slot: 'weapon', group: 'martial', hands: 2 },
-    axe: { name: '斧', slot: 'weapon', group: 'martial' },
-    spear: { name: '槍', slot: 'weapon', group: 'martial', hands: 2 },
-    bow: { name: '弓', slot: 'weapon', group: 'ranged', hands: 2 },
-    staff: { name: '杖', slot: 'weapon', group: 'magic', hands: 2 },
-    whip: { name: '鞭', slot: 'weapon', group: 'light' },
-    shield: { name: '盾', slot: 'shield', group: 'martial' },
-    helmet: { name: '兜', slot: 'head', group: 'armor' },
-    hat: { name: '帽子', slot: 'head', group: 'universal' },
-    body: { name: '鎧', slot: 'armor', group: 'armor' },
-    robe: { name: '衣', slot: 'armor', group: 'universal' },
-    gloves: { name: '手甲', slot: 'arms', group: 'armor' },
-    boots: { name: '脚甲', slot: 'feet', group: 'armor' },
-    ring: { name: '指輪', slot: 'accessory', group: 'universal' },
-    amulet: { name: '護符', slot: 'accessory', group: 'universal' }
+    club: { name: '棍棒', group: 'universal' },
+    dagger: { name: '短剣', group: 'light' },
+    sword: { name: '剣', group: 'martial' },
+    greatsword: { name: '両手剣', group: 'martial' },
+    axe: { name: '斧', group: 'martial' },
+    spear: { name: '槍', group: 'martial' },
+    bow: { name: '弓', group: 'ranged' },
+    staff: { name: '杖', group: 'magic' },
+    whip: { name: '鞭', group: 'light' },
+    shield: { name: '盾', group: 'martial' },
+    helmet: { name: '兜', group: 'armor' },
+    hat: { name: '帽子', group: 'universal' },
+    body: { name: '鎧', group: 'armor' },
+    robe: { name: '衣', group: 'universal' },
+    gloves: { name: '手甲', group: 'armor' },
+    boots: { name: '脚甲', group: 'armor' },
+    ring: { name: '指輪', group: 'universal' },
+    amulet: { name: '護符', group: 'universal' }
   };
+  for (const [id, type] of Object.entries(TYPES)) Object.assign(type, EQUIPMENT_RULES[id]);
   let normalizing = false, readingBase = false;
   const previousAttributes = attributes, previousGearValue = gearValue, previousEnchantPower = enchantPower;
   const previousStats = stats, previousName = gearName, previousProductName = equipmentProductName;

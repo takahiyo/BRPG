@@ -3,6 +3,13 @@ const $=id=>document.getElementById(id),KEY='ashen-atlas-v3',LEGACY_KEY='ashen-a
 const DIRS=[[0,-1],[1,0],[0,1],[-1,0]],ELEMENTS={physical:'物理',fire:'炎',frost:'氷',light:'光',thunder:'雷',dark:'闇'};
 const HERO_SLOTS=['weapon','shield','head','armor','arms','feet','acc1','acc2'],DEF_SLOTS=['shield','head','armor','arms','feet','acc1','acc2'],GEAR_SLOT_KEYS=['weapon','armor','head','body','arms','feet','accessory'];
 const SLOT_FACTORS={weapon:1,armor:1,body:1,head:0.55,arms:0.48,feet:0.48,accessory:0.35};
+// Shared with equipment.js so initial save validation uses the runtime's rules.
+const EQUIPMENT_RULES={
+ club:{slot:'weapon'},dagger:{slot:'weapon'},sword:{slot:'weapon'},greatsword:{slot:'weapon',hands:2},
+ axe:{slot:'weapon'},spear:{slot:'weapon',hands:2},bow:{slot:'weapon',hands:2},staff:{slot:'weapon',hands:2},whip:{slot:'weapon'},
+ shield:{slot:'shield'},helmet:{slot:'head'},hat:{slot:'head'},body:{slot:'armor'},robe:{slot:'armor'},
+ gloves:{slot:'arms'},boots:{slot:'feet'},ring:{slot:'accessory'},amulet:{slot:'accessory'}
+};
 let walkTimer=null,battleTimer=null,notice='',storageOK=true;
 function hash(str){let h=2166136261;for(const c of str)h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0;}
 function rng(seed){return()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};}
@@ -55,14 +62,14 @@ function validSave(v){
  if(!v.corpses.every(c=>c&&typeof c.id==='string'&&floor(c.floor)&&num(c.until)&&arr(c.gear)&&c.gear.every(gear)&&arr(c.links)&&c.links.every(l=>l&&Number.isInteger(l.id))))return false;
  // Validate the new optional equipment fields before later UI scripts run.
  const allGear=[...v.gear,...v.corpses.flatMap(c=>c.gear)],gearIds=new Set(),heroIds=new Set(v.roster.map(h=>h.id));
- const equipTypes=['club','dagger','sword','greatsword','axe','spear','bow','staff','whip','shield','helmet','hat','body','robe','gloves','boots','ring','amulet'];
  for(const g of allGear){
    if(gearIds.has(g.id))return false;gearIds.add(g.id);
    if(g.ownerId!==undefined&&g.ownerId!==null&&!heroIds.has(g.ownerId))return false;
-   if(g.type!==undefined&&!equipTypes.includes(g.type))return false;
+   if(g.type!==undefined&&!Object.hasOwn(EQUIPMENT_RULES,g.type))return false;
    if(g.equipSlot!==undefined&&!['weapon','shield','head','armor','arms','feet','accessory'].includes(g.equipSlot))return false;
    if(g.hands!==undefined&&![1,2].includes(g.hands))return false;
    if(g.equipSlot!==undefined&&(g.equipSlot==='weapon')!==(g.slot==='weapon'))return false;
+   if(g.type&&(g.slot!==(EQUIPMENT_RULES[g.type].slot==='weapon'?'weapon':'armor')||g.equipSlot!==undefined&&g.equipSlot!==EQUIPMENT_RULES[g.type].slot))return false;
  }
  const equippedIds=new Set();
  for(const h of v.roster){
@@ -72,9 +79,11 @@ function validSave(v){
      if(!Number.isInteger(id)||!g||equippedIds.has(id))return false;
      equippedIds.add(id);
      if(g.ownerId!==undefined&&g.ownerId!==h.id)return false;
-     if(g.equipSlot!==undefined&&g.equipSlot!==(slot.startsWith('acc')?'accessory':slot))return false;
+     const expected=g.type?EQUIPMENT_RULES[g.type].slot:g.equipSlot;
+     if(expected&&expected!==(slot.startsWith('acc')?'accessory':slot))return false;
    }
-   if(h.shield&&v.gear.find(g=>g.id===h.weapon)?.hands===2)return false;
+   const w=v.gear.find(g=>g.id===h.weapon);
+   if(h.shield&&(w?.hands===2||EQUIPMENT_RULES[w?.type]?.hands===2))return false;
  }
  if(!arr(v.towns)||!v.towns.length||!v.towns.every(t=>t&&typeof t.id==='string'&&typeof t.name==='string'&&num(t.level,1)&&num(t.price,1)&&num(t.quality,1)&&num(t.baseCost))||!v.towns.some(t=>t.id===v.townId)||!v.towns.some(t=>t.id===v.homeTownId)||!arr(v.addressMaps)||!v.quests)return false;
  if(!v.addressMaps.every(m=>m&&typeof m.id==='string'&&typeof m.name==='string'&&num(m.level,1)&&m.level<=300&&arr(m.materials)&&m.materials.every(k=>DATA.materials[k])&&arr(m.enemies)&&m.enemies.every(id=>DATA.enemies.some(e=>e.id===id))))return false;
