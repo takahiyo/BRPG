@@ -1,5 +1,17 @@
 name = "brpg"
+main = "worker.js"
 compatibility_date = "2026-10-20"
+
+[vars]
+GOOGLE_CLIENT_ID = "465038567538-09uo2623nhcdeukrpe5cvfbhraotiog7.apps.googleusercontent.com"
 
 [assets]
 directory = "."
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "brpg-saves"
+database_id = "022fadb8-fcac-46f1-935e-b1728b1de951"
+migrations_dir = "migrations"
