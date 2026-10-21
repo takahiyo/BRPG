@@ -1,5 +1,7 @@
 # 作業再開メモ
 
+2026-10-22 JST：最新の計画・復旧点は DEVELOPMENT_PLAN.md / DEVELOPMENT_STATUS.md を参照。下記改修はmain/devへ `4aafcd8` として到達確認済み。CI・公開の成功とは区別する。
+
 ## 最新依頼：持ち物・部位装備と探索GUI・複数街依頼（2026-10-21、統合完了・公開段階）
 
 開始HEAD `fefde68`、main/devへ前回成果をpush済み、作業開始時clean。ユーザーは今回の変更についてもmain/devへのアップまで明示許可。
@@ -11,7 +13,7 @@
 | C 探索GUI・地図 | 実装・ブラウザ確認済み | 操作集約、コマンド選択→対象→実行、図形で描くマップ記号と出口、勝利後3秒待機・停止可能 |
 | D 統合検証と文書 | 完了 | 保存・装備・タイマーの回帰テスト、実ブラウザ操作、独立レビュー、仕様文書更新、Pagesビルド更新 |
 | 第18段階 複数街依頼 | 実装・自動検証済み | 複数街移動時の常設依頼の対象地・品質保持、報告先街のバナー表示、他街納品・二重受領防止、破棄整合性 |
-| E 公開 | push実行中 | mainマージ完了、第18段階コミット、devへ統合/push、mainへpush、両remote先端確認 |
+| E 公開 | push到達確認済み（2026-10-22） | mainマージ完了、第18段階コミット、devへ統合/push、mainへpush、両remote先端確認 |
 
 全7スイート成功（`test.cjs`、`test-regression.cjs`、`test-overhaul.cjs`、`test-equipment.cjs`、`test-exploration.cjs`、`test-save-manager.cjs`、`test-quest-travel.cjs`）。
 node構文チェック（9ファイル）、Pagesビルド（`node scripts/build-pages.cjs`）成功。
