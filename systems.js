@@ -42,11 +42,11 @@ makeFloor=function(map,seed,depth){const f=oldMakeFloor(map,seed,depth),r=rng((s
 const oldEncounter=encounter;
 encounter=function(boss=false){if(!boss)return oldEncounter(false);const d=s.dungeon;if(!d||s.battle)return;stopWalk();const bDef=regionBoss(d.mapId),foe={...enemyStatsAt(bDef,d.level),key:0,poison:0,counted:false};s.battle={enemies:[foe],boss:true,turn:1,plans:{},actor:alive()[0].id,target:0,cover:false,rally:0};d.sinceBattle=0;s.view='explore';const r=s.research[foe.id]??={encounters:0,kills:0,level:d.level};r.encounters++;r.level=d.level;tell(foe.name+'が現れた！');if(s.autoExpedition)startBattleTimer();render();};
 const baseGearValue=oldGearValue;
-gearValue=function(g){if(!g||!g.dur)return 0;const owner=s.roster.find(h=>h[g.slot]===g.id);if(owner&&!canEquip(owner,g))return 0;let v=baseGearValue(g);if(g.material==='mithril')v=Math.round(v*(g.method==='magic'?.55:1.2));if(g.material==='adamant'||g.material==='stariron')v=Math.round(v*(g.method==='physical'&&(g.quality||1)>=6?1.35:g.method==='physical'?.85:1.15));if(g.material==='tungsten'&&g.method==='magic')v=Math.round(v*1.15);if(owner&&g.method==='magic')v=Math.round(v*(1+Math.max(0,attributes(owner).WIZ-10)*.01));return Math.max(1,v);};
+gearValue=function(g){if(!g||!g.dur)return 0;const owner=s.roster.find(h=>HERO_SLOTS.some(slot=>h[slot]===g.id));if(owner&&!canEquip(owner,g))return 0;let v=baseGearValue(g);if(g.material==='mithril')v=Math.round(v*(g.method==='magic'?.55:1.2));if(g.material==='adamant'||g.material==='stariron')v=Math.round(v*(g.method==='physical'&&(g.quality||1)>=6?1.35:g.method==='physical'?.85:1.15));if(g.material==='tungsten'&&g.method==='magic')v=Math.round(v*1.15);if(owner&&g.method==='magic')v=Math.round(v*(1+Math.max(0,attributes(owner).WIZ-10)*.01));return Math.max(1,v);};
 const baseEnchantPower=oldEnchantPower;
-enchantPower=function(g){if(!g?.enchant||!g.dur)return 0;const owner=s.roster.find(h=>h[g.slot]===g.id);if(owner&&!canEquip(owner,g))return 0;let v=baseEnchantPower(g);if(g.material==='mithril'&&g.method==='physical')v=Math.round(v*1.45);if((g.material==='adamant'||g.material==='stariron')&&g.method==='physical'&&(g.quality||1)>=6)v=Math.round(v*1.3);return v;};
+enchantPower=function(g){if(!g?.enchant||!g.dur)return 0;const owner=s.roster.find(h=>HERO_SLOTS.some(slot=>h[slot]===g.id));if(owner&&!canEquip(owner,g))return 0;let v=baseEnchantPower(g);if(g.material==='mithril'&&g.method==='physical')v=Math.round(v*1.45);if((g.material==='adamant'||g.material==='stariron')&&g.method==='physical'&&(g.quality||1)>=6)v=Math.round(v*1.3);return v;};
 const oldAllyDamage=allyDamage;
-allyDamage=function(h,power,magic=false,guarding=false){const armor=item(h.armor);if(magic&&armor?.dur&&armor.material==='mithril'&&armor.method==='physical')power=Math.max(3,Math.round(power*.78));return oldAllyDamage(h,power,magic,guarding);};
+allyDamage=function(h,power,magic=false,guarding=false){const armor=item(h.armor);if(magic&&armor?.dur&&armor.material==='mithril'&&armor.method==='physical'&&(!globalThis.BRPGEquipment||BRPGEquipment.effectsActive(h,armor)))power=Math.max(3,Math.round(power*.78));return oldAllyDamage(h,power,magic,guarding);};
 const oldVictory=victory;
 victory=function(){const b=s.battle,d=s.dungeon;if(b&&d){for(const e of b.enemies){if(DATA.equipmentSources?.includes(e.id)&& (b.boss||random()<.22)){const slot=random()<.55?'weapon':'armor',craftables=Object.keys(DATA.materials).filter(k=>DATA.materials[k].craftable&&DATA.materials[k].rank<=Math.max(2,Math.ceil(d.level/18)+2)),mat=e.drop&&DATA.materials[e.drop]?.craftable?e.drop:pick(craftables)||'iron',method=mat==='mithril'?'physical':random()<.35?'magic':'physical',maxDur=method==='physical'?110:75,dur=Math.max(25,Math.round(maxDur*(.55+random()*.35))),g={id:s.nextGear++,material:mat,slot,method,enchant:b.boss&&random()<.5?pick(Object.keys(DATA.enchants).filter(k=>(DATA.enchants[k].slot||'weapon')===slot)):null,quality:d.quality||1,dur,maxDur};s.gear.push(g);note('戦利品として'+gearName(g)+'（耐久'+dur+'/'+maxDur+'）を回収！');}}}oldVictory();};
 const reserveAutoPlans=autoPlans;
@@ -315,7 +315,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
       const r = rng(hash('workshop:' + t.id + ':' + (t.seed || 1)));
       const baseSkill = Math.max(4, Math.min(300, Math.round(t.level * 1.15) + Math.floor(r() * 8)));
       // Assign town-specific specialty products based on town seed
-      const allProds = Object.values(CAT.products).filter(p => p.category === '武器' || p.category === '防具');
+      const allProds = Object.values(CAT.products).filter(p => ['武器','防具','装身具'].includes(p.category));
       const townProds = ['P0031', 'P0001', 'P0181']; // every rural workshop knows stone axe / wood sword / tunic
       const pool = allProds.filter(p => p.minLv <= Math.max(15, t.level + 20));
       for (let i = 0; i < 6 && pool.length; i++) {
@@ -339,7 +339,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
       ws.knownTechLevel = e.techs.length;
       const r = rng(hash('ws-update:' + t.id + ':' + e.techs.length));
       const newPool = Object.values(CAT.products).filter(p =>
-        (p.category === '武器' || p.category === '防具') &&
+        (['武器','防具','装身具'].includes(p.category)) &&
         p.minLv <= effectiveSkill + 10
       );
       for (let i = 0; i < 4 && newPool.length; i++) {
@@ -649,7 +649,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
 
     // Pick a level-appropriate Product from 540 dictionary
     const catTarget = slot === 'weapon' ? '武器' : '防具';
-    const prodCandidates = Object.values(CAT.products).filter(p => p.category === catTarget && p.minLv <= level + 15 && p.maxLv >= level);
+    const prodCandidates = Object.values(CAT.products).filter(p => (p.category === catTarget || (slot === 'armor' && p.category === '装身具')) && p.minLv <= level + 15 && p.maxLv >= level);
     const prod = prodCandidates.length ? pick(prodCandidates) : getCatalogProduct(null, slot);
     if (prod && !e.discoveredProducts.includes(prod.id)) e.discoveredProducts.push(prod.id);
 
@@ -1637,14 +1637,14 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
 
     // Workshop Commission cost & material count depend on Workshop Skill!
     const wsSkillFactor = Math.max(0.65, 1.25 - ws.effectiveSkill * 0.004);
-    const wsMatNeeded = Math.max(2, Math.round((activeWsProd?.category === '防具' ? 6 : 5) * wsSkillFactor));
+    const wsMatNeeded = Math.max(2, Math.round((['防具','装身具'].includes(activeWsProd?.category) ? 6 : 5) * wsSkillFactor));
     const wsGoldCost = Math.max(15, Math.ceil(((DATA.materials[mat]?.cost || 10) * 3 + (activeWsProd?.shapeLv || 5) * 8) * town.price * (0.9 + ws.effectiveSkill * 0.015)));
 
     // Craftsman Self-Crafting cost & material count depend on Craftsman Skill + Rental Fee!
     const craftProdList = e.discoveredProducts.map(pid => CAT.products[pid]).filter(Boolean);
     const activeCraftProd = craftProdList.some(p => p.id === e.selectedProduct) ? CAT.products[e.selectedProduct] : (craftProdList[0] || CAT.products.P0031);
     const rentalFee = Math.max(10, Math.ceil(25 * town.price * town.quality));
-    const craftMatNeeded = Math.max(2, (activeCraftProd?.category === '防具' ? 6 : 5) - Math.floor(crafterSkill / 25));
+    const craftMatNeeded = Math.max(2, (['防具','装身具'].includes(activeCraftProd?.category) ? 6 : 5) - Math.floor(crafterSkill / 25));
 
     const scenarioHTML = activeScenarios.length ? `<section class="panel" style="margin-bottom:18px;border-color:#d7b77a">
       <div class="row between">
@@ -1761,17 +1761,16 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
           }).join('')}</div>
         </section>
       </div>`) +
-      `<div class="sectionhead section-space"><h2>所持している装備品 <small>${s.gear.length}個</small></h2>${(() => { const damaged = s.gear.filter(g => s.roster.some(h => h.weapon === g.id || h.armor === g.id) && g.dur < g.maxDur); const totalRepair = damaged.reduce((sum, g) => sum + repairCost(g), 0); return damaged.length ? btn(`装備中の品をすべて修理（${damaged.length}点 / ${totalRepair} G）`, 'repair-all-equipped', s.gold < totalRepair ? 'disabled' : '') : ''; })()}</div>
-      <div class="grid">${[...s.gear].sort((a, b) => { const oa = s.roster.some(h => h[a.slot] === a.id) ? 0 : 1, ob = s.roster.some(h => h[b.slot] === b.id) ? 0 : 1; return oa - ob || (a.dur < a.maxDur ? 0 : 1) - (b.dur < b.maxDur ? 0 : 1) || gearValue(b) - gearValue(a) || b.id - a.id; }).map(g => {
-        const owner = s.roster.find(h => h[g.slot] === g.id);
+      `<div class="sectionhead section-space"><h2>所持している装備品 <small>${s.gear.length}個</small></h2>${(() => { const damaged = s.gear.filter(g => s.roster.some(h => HERO_SLOTS.some(slot => h[slot] === g.id)) && g.dur < g.maxDur); const totalRepair = damaged.reduce((sum, g) => sum + repairCost(g), 0); return damaged.length ? btn(`装備中の品をすべて修理（${damaged.length}点 / ${totalRepair} G）`, 'repair-all-equipped', s.gold < totalRepair ? 'disabled' : '') : ''; })()}</div>
+      <div class="grid">${[...s.gear].sort((a, b) => { const oa = s.roster.some(h => HERO_SLOTS.some(slot => h[slot] === a.id)) ? 0 : 1, ob = s.roster.some(h => HERO_SLOTS.some(slot => h[slot] === b.id)) ? 0 : 1; return oa - ob || (a.dur < a.maxDur ? 0 : 1) - (b.dur < b.maxDur ? 0 : 1) || gearValue(b) - gearValue(a) || b.id - a.id; }).map(g => {
+        const owner = s.roster.find(h => HERO_SLOTS.some(slot => h[slot] === g.id));
         const enchants = Object.entries(DATA.enchants).filter(([id, en]) => (en.slot || (id === 'ward' ? 'armor' : 'weapon')) === g.slot);
         return `<article class="card item-card rarity-${g.rarity || 'common'}">
           <h3>${esc(gearName(g))}</h3>
           <p class="gold">${g.slot === 'weapon' ? '攻撃性能' : '防御性能'} +${gearValue(g)}${gearEnchants(g).length ? ` / 付呪効果 +${enchantPower(g)}（${gearEnchants(g).length}/${maxEnchantSlots(g)}枠）` : `（付呪枠 0/${maxEnchantSlots(g)}）`}<br>品質 Q${g.quality || 1}${g.craftQ ? ` (指数Q${g.craftQ}·残留R${g.residue || 0}%)` : ''} / 耐久 ${g.dur} / ${g.maxDur}</p>
           <small>${owner ? esc(owner.name) + 'が装備中' : '未装備'}${g.dur ? '' : ' / 破損中'}</small>
           <div class="actions">
-            <select id="equip-${g.id}" aria-label="装備先">${s.roster.map(h => `<option value="${h.id}" ${owner?.id === h.id ? 'selected' : ''}>${esc(h.name)}</option>`).join('')}</select>
-            ${btn('装備', 'equip', `data-id="${g.id}"`)}
+            ${btn('持ち物で装備を管理', 'character', `data-id="${owner?.id || g.ownerId || s.selection || s.roster[0].id}"`)}
             ${btn('修理 ' + repairCost(g) + ' G', 'repair', `data-id="${g.id}" ${g.dur === g.maxDur ? 'disabled' : ''}`)}
           </div>
           <div class="actions">${((g.residue || 0) > 0 || (g.method === 'physical' && (g.craftQ || 0) < 92)) ? btn(`🔥 焼鈍・魔力浄化 (${annealCost(g)} G)`, 'anneal-gear', `data-id="${g.id}" ${s.gold < annealCost(g) ? 'disabled' : ''}`) : ''}</div>
@@ -1992,7 +1991,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
       } else if (act === 'forge-mode') {
         e.forgeMode = b.dataset.mode;
         render();
-      } else if (act === 'repair-all-equipped') { if (!townOnly()) return; const damaged = s.gear.filter(g => s.roster.some(h => h.weapon === g.id || h.armor === g.id) && g.dur < g.maxDur); const total = damaged.reduce((sum, g) => sum + repairCost(g), 0); if (!damaged.length || s.gold < total) return; s.gold -= total; for (const g of damaged) g.dur = g.maxDur; tell(`装備中の ${damaged.length}点を一括修理した（${total} G）。`); render(); } else if (act === 'complete-tech-scenario') {
+      } else if (act === 'repair-all-equipped') { if (!townOnly()) return; const damaged = s.gear.filter(g => s.roster.some(h => HERO_SLOTS.some(slot => h[slot] === g.id)) && g.dur < g.maxDur); const total = damaged.reduce((sum, g) => sum + repairCost(g), 0); if (!damaged.length || s.gold < total) return; s.gold -= total; for (const g of damaged) g.dur = g.maxDur; tell(`装備中の ${damaged.length}点を一括修理した（${total} G）。`); render(); } else if (act === 'complete-tech-scenario') {
         if (!townOnly()) return;
         const sc = TECH_SCENARIOS.find(x => x.id === b.dataset.id);
         if (!sc || currentTown().level < sc.minTownLv || (sc.prereq && !e.completedTechScenarios.includes(sc.prereq)) || e.completedTechScenarios.includes(sc.id) || !sc.checkCanComplete()) return;
@@ -2013,7 +2012,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
         const wsProds = ws.specialtyProducts.map(pid => CAT.products[pid]).filter(Boolean);
         const prod = wsProds.find(p => p.id === e.selectedProduct) || wsProds[0] || CAT.products.P0031;
         const wsSkillFactor = Math.max(0.65, 1.25 - ws.effectiveSkill * 0.004);
-        const matNeeded = Math.max(2, Math.round((prod?.category === '防具' ? 6 : 5) * wsSkillFactor));
+        const matNeeded = Math.max(2, Math.round((['防具','装身具'].includes(prod?.category) ? 6 : 5) * wsSkillFactor));
         const goldCost = Math.max(15, Math.ceil(((DATA.materials[mat]?.cost || 10) * 3 + (prod?.shapeLv || 5) * 8) * town.price * (0.9 + ws.effectiveSkill * 0.015)));
         if (s.gold < goldCost || (s.materials[mat] || 0) < matNeeded) {
           tell('素材または工賃が足りません。');
@@ -2030,7 +2029,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
             rem--;
           }
         }
-        const slot = prod?.category === '防具' ? 'armor' : 'weapon';
+        const slot = ['防具','装身具'].includes(prod?.category) ? 'armor' : 'weapon';
         const tInfo = getTitleByCraftSkill(ws.effectiveSkill);
         // Even if the stone was unidentified ("石"), its true underlying material stats (e.g. iron / obsidian) take effect!
         const maxDur = 110 + ws.effectiveSkill;
@@ -2069,7 +2068,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
         const prodList = e.discoveredProducts.map(pid => CAT.products[pid]).filter(Boolean);
         const prod = prodList.find(p => p.id === e.selectedProduct) || prodList[0] || CAT.products.P0031;
         const rentalFee = Math.max(10, Math.ceil(25 * town.price * town.quality));
-        const matNeeded = Math.max(2, (prod?.category === '防具' ? 6 : 5) - Math.floor(crafterSkill / 25));
+        const matNeeded = Math.max(2, (['防具','装身具'].includes(prod?.category) ? 6 : 5) - Math.floor(crafterSkill / 25));
         if (s.gold < rentalFee || (s.materials[mat] || 0) < matNeeded) {
           tell('工房レンタル料または素材が足りません。');
           return render();
@@ -2084,7 +2083,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
           }
         }
         const route = e.selectedRoute || 'H';
-        const slot = prod?.category === '防具' ? 'armor' : 'weapon';
+        const slot = ['防具','装身具'].includes(prod?.category) ? 'armor' : 'weapon';
         const tInfo = getTitleByCraftSkill(crafterSkill);
         const maxDur = (route === 'M' ? 90 : 130) + crafterSkill;
         const g = {
@@ -2165,7 +2164,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
           }
         }
         const prod = CAT.products[tr.productId];
-        const slot = prod?.category === '防具' ? 'armor' : 'weapon';
+        const slot = ['防具','装身具'].includes(prod?.category) ? 'armor' : 'weapon';
         const tInfo = getTitleByCraftSkill(ws.effectiveSkill);
         const g = {
           id: s.nextGear++,

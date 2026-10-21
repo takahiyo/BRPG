@@ -192,13 +192,14 @@ assert(validSave(s));console.log('PASS: party wipe preserves death; paid temple 
 validation.run(`
 s=fresh();render();
 assert.equal(gearName(s.gear[0]),'硬木の棍棒');
-assert.equal(gearName({...s.gear[0],material:'hide'}),'獣皮の鞭');
-assert.equal(gearName({...s.gear[0],material:'hide',slot:'armor'}),'獣皮の革鎧');
+const legacyGear={...s.gear[0]};delete legacyGear.type;delete legacyGear.equipSlot;delete legacyGear.hands;
+assert.equal(gearName({...legacyGear,material:'hide'}),'獣皮の鞭');
+assert.equal(gearName({...legacyGear,material:'hide',slot:'armor'}),'獣皮の衣');
 for(const [id,it] of Object.entries(DATA.items))if(it.kind==='revive')assert(supplyPrice(id)>=300);
 console.log('PASS: concrete material-appropriate item names and portable revival pricing.');
 `);
 validation.run(`
-// Stage 8: Large equipment list grouping/delta, bulk sell unused common gear, bulk repair equipped gear
+// Stage 8: Large personal equipment inventory, storage-only bulk sale, equipped gear repair
 s=fresh();s.gold=50000;render();
 for(let i=0;i<24;i++){
   s.gear.push({id:s.nextGear++,material:i%3===0?'iron':i%2===0?'copper':'wood',slot:i%2===0?'weapon':'armor',method:'physical',enchant:null,quality:i%4===0?5:1,dur:40,maxDur:60,rarity:i===23?'rare':'common'});
@@ -206,16 +207,18 @@ for(let i=0;i<24;i++){
 s.gear[0].dur=20;
 openCharacter(1);
 const detailHtml=$('character-body').innerHTML;
-assert(detailHtml.includes('<optgroup label="現在装備中 (1)">'),'current gear grouped first');
-assert(detailHtml.includes('<optgroup label="装備可能（未装備・性能順）'),'equippable unowned gear grouped and sorted');
-assert(detailHtml.includes('<optgroup label="装備条件未達'),'unequippable gear grouped separately');
-assert(/攻\\+\\d+ \\/ [+-]\\d+/.test(detailHtml),'weapon option shows attack value and delta');
+assert(detailHtml.includes('equipment-paperdoll'),'equipment body slots are shown');
+assert(detailHtml.includes('inventory-card is-equipped'),'equipped gear remains visible in the personal inventory');
+assert(detailHtml.includes('能力条件未達'),'unavailable gear explains its unmet requirement');
+assert(!detailHtml.includes('data-character-change="equip"'),'equipment dropdowns have been replaced by inventory actions');
 $('character-dialog').close();
+const stored=s.gear.find(g=>!BRPGEquipment.equippedOwner(g)&&g.rarity!=='rare');
+assert(BRPGEquipment.transfer(stored.id,null),'put an unused common item in storage for bulk sale');
 const shopHtml=shopScreen();
 assert(shopHtml.includes('merchant-sell-bulk-gear'),'shop offers bulk sell for unused common gear');
 const gearBefore=s.gear.length,goldBefore=s.gold;
 BRPGFacilities.sellUnusedCommonGear();
-assert(s.gear.length<gearBefore && s.gold>goldBefore,'bulk sell removes unused common gear and earns gold');
+assert(s.gear.length<gearBefore && s.gold>goldBefore,'bulk sell removes stored common gear and earns gold');
 assert(s.gear.some(g=>g.rarity==='rare'),'bulk sell preserves rare gear');
 assert(s.roster.every(h=>h.weapon&&item(h.weapon)),'bulk sell preserves equipped gear');
 const forgeHtml=forgeScreen();

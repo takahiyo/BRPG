@@ -147,37 +147,40 @@
   };
   function merchantGear() {
     const e=state(),town=currentTown(),materials=Object.keys(DATA.materials).filter(id=>['wood','stone','hide'].includes(id)||((e.identifiedMaterials||[]).includes(id)&&(e.discoveredMaterials||[]).includes(id)&&DATA.materials[id].rank<=town.quality+1&&DATA.materials[id].craftable!==false)).slice(0,6);
-    return materials.flatMap(material=>['weapon','armor'].map(slot=>({key:material+':'+slot,material,slot,method:'physical',quality:Math.min(13,town.quality),dur:45,maxDur:75,enchant:null})));
+    const designs=[['club','weapon',1],['sword','weapon',1],['greatsword','weapon',2],['bow','weapon',2],['staff','weapon',2],['shield','shield',1],['helmet','head',1],['body','armor',1],['gloves','arms',1],['boots','feet',1],['ring','accessory',1]];
+    return materials.flatMap(material=>designs.map(([type,equipSlot,hands])=>({key:material+':'+type,material,slot:equipSlot==='weapon'?'weapon':'armor',type,equipSlot,hands,method:'physical',quality:Math.min(13,town.quality),dur:45,maxDur:75,enchant:null})));
   }
   function gearBuyPrice(g) { return Math.ceil((40+(DATA.materials[g.material]?.cost||10)*8)*qualityFactor(g.quality)*currentTown().price); }
   function gearSellPrice(g) { return Math.max(1,Math.floor(((DATA.materials[g.material]?.cost||10)*2+(g.quality||1)*5)*(g.dur/g.maxDur)*sellFactor())); }
   function buyGear(key) {
     if(!townOnly())return;const g=merchantGear().find(x=>x.key===key);if(!g)return;
     const cost=gearBuyPrice(g);if(s.gold<cost)return;
-    s.gold-=cost;const gear={...g,id:s.nextGear++};delete gear.key;s.gear.push(gear);tell(gearName(gear)+'を '+cost+' Gで購入した。');render();
+    s.gold-=cost;const gear={...g,id:s.nextGear++};delete gear.key;
+    if(globalThis.BRPGEquipment)BRPGEquipment.receive(gear);else s.gear.push(gear);
+    tell(gearName(gear)+'を '+cost+' Gで購入した。'+(gear.ownerId?s.roster.find(h=>h.id===gear.ownerId)?.name+'の持ち物へ。':'街の保管庫へ。'));render();
   }
   function sellGear(id) {
-    if(!townOnly())return;const g=item(id);if(!g||s.roster.some(h=>h.weapon===id||h.armor===id))return;
+    if(!townOnly())return;const g=item(id);if(!g||s.roster.some(h=>HERO_SLOTS.some(slot=>h[slot]===id)))return;
     const price=gearSellPrice(g);s.gear=s.gear.filter(x=>x.id!==id);earnGold(price);tell(gearName(g)+'を '+price+' Gで売却した。');render();
   }
   function sellUnusedCommonGear() {
     if(!townOnly())return;
-    const targets=s.gear.filter(g=>!s.roster.some(h=>h.weapon===g.id||h.armor===g.id)&&(!g.rarity||g.rarity==='common')&&!g.enchant);
+    const targets=s.gear.filter(g=>g.ownerId==null&&!s.roster.some(h=>HERO_SLOTS.some(slot=>h[slot]===g.id))&&(!g.rarity||g.rarity==='common')&&!g.enchant);
     if(!targets.length)return;
     const total=targets.reduce((sum,g)=>sum+gearSellPrice(g),0),ids=new Set(targets.map(g=>g.id));
     s.gear=s.gear.filter(g=>!ids.has(g.id));earnGold(total);
-    tell(`未装備の通常装備 ${targets.length}点を一括売却し、${total} Gを得た。`);render();
+    tell(`保管庫の通常装備 ${targets.length}点を一括売却し、${total} Gを得た。`);render();
   }
   globalThis.shopScreen=function() {
     const maxLv=Math.max(partyLevel()+5,currentTown().level+5),shopItems=Object.entries(DATA.items).filter(([id,it])=>(it.level||1)<=maxLv||uiCount(id)>0),heldMaterials=Object.entries(DATA.materials).filter(([id])=>s.materials[id]>0);
-    const sortedGear=[...s.gear].sort((a,b)=>{const ea=s.roster.some(h=>h.weapon===a.id||h.armor===a.id)?1:0,eb=s.roster.some(h=>h.weapon===b.id||h.armor===b.id)?1:0;return ea-eb||gearValue(b)-gearValue(a)||b.id-a.id;});
-    const bulkTargets=s.gear.filter(g=>!s.roster.some(h=>h.weapon===g.id||h.armor===g.id)&&(!g.rarity||g.rarity==='common')&&!g.enchant);
+    const sortedGear=[...s.gear].sort((a,b)=>{const ea=s.roster.some(h=>HERO_SLOTS.some(slot=>h[slot]===a.id))?1:0,eb=s.roster.some(h=>HERO_SLOTS.some(slot=>h[slot]===b.id))?1:0;return ea-eb||gearValue(b)-gearValue(a)||b.id-a.id;});
+    const bulkTargets=s.gear.filter(g=>g.ownerId==null&&!s.roster.some(h=>HERO_SLOTS.some(slot=>h[slot]===g.id))&&(!g.rarity||g.rarity==='common')&&!g.enchant);
     const bulkGold=bulkTargets.reduce((sum,g)=>sum+gearSellPrice(g),0);
     return title('TRAVEL PROVISIONS','道具屋',esc(currentTown().name)+'の旅道具と掘出し物。')+
       `<section class="panel"><h2>旅道具</h2><div class="shop-list">${shopItems.map(([id,it])=>{const price=supplyPrice(id);return `<article><div class="row between"><h3>${esc(it.name)}</h3><span class="chip">所持 ${uiCount(id)}</span></div><p>${esc(it.desc)}</p>${btn('1個購入 / '+price+' G','buy-item',`data-id="${id}" ${s.gold<price?'disabled':''}`)}</article>`;}).join('')}</div></section>`+
-      `<section class="panel section-space"><h2>中古の武器と防具</h2><p class="muted">店の取扱素材で仕立てた中古品。装備には必要能力があります。</p><div class="grid three">${merchantGear().map(g=>`<article class="card"><h3>${esc(gearName(g))}</h3><p>${g.slot==='weapon'?'攻':'防'}+${gearValue(g)} / ${esc(gearRequirementText(g))} / 耐久 ${g.dur}/${g.maxDur}</p>${btn('購入 / '+gearBuyPrice(g)+' G','merchant-buy-gear',`data-id="${g.key}" ${s.gold<gearBuyPrice(g)?'disabled':''}`)}</article>`).join('')}</div></section>`+
+      `<section class="panel section-space"><h2>中古の武器と防具</h2><p class="muted">各部位の装備と両手武器を扱います。購入品は空きのある仲間の持ち物へ、満杯なら街の保管庫へ送られます。職業との適性は持ち物画面で確認できます。</p><div class="grid three">${merchantGear().map(g=>`<article class="card"><h3>${esc(gearName(g))}</h3><p>${g.slot==='weapon'?'攻':'防'}+${gearValue(g)} / ${esc(gearRequirementText(g))} / 耐久 ${g.dur}/${g.maxDur}</p>${btn('購入 / '+gearBuyPrice(g)+' G','merchant-buy-gear',`data-id="${g.key}" ${s.gold<gearBuyPrice(g)?'disabled':''}`)}</article>`).join('')}</div></section>`+
       `<section class="panel section-space"><h2>素材を売る</h2><div class="grid three">${heldMaterials.map(([id])=>`<article class="card"><h3>${esc(apparentMaterialName(id))} ×${s.materials[id]}</h3>${uiSale(id)}</article>`).join('')||'<p class="empty">売却できる素材がありません。</p>'}</div></section>`+
-      `<section class="panel section-space"><div class="row between"><h2>装備を売る <small>所持 ${s.gear.length}個</small></h2>${bulkTargets.length?btn(`未装備の通常品をまとめて売る（${bulkTargets.length}点 / +${bulkGold} G）`,'merchant-sell-bulk-gear'):''}</div><p class="muted">未装備の品を優先表示しています。装備中の品は仲間画面で外してから売却できます。</p><div class="grid three">${sortedGear.map(g=>{const owner=s.roster.find(h=>h.weapon===g.id||h.armor===g.id),equipped=!!owner;return `<article class="card rarity-${g.rarity||'common'}"><h3>${esc(gearName(g))}</h3><p>${g.slot==='weapon'?'攻':'防'}+${gearValue(g)}${g.enchant?' · 付呪+'+enchantPower(g):''} / 耐久 ${g.dur}/${g.maxDur}</p>${btn(equipped?`${esc(owner.name)}が装備中`:'売却 / '+gearSellPrice(g)+' G','merchant-sell-gear',`data-id="${g.id}" ${equipped?'disabled':''}`)}</article>`;}).join('')}</div></section>`;
+      `<section class="panel section-space"><div class="row between"><h2>装備を売る <small>所持 ${s.gear.length}個</small></h2>${bulkTargets.length?btn(`保管庫の通常品をまとめて売る（${bulkTargets.length}点 / +${bulkGold} G）`,'merchant-sell-bulk-gear'):''}</div><p class="muted">未装備の品を優先表示。一括売却は保管庫の通常品のみです。装備中の品は持ち物画面で外してから売却できます。</p><div class="grid three">${sortedGear.map(g=>{const owner=s.roster.find(h=>HERO_SLOTS.some(slot=>h[slot]===g.id)),equipped=!!owner;return `<article class="card rarity-${g.rarity||'common'}"><h3>${esc(gearName(g))}</h3><p>${g.slot==='weapon'?'攻':'防'}+${gearValue(g)}${g.enchant?' · 付呪+'+enchantPower(g):''} / 耐久 ${g.dur}/${g.maxDur}</p>${btn(equipped?`${esc(owner.name)}が装備中`:'売却 / '+gearSellPrice(g)+' G','merchant-sell-gear',`data-id="${g.id}" ${equipped?'disabled':''}`)}</article>`;}).join('')}</div></section>`;
   };
   suppliesScreen=function(){return shopScreen();};
   function templeFee(h,kind) { return Math.ceil((kind==='revive'?20+h.lv*5:10+h.lv*2)*currentTown().price); }

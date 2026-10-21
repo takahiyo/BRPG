@@ -219,6 +219,7 @@
     }
   }
   function equipmentSection(h) {
+    if (globalThis.BRPGEquipment) return inventoryEquipmentSection(h);
     const readOnly = !!(s.dungeon || s.battle);
     return ['weapon', 'armor'].map(slot => {
       const current = item(h[slot]), label = slot === 'weapon' ? '武器' : '防具', statName = slot === 'weapon' ? '攻' : '防';
@@ -244,6 +245,22 @@
       }).join('');
       return `<div class="detail-gear"><h4>${label} <small class="muted">所持 ${list.length}個 / 装備可能 ${list.filter(x => x.permitted).length}個</small></h4><p>${esc(current ? gearName(current) : '装備なし')}${current ? ` <span class="gold">（${statName}+${curVal}${current.enchant ? ` · 付呪+${enchantPower(current)}` : ''}）</span>` : ''}</p>${current ? `<small>耐久 ${current.dur}/${current.maxDur}${canEquip(h, current) ? '' : ' · 装備条件を満たしていません'}</small>` : ''}<label class="field">${label}を変更<select data-character-change="equip" data-hero="${h.id}" data-slot="${slot}" aria-label="${label}を変更" ${readOnly ? 'disabled' : ''}><option value="">装備を外す</option>${groups}</select></label></div>`;
     }).join('') + (readOnly ? '<p class="muted">装備の変更は街で行えます。</p>' : '');
+  }
+  function inventoryEquipmentSection(h) {
+    const eq = BRPGEquipment, locked = !!(s.dungeon || s.battle);
+    eq.normalizeState();
+    const slots = eq.slots.filter(k => k !== 'acc2' || eq.accessorySlots(h) > 1);
+    const equipment = slots.map(slot => {
+      const g = item(h[slot]), occupied = slot === 'shield' && item(h.weapon)?.hands === 2;
+      return `<article class="equipment-slot equipment-slot-${slot} ${g ? 'filled' : ''}"><small>${eq.labels[slot]}</small><b>${esc(g ? gearName(g) : occupied ? '両手武器が使用中' : '未装備')}</b>${g ? `<span>${g.slot === 'weapon' ? '攻' : '防'} +${eq.valueFor(h, g)} · 耐久 ${g.dur}/${g.maxDur}</span><span class="${eq.suitability(h, g).suitable ? 'muted' : 'equipment-unsuitable'}">${esc(eq.suitability(h, g).text)}</span>${btn('外す', 'character-unequip', `data-id="${h.id}" data-slot="${slot}" ${locked ? 'disabled' : ''}`)}` : ''}</article>`;
+    }).join('');
+    const card = (g, storage = false) => {
+      const owner = eq.equippedOwner(g), suit = eq.suitability(h, g), permitted = canEquip(h, g), own = owner?.id === h.id;
+      const destination = s.roster.filter(a => a.id !== h.id && a.id !== g.ownerId);
+      return `<article class="inventory-card ${own ? 'is-equipped' : ''} rarity-${g.rarity || 'common'}"><div class="row between"><h4>${esc(gearName(g))}</h4><small>${esc(eq.types[g.type].name)}${g.hands === 2 ? ' · 両手' : ''}</small></div><p>${g.slot === 'weapon' ? '攻撃' : '防御'} +${eq.valueFor(h, g)} · 耐久 ${g.dur}/${g.maxDur}${owner ? ' · ' + esc(owner.name) + 'が装備中' : ''}</p><small class="${suit.suitable ? 'muted' : 'equipment-unsuitable'}">${esc(suit.text)}</small><small>${esc(gearRequirementText(g))}${!permitted ? ' · 能力条件未達' : ''}</small><div class="actions">${btn(own ? '装備中' : 'これを装備', 'character-equip', `data-id="${h.id}" data-gear="${g.id}" ${locked || own || !permitted || storage && !eq.canReceive(h) ? 'disabled' : ''}`, own ? '' : 'primary')}${storage ? btn('所持品へ取り出す', 'character-transfer', `data-id="${h.id}" data-gear="${g.id}" ${locked || !eq.canReceive(h) ? 'disabled' : ''}`) : btn('倉庫へ預ける', 'character-transfer', `data-id="storage" data-gear="${g.id}" ${locked ? 'disabled' : ''}`)}</div>${!storage && destination.length ? `<details class="inventory-transfer"><summary>仲間へ渡す</summary><div class="actions">${destination.map(a => btn(esc(a.name) + ' (' + eq.usage(a) + '/' + eq.capacity(a) + ')', 'character-transfer', `data-id="${a.id}" data-gear="${g.id}" ${locked || !eq.canReceive(a) ? 'disabled' : ''}`)).join('')}</div></details>` : ''}</article>`;
+    };
+    const bag = eq.inventory(h), stored = s.gear.filter(g => g.ownerId === null);
+    return `<div class="equipment-paperdoll" aria-label="装備部位">${equipment}</div><div class="row between section-space"><h4>${esc(h.name)}の所持品</h4><strong class="${bag.length > eq.capacity(h) ? 'equipment-unsuitable' : 'gold'}">${bag.length} / ${eq.capacity(h)} 枠</strong></div><p class="muted">装備中の品も1枠使用します。品物のカードから装備できます。装備適性がなくても装着でき、基礎性能が半減し、付呪・称号・能力補正は働きません。${bag.length > eq.capacity(h) ? '転職前の所持品は保持します。枠を空けるまで追加できません。' : ''}</p><div class="inventory-grid">${bag.map(g => card(g)).join('') || '<p class="muted">所持品はありません。</p>'}</div><details class="equipment-storage section-space"><summary>街の倉庫 · ${stored.length}点</summary><p class="muted">個人の枠に入りきらない旧所持品・戦利品は倉庫に保管します。倉庫の品は街で取り出せます。</p><div class="inventory-grid">${stored.map(g => card(g, true)).join('') || '<p class="muted">保管品はありません。</p>'}</div>${locked ? '<p class="muted">装備変更・所持品の受渡し・倉庫利用は街で行えます。</p>' : ''}`;
   }
   function growthSection(h, comparison) {
     const d = draftFor(h), total = draftTotal(h), remaining = freePoints(h) - total;
@@ -360,6 +377,9 @@
         const index = s.roster.findIndex(h => h.id === id), direction = action === 'character-next' ? 1 : -1;
         cancelGrowth(); openCharacter(s.roster[(index + direction + s.roster.length) % s.roster.length].id);
       } else if (action === 'character-growth') globalThis.adjustCharacterGrowth(id, b.dataset.stat, Number(b.dataset.step));
+      else if (action === 'character-equip') globalThis.BRPGEquipment?.equip(Number(b.dataset.gear), id);
+      else if (action === 'character-unequip') globalThis.BRPGEquipment?.unequip(id, b.dataset.slot);
+      else if (action === 'character-transfer') globalThis.BRPGEquipment?.transfer(Number(b.dataset.gear), b.dataset.id === 'storage' ? null : id);
       else if (action === 'character-growth-confirm') confirmGrowth(id);
       else if (action === 'character-growth-cancel') { cancelGrowth(); refreshDetail(); }
       else if (action === 'tavern-recruit') recruit(b.dataset.job);
