@@ -2,6 +2,8 @@
 
 更新：2026-10-22 JST / 担当：統括エージェント。
 
+最新状態：C0-C1実装・計測済み、C2ローカル検証成功・共有待ち。今回の基準HEADは `78d882a`（main/dev到達確認済み）。現在の復旧記録は末尾「距離戦闘計測の再開」を優先し、下記M/U/R/B節は過去の記録として参照する。
+
 ## 復旧点
 
 - 場所：BRPG、main、コードの最終共有コミット `ee556a4def20019a2c1ecc9ca12684036e99518d`。
@@ -62,3 +64,16 @@
 - 今回の変更はtest-browser.cjs、style.css、equipment.css、index.html、README.md、計画/状態文書。READMEにブラウザ検証手順と保証範囲を追加。既存未コミット差分を保持し、Git書き込みなし。remote main/devは再照合して `08deef4` のまま。起動した専用サーバー・Chromeは各実行後に終了、一時プロファイルは削除済み。`--screenshots` のPNGのみ一時ディレクトリに保持。
 - 残課題：headless Chromeの主要スモークQAは完了。実機タッチ/全組合せの表示・戦闘バランス受入・Google実認証/D1/二端末同期・画像制作/検品・CI/公開確認は未完了。普段の保存・Google認証・本番サービスは操作していない。
 - 次の操作：(1) 距離戦闘を含む複数シード・編成別のバランス計測を追加 (2) Google実認証や画像制作は利用可能な検証環境/素材に応じて別段階で進める (3) 明示依頼時に関連差分をレビューしてcommit/pushし、CI/公開結果を区別して確認。
+
+## 距離戦闘計測の再開（2026-10-22 JST / C0-C2）
+
+- C0完了：main/HEAD `78d882a`、origin/main/devとも一致。開始時差分はユーザーのAGENTS.mdとVIBE_STARTER_KIT_REVISED_v3.mdのみ。これらは未編集・stage対象外。ユーザーから開発とpushの明示依頼あり、既存origin/main/devへのcheckpoint_autoを再確認。
+- 読み取り専用explore担当の境界レビューで3件再現：距離フォールバックが温存と最終MP保護を迂回、全体物理技の途中破損で後続対象が攻撃されず毒だけ付与、MP0前衛が味方後衛の近接だけを遮蔽。統括が回帰テストと最小修正を担当。通常の戦闘定数は変更しない。
+- 次：(1) test-formation.cjsに3境界を追加して修正 (2) 固定シード・初期/4人/6人・近中遠距離編成を計測し結果と限界を記録 (3) 全回帰とdistブラウザを通して関連差分のみcommit/push、remote一致確認。
+
+- C1実装・計測完了（ローカル）：formation.jsで最終自動行動に温存/最終MANA保護、全体技の開始時射程固定、気絶前衛の遮蔽解消を実装。test-formation.cjsに再現と手動最終MANA/旧装備読込の互換性を追加。game.jsの新規初期装備だけ後衛を木製杖へ変更（既存装備は変更しない）。
+- 計測：test-combat-balance.cjsで5編成×3地域Lv1/2/10×30シード=450戦を2回、900戦の再現一致、編成間の同一敵条件、全行動の到達・最終MANA保護・保存有効・100ターン以内の終了を確認。小さい連番だけの計測では入口旧編成29/30勝だったが、uint32に分散したシードでは20/30勝となり初期後衛の装備不整合が顕在化。新規杖編成は29/30勝、防御平均12→0回。Lv2/10と条件/限界はdocs/COMBAT_BALANCE.mdに記録。敵の数値は未変更。
+- C2検証完了：`node --test test.cjs test-regression.cjs test-overhaul.cjs test-equipment.cjs test-exploration.cjs test-save-manager.cjs test-quest-travel.cjs test-build-pages.cjs test-formation.cjs test-combat-balance.cjs` は10件成功（計測スイート約45秒）。`python -m unittest discover -s scripts -p "*_test_*.py" -v` は44件成功、`node scripts/build-pages.cjs` と `node test-browser.cjs --dist` は成功（1280/390/320px）。`git diff --check` 成功（改行変換警告のみ）。読み取り専用explore担当も3境界の修正とテスト前提を最終照合し追加指摘なし。独立担当はテストを再実行していない。
+- 初回回帰で新規杖を持つ僧侶のMP不足時の行動期待が「防御」のままだったため、届く杖の「攻撃」へテストを修正して全件再成功。game.js/formation.jsのブラウザキャッシュキーも更新。
+- 共有対象：game.js、formation.js、index.html、test-formation.cjs、test-combat-balance.cjs、docs/COMBAT_BALANCE.md、README.md、計画/状態の計9ファイル。ユーザーAGENTS.mdと共通規則原本、distはstageしない。現在はcommit/push前。gh未導入でCI/Pages公開成功は未確認。
+- 次：(1) 関連差分だけstage・レビュー・commitしmain/devへ通常push、先端照合 (2) 共有結果を状態記録 (3) 次回はLv2の装備更新・成長配分・連戦経済を検証。Google実認証と画像制作、全装備/高Lv/ボス/実機タッチは引き続き別の未完了課題。

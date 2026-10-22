@@ -47,7 +47,7 @@
   }
   function targets(h, skill = null) {
     normalize();
-    return reachable(h, baseEnemyAlive(), party(), range(h, skill));
+    return reachable(h, baseEnemyAlive(), alive(), range(h, skill));
   }
   function rangeText(h, skill = null) {
     if (skill && !offensive(skill)) return '支援・距離制限なし';
@@ -61,12 +61,12 @@
   const previousDamage = physicalDamage;
   physicalDamage = function(h) {
     // Range now determines reach. Spears, whips and bows retain full power in the back row.
-    return range(h, attackContext?.skill) === 'near' ? previousDamage(h) : stats(h).atk;
+    return (attackContext?.range || range(h)) === 'near' ? previousDamage(h) : stats(h).atk;
   };
   const previousAttack = heroAttack;
   heroAttack = function(h, e, ...args) {
-    const choices = targets(h, attackContext?.skill);
-    const allowed = attackContext ? choices.filter(a => attackContext.keys.has(a.key)) : choices;
+    // One skill keeps its original reach even if its first hit breaks the weapon.
+    const allowed = attackContext ? baseEnemyAlive().filter(a => attackContext.keys.has(a.key)) : targets(h);
     if (attackContext && !allowed.some(a => a.key === e?.key)) return 0;
     const target = allowed.find(a => a.key === e?.key) || allowed[0];
     if (!target) { note(h.name + 'の攻撃は距離が届かない。前衛へ移すか、中・遠距離の武器を装備してください。'); return 0; }
@@ -79,7 +79,7 @@
     const choices = targets(h, skill);
     if (!choices.length) { note(h.name + 'の' + skill.name + 'は距離が届かない。'); return; }
     const selected = choices.find(e => e.key === target) || choices[0], before = attackContext;
-    attackContext = { skill, keys: new Set(choices.map(e => e.key)) };
+    attackContext = { range: range(h, skill), keys: new Set(choices.map(e => e.key)) };
     try { return previousCast(h, selected.key, skillId); }
     finally { attackContext = before; }
   };
@@ -98,13 +98,18 @@
     normalize(); previousAuto();
     if (!s.battle) return;
     for (const h of alive()) {
-      const p = s.battle.plans[h.id];
+      let p = s.battle.plans[h.id];
       if (!p || !['attack', 'skill'].includes(p.command)) continue;
       let skill = p.command === 'skill' ? skillDef(h, p.skill) : null;
+      const conserving = s.battleRules.includes('reserve') && unlocked('reserve') && (belowReserve(h, 'mana') || belowReserve(h, 'sp'));
+      // Apply the same resource policy after tactical support and range fallback.
+      if (skill && (skill.mp >= h.mp || (skill.sp || 0) > h.sp || conserving)) {
+        p = s.battle.plans[h.id] = { command: 'attack', target: p.target }; skill = null;
+      }
       if (skill && !offensive(skill)) continue;
       let choices = targets(h, skill);
       if (!choices.length) {
-        skill = heroSkills(h).find(k => offensive(k) && k.level <= h.lv && k.mp <= h.mp && (k.sp || 0) <= (h.sp || 0) && targets(h, k).length);
+        skill = !conserving && heroSkills(h).find(k => offensive(k) && k.level <= h.lv && k.mp < h.mp && (k.sp || 0) <= (h.sp || 0) && targets(h, k).length);
         if (!skill) { s.battle.plans[h.id] = { command: 'defend', target: h.id }; continue; }
         choices = targets(h, skill); s.battle.plans[h.id] = { command: 'skill', skill: skill.id, target: choices[0].key };
       } else p.target = choices.find(e => e.key === p.target)?.key ?? choices[0].key;

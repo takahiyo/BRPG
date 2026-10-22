@@ -4,6 +4,7 @@ const { harness } = require('./test.cjs');
 const h = harness();
 if (!h.box.BRPGFormation) vm.runInContext(fs.readFileSync(__dirname + '/formation.js', 'utf8'), h.box, { filename: 'formation.js' });
 h.run(`
+  assert(party().filter(a=>a.row==='back').every(a=>BRPGFormation.range(a)==='long'),'New adventurers start with reach-capable rear equipment');
   function resetFormation() {
     stopAll(); s=fresh(); notice=''; render(); enterMap('forest_edge'); encounter(); stopAll();
     const sample=s.battle.enemies[0];
@@ -37,6 +38,14 @@ h.run(`
   planCommand('attack',1);assert(!s.battle.plans[b.id],'Manual unreachable attacks cannot be confirmed');
   autoPlans();assert.equal(s.battle.plans[b.id].command,'defend','Auto input defends when nothing reaches');
   b.learned.push('firestorm');autoPlans();assert.equal(s.battle.plans[b.id].skill,'firestorm','Auto input uses a learned reachable skill');
+  b.mp=DATA.skills.firestorm.mp;autoPlans();
+  assert.equal(s.battle.plans[b.id].command,'defend','Range fallback must not spend the last MANA automatically');
+  b.mp=DATA.skills.firestorm.mp+1;s.books.push('reserve');s.battleRules=['reserve'];
+  s.reserve={mode:'percent',life:0,mana:99,sp:15};autoPlans();
+  assert.equal(s.battle.plans[b.id].command,'defend','Range fallback respects MANA reserve');
+  b.mp=stats(b).mp;b.sp=1;s.reserve.mana=0;s.reserve.sp=99;autoPlans();
+  assert.equal(s.battle.plans[b.id].command,'defend','Range fallback respects SP reserve');
+  s.battleRules=[];b.mp=stats(b).mp;b.sp=maxSP(b);autoPlans();
   for(const member of alive()){
     const p=s.battle.plans[member.id],sk=p.command==='skill'?BRPGFormation.skillDef(member,p.skill):null;
     if(p.command==='attack'||p.command==='skill'&&['enemy','allEnemies'].includes(sk.target))assert(BRPGFormation.targets(member,sk).some(e=>e.key===p.target));
@@ -50,6 +59,19 @@ h.run(`
   const prior=party().filter(a=>a.row==='front').reduce((n,a)=>n+a.hp,0);enemyTurn(enemy,new Set());assert(party().filter(a=>a.row==='front').reduce((n,a)=>n+a.hp,0)<prior,'Rear physical enemies can attack the front');
   enemy.ai='hex';assert.equal(BRPGFormation.enemyRange(enemy),'long');
   party().filter(a=>a.row==='front').forEach(a=>a.hp=0);const backBefore=party().reduce((n,a)=>n+a.hp,0);enemyTurn(enemy,new Set());assert(party().reduce((n,a)=>n+a.hp,0)<backBefore,'Enemy switches to the exposed rear');
+  const exposed=resetFormation();exposed.row='back';
+  party().filter(a=>a.row==='front').forEach(a=>a.mp=0);
+  assert.equal(keys(exposed),'0','Unconscious frontliners do not block allied melee while enemies can reach the rear');
+  const archer=resetFormation();archer.row='back';archer.learned.push('spores');
+  const fragile=item(archer.weapon);fragile.type='bow';fragile.dur=1;BRPGEquipment.enrich(fragile);
+  cast(archer,0,'spores');
+  assert.equal(fragile.dur,0);assert(s.battle.enemies.every(e=>e.hp<5000&&e.poison===3),'A single area skill keeps its initial reach if the weapon breaks mid-cast');
+  assert.equal(keys(archer),'','The next action uses the broken weapon range');
+  resetFormation();
+  const healer=s.roster.find(a=>a.job==='priest'),heal=heroSkills(healer).find(k=>k.kind==='heal'&&k.level<=healer.lv);
+  s.roster[0].hp=1;s.items.potion=0;healer.mp=heal.mp;autoPlans();
+  assert.equal(s.battle.plans[healer.id].command,'attack','Tactical healing preserves the final MANA and falls back to a reachable staff attack');
+  cast(healer,s.roster[0].id,heal.id);assert.equal(healer.mp,0,'An explicit manual cast may still spend the final MANA');
   stopAll();s=fresh();s.roster.forEach(a=>a.row='front');BRPGFormation.normalize();
   assert.equal(party().filter(a=>a.row==='front').length,3);assert.equal(party().filter(a=>a.row==='back').length,1);
   const ids=s.active.join(',');assert(validSave(s));const legacy=JSON.parse(JSON.stringify(s));assert(validSave(legacy));assert.equal(ids,legacy.active.join(','));
@@ -92,3 +114,6 @@ h.run(`
 const html = h.run(`(()=>{s=fresh();enterMap('forest_edge');encounter();stopAll();return exploreScreen();})()`);
 assert(html.includes('formation-front') && html.includes('formation-back'));
 assert(html.includes('通常攻撃 · 近距離'));
+const legacySave = h.run(`(() => {stopAll();s=fresh();for(const a of party()){const g=item(a.weapon);g.type='club';g.hands=1;BRPGEquipment.enrich(g);}return JSON.stringify(s);})()`);
+const oldParty = harness({ 'ashen-atlas-v3': legacySave });
+oldParty.run(`assert(validSave(s));assert(party().filter(a=>a.row==='back').every(a=>BRPGFormation.range(a)==='near'),'Loading old equipment never replaces it with the new starter kit');`);
