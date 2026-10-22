@@ -1,0 +1,128 @@
+[
+  {
+    "mapId": "forest_edge",
+    "name": "灰灯の林縁",
+    "originalLevel": 1,
+    "depths": 2,
+    "recommendedLevel": 3
+  },
+  {
+    "mapId": "rocky_path",
+    "name": "風切りの石道",
+    "originalLevel": 2,
+    "depths": 2,
+    "recommendedLevel": 6
+  },
+  {
+    "mapId": "old_mine",
+    "name": "灰灯の旧鉱山",
+    "originalLevel": 3,
+    "depths": 3,
+    "recommendedLevel": 7
+  },
+  {
+    "mapId": "reed_marsh",
+    "name": "葦根の湿原",
+    "originalLevel": 6,
+    "depths": 2,
+    "recommendedLevel": 10
+  },
+  {
+    "mapId": "crystal_cave",
+    "name": "白晶の洞窟",
+    "originalLevel": 10,
+    "depths": 3,
+    "recommendedLevel": 19
+  },
+  {
+    "mapId": "forest_ruin",
+    "name": "木漏れ日の遺跡",
+    "originalLevel": 14,
+    "depths": 3,
+    "recommendedLevel": 30
+  },
+  {
+    "mapId": "salt_desert",
+    "name": "塩風の砂海",
+    "originalLevel": 20,
+    "depths": 3,
+    "recommendedLevel": 52
+  },
+  {
+    "mapId": "samurai_valley",
+    "name": "霧立つ古戦場",
+    "originalLevel": 24,
+    "depths": 3,
+    "recommendedLevel": 45
+  },
+  {
+    "mapId": "frozen_fort",
+    "name": "霜紋の砦",
+    "originalLevel": 28,
+    "depths": 3,
+    "recommendedLevel": 58
+  },
+  {
+    "mapId": "volcanic_pass",
+    "name": "熔火の回廊",
+    "originalLevel": 38,
+    "depths": 3,
+    "recommendedLevel": 90
+  },
+  {
+    "mapId": "sunken_archive",
+    "name": "水没した封印書庫",
+    "originalLevel": 50,
+    "depths": 3,
+    "recommendedLevel": 110
+  },
+  {
+    "mapId": "storm_peak",
+    "name": "雷鳴の山頂",
+    "originalLevel": 65,
+    "depths": 3,
+    "recommendedLevel": 117
+  },
+  {
+    "mapId": "world_tree",
+    "name": "風鳴りの大樹廊",
+    "originalLevel": 72,
+    "depths": 3,
+    "recommendedLevel": 188
+  },
+  {
+    "mapId": "star_rift",
+    "name": "星落ちの裂谷",
+    "originalLevel": 80,
+    "depths": 3,
+    "recommendedLevel": 199
+  },
+  {
+    "mapId": "clockwork_city",
+    "name": "歯車と黄金の機工街",
+    "originalLevel": 95,
+    "depths": 3,
+    "recommendedLevel": 181
+  },
+  {
+    "mapId": "deep_observatory",
+    "name": "深層観測所",
+    "originalLevel": 110,
+    "depths": 3,
+    "recommendedLevel": 203
+  },
+  {
+    "mapId": "world_boundary",
+    "name": "世界核の境界",
+    "originalLevel": 160,
+    "depths": 3,
+    "recommendedLevel": 300
+  },
+  {
+    "mapId": "celestial_gallery",
+    "name": "星辰の天球回廊",
+    "originalLevel": 190,
+    "depths": 3,
+    "recommendedLevel": 300
+  }
+]

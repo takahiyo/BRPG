@@ -306,3 +306,29 @@ test('Walk toward entrance steps smoothly toward (1,1) via timer instead of inst
     stopAll();
   `, box);
 });
+
+test('Dungeon recommended level reflects practical clearing level (6-hero, full gear, <=3 items to boss)', () => {
+  const { box } = harness();
+  box.assert = assert;
+  vm.runInContext(`
+    s = fresh();
+    const forest = worldMap('forest_edge');
+    assert.equal(forest.recommendedLevel, 4, 'forest_edge recommended level is 4 (not 1)');
+    const rocky = worldMap('rocky_path');
+    assert.equal(rocky.recommendedLevel, 6, 'rocky_path recommended level is 6 (not 2)');
+    const mine = worldMap('old_mine');
+    assert.equal(mine.recommendedLevel, 8, 'old_mine recommended level is 8 (not 3)');
+
+    // Screens reflect recommendedLevel in atlas cards
+    s.view = 'atlas';
+    const html = atlasScreen();
+    assert(html.includes('推奨 Lv.4 · 2層'), 'Atlas card displays Recommended Lv.4 for forest_edge');
+    assert(html.includes('推奨 Lv.6 · 2層'), 'Atlas card displays Recommended Lv.6 for rocky_path');
+    assert(html.includes('推奨 Lv.8 · 3層'), 'Atlas card displays Recommended Lv.8 for old_mine');
+
+    // Generated address blueprint assigns sensible recommendedLevel
+    const bp = addressBlueprint('https://test.example.com/dungeon');
+    assert(bp.map.recommendedLevel >= bp.map.level, 'Address map assigns recommendedLevel >= base level');
+  `, box);
+});
+

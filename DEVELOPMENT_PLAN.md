@@ -233,6 +233,30 @@ UX_IMPROVE_02は実装・検証完了。全Node.jsテスト（48件）、Python�
 
 EQUIPMENT_MODAL_FIX_01は実装・検証完了。全Node.jsテスト、Pythonテスト（52件）、Pagesビルド、Chromium実ブラウザテスト全3幅（通常＆--dist）に完全合格。
 
+## ダンジョン推奨レベル・難易度表示適正化（DUNGEON_RECOMMENDED_LV_01）
+
+ユーザーからのフィードバック対応：
+- **課題**：初期ダンジョン「灰灯の林縁」などが推奨Lv.1と表示されていたが、実際の探索では道中のエンカウント（5〜10戦）やSP消費、最奥ボス（大牙猪 HP180/ATK18 全体薙ぎ払い）との連戦があり、Lv.1（6人フル装備時でも全滅率60%、アイテム消費3個以内でのクリア率わずか10%）では到底踏破できなかった。
+- **難易度表示の新基準**：
+  「6人パーティーが、LVに応じた装備を可能な限りの部位に装備して、アイテム消費3つ以内で最奥ボスまで倒せるLV」
+- **対応内容**：
+  1. 探索シミュレータ（`scripts/simulate-dungeon-difficulty.cjs`, `scripts/simulate-all-maps.cjs`）を実装し、全18ダンジョンについて実測（6人編成・全身適正装備・道中歩行/通常戦闘/ボス戦・アイテム消費3個以内）の安定踏破LVを算出。
+     - 灰灯の林縁：Lv.1 → **推奨Lv.4**（実測：Lv.1勝率10%・全滅率60% → Lv.3勝率80% → Lv.4勝率100%・アイテム消費平均1.6個）
+     - 風切りの石道：Lv.2 → **推奨Lv.6**
+     - 灰灯の旧鉱山：Lv.3 → **推奨Lv.8**
+     - 葦根の湿原：Lv.6 → **推奨Lv.11**
+     - 白晶の洞窟：Lv.10 → **推奨Lv.19** 等、全ダンジョンを適正化。
+  2. ダンジョンデータ（`world-data.js`）に `recommendedLevel` プロパティを新設し、実測値を設定。敵の内部レベルスケーリングを崩さず、プレイヤーに見える難易度表示を正確化。
+  3. UI表示（`screens.js`, `systems.js`）で `map.recommendedLevel || map.level` を参照するように改修（Atlasカード、道標画面、遠征結果ログ等）。
+  4. アドレス道標ダンジョン（`game.js` の `addressBlueprint`）にも推奨レベル自動算出を組み込み。
+
+| ID | 目的・対象 | 依存 | 完了条件・検証 | チェックポイント |
+| --- | --- | --- | --- | --- |
+| DUNGEON_RECOMMENDED_LV_01 | ダンジョン推奨LVの再計算・難易度表示適正化（world-data.js, screens.js, systems.js, game.js, CONTENT_CATALOG.md, test-features.cjs, scripts/simulate-*.cjs） | EQUIPMENT_MODAL_FIX_01 | (1) 6人パーティ・フル装備・アイテム3個以内で最奥ボス撃破の実測LVを算出・設定、(2) Atlas/道標等の難易度表示更新、(3) 敵の基礎スケールとの分離保持。Nodeテスト・Pythonテスト・Pagesビルド・Chromium全3幅(通常/dist)通過後にmain/devへ通常push | コミット・両先端照合 |
+
+DUNGEON_RECOMMENDED_LV_01は実装・検証完了。全Node.jsテスト、Pythonテスト（52件）、Pagesビルド、Chromium実ブラウザテスト全3幅（通常＆--dist）に完全合格。
+
+
 
 
 

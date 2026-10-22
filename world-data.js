@@ -454,26 +454,31 @@
     { id: 'legendary', name: '伝説', multiplier: 1.5, color: '#eab967' }
   ];
 
-  const map = (id, name, biome, level, depths, materials, enemies, description, questName, questMaterial, amount, reward, color) => ({ id, name, biome, level, depths, materials, enemies, description, quest: { name: questName, material: questMaterial, amount, reward }, color });
+  const map = (id, name, biome, level, depths, materials, enemies, description, questName, questMaterial, amount, reward, color, recommendedLevel) => ({
+    id, name, biome, level, depths, materials, enemies, description,
+    quest: { name: questName, material: questMaterial, amount, reward },
+    color,
+    recommendedLevel: recommendedLevel || Math.max(level, Math.round(level * 1.5 + depths * 2))
+  });
   DATA.maps = [
-    map('forest_edge', '灰灯の林縁', 'forest', 1, 2, ['wood', 'greenherb', 'flint', 'oak'], ['rat', 'hornhare', 'slime', 'boar'], '最初の資源調達先。木を伐り、薬草を採り、街へ戻る判断を学ぶ。', '救護所の薬草採集', 'greenherb', 3, 40, '#557b49'),
-    map('rocky_path', '風切りの石道', 'rock', 2, 2, ['granite', 'flint', 'limestone', 'copper'], ['beetle', 'wolf', 'boar'], '石ツールと銅装備を揃える岩道。石の種類で装備の性能は変わらない。', '石道の資材調査', 'granite', 3, 45, '#8b8172'),
-    map('old_mine', '灰灯の旧鉱山', 'mine', 3, 3, ['copper', 'iron', 'tin', 'quartz', 'pottery'], ['rat', 'bat', 'goblin', 'beetle'], '鉄装備へ進む三層の坑道。最深部の守護者は準備後の目標。', '鍛冶場の鉄鉱調達', 'iron', 3, 180, '#9c775b'),
-    map('reed_marsh', '葦根の湿原', 'swamp', 6, 2, ['willow', 'blueherb', 'reedroot', 'limestone'], ['viper', 'crab', 'leech', 'fungus', 'wisp'], '毒への備えと解毒を試す。柳材と薬草の採取が目的になる。', '湿地の薬草標本', 'blueherb', 3, 90, '#577976'),
-    map('crystal_cave', '白晶の洞窟', 'cave', 10, 3, ['quartz', 'crystal', 'silver', 'mushroom'], ['bat', 'cavescorpion', 'cavebear', 'crystalgolem'], '宝石と銀の採掘地。硬い相手に魔法と属性装備を試す。', '付与工房の結晶調査', 'quartz', 3, 150, '#6c8f9f'),
-    map('forest_ruin', '木漏れ日の遺跡', 'ruins', 14, 3, ['ashwood', 'ebony', 'amber', 'pottery', 'sigil'], ['specter', 'bandit', 'treant', 'moth', 'spider'], '木材への高位付与を育てる場所。亡霊には光属性を持ち込む。', '遺物の封印板調査', 'sigil', 2, 340, '#648260'),
-    map('salt_desert', '塩風の砂海', 'desert', 20, 3, ['bronze', 'gold', 'ruby', 'limestone', 'lostscript', 'sunherb'], ['sandworm', 'scarab', 'mummy', 'cavescorpion'], '長い通路と硬い甲殻。合金と炎の宝石を探す補給重視の遠征。', '古代鋳造物の回収', 'bronze', 3, 160, '#b69a63'),
-    map('samurai_valley', '霧立つ古戦場', 'battlefield', 24, 3, ['tamahagane', 'yew', 'steel', 'moonherb'], ['ronin', 'karakuri', 'skeleton', 'bandit'], '古い武具とからくりが残る谷。玉鋼やイチイ材を調達できる。', '古戦場の玉鋼回収', 'tamahagane', 2, 380, '#7d7468'),
-    map('frozen_fort', '霜紋の砦', 'snow', 28, 3, ['coldsteel', 'mithril', 'sapphire', 'sigil'], ['frostwolf', 'icewisp', 'sentinel', 'skeleton'], '炎属性を備えて寒冷地へ。ミスリルの対魔法性を知る段階。', '砦の希少金属調査', 'mithril', 2, 650, '#8daebe'),
-    map('volcanic_pass', '熔火の回廊', 'volcano', 38, 3, ['basalt', 'obsidian', 'tungsten', 'ruby', 'steel'], ['drake', 'firelizard', 'ashgolem', 'golem'], '氷属性が重要。高い物理強度と魔法抵抗の違いを考える資源域。', '高温鉱脈の標本', 'tungsten', 2, 600, '#ad6650'),
-    map('sunken_archive', '水没した封印書庫', 'archive', 50, 3, ['lostscript', 'amethyst', 'crystal', 'gear_fragment'], ['drowned', 'inkshade', 'archivekeeper', 'warlock', 'manaleech'], '闇への対策と長期探索。写本は用途未開発の知識資料として残す。', '失伝写本の保全', 'lostscript', 2, 650, '#597c95'),
-    map('storm_peak', '雷鳴の山頂', 'mountain', 65, 3, ['topaz', 'meteoric', 'titanium', 'spiritstone', 'spiritflower'], ['thunderbird', 'stormelemental', 'peakguard', 'wyvern'], '雷の敵と機械が守る山。軽金属・隕鉄・雷付与の素材を探す。', '山頂の隕鉄採取', 'meteoric', 2, 740, '#8c84a6'),
-    map('world_tree', '風鳴りの大樹廊', 'canopy', 72, 3, ['worldbranch', 'emerald', 'yew', 'spiritflower'], ['wyvern', 'treant', 'moth', 'thunderbird'], '巨大な古木の枝を渡る高所領域。最高峰の木材と翠玉を産する。', '世界樹の枝の採集', 'worldbranch', 2, 880, '#4f8a5b'),
-    map('star_rift', '星落ちの裂谷', 'rift', 80, 3, ['meteoric', 'adamant', 'spiritstone', 'starshard', 'diamond'], ['voidhound', 'stargolem', 'specter'], '高度な加工に向けた素材探し。星脈片の用途はまだ分からない。', '星脈片の観測', 'starshard', 1, 840, '#8776a4'),
-    map('clockwork_city', '歯車と黄金の機工街', 'clockwork', 95, 3, ['orichalcum', 'titanium', 'diamond', 'gear_fragment', 'philosopher_ash'], ['clockwork_knight', 'archivekeeper', 'peakguard', 'karakuri'], '自律機械が巡回する古代都市。オリハルコンと金剛石が眠る。', '機工街の貴金属調査', 'orichalcum', 2, 1150, '#a89256'),
-    map('deep_observatory', '深層観測所', 'observatory', 110, 3, ['adamant', 'sigil', 'lostscript', 'starshard', 'abyssalbone'], ['abysswatcher', 'obsidianwarden', 'warlock', 'abyssdragon'], '高レベル編成向けの研究遠征。失われた機構の用途は今後の拡張。', '観測所の記録回収', 'lostscript', 3, 980, '#78628f'),
-    map('world_boundary', '世界核の境界', 'boundary', 160, 3, ['adamant', 'spiritstone', 'starshard', 'worldseed', 'stariron'], ['worldecho', 'coreconstruct', 'abysswatcher', 'abyssdragon'], 'Lv.300への長期目標となる最深域。世界核素材の用途は未開発。', '境界の世界核標本', 'worldseed', 1, 1750, '#a487a9'),
-    map('celestial_gallery', '星辰の天球回廊', 'celestial', 190, 3, ['stariron', 'godcrystal', 'orichalcum', 'worldseed', 'philosopher_ash'], ['seraph_idol', 'worldecho', 'coreconstruct', 'stargolem'], '星鉄と神晶石が輝く天上の回廊。最上位の鍛造と付呪に挑む領域。', '神晶石の献上', 'godcrystal', 2, 2200, '#889ec7')
+    map('forest_edge', '灰灯の林縁', 'forest', 1, 2, ['wood', 'greenherb', 'flint', 'oak'], ['rat', 'hornhare', 'slime', 'boar'], '最初の資源調達先。木を伐り、薬草を採り、街へ戻る判断を学ぶ。', '救護所の薬草採集', 'greenherb', 3, 40, '#557b49', 4),
+    map('rocky_path', '風切りの石道', 'rock', 2, 2, ['granite', 'flint', 'limestone', 'copper'], ['beetle', 'wolf', 'boar'], '石ツールと銅装備を揃える岩道。石の種類で装備の性能は変わらない。', '石道の資材調査', 'granite', 3, 45, '#8b8172', 6),
+    map('old_mine', '灰灯の旧鉱山', 'mine', 3, 3, ['copper', 'iron', 'tin', 'quartz', 'pottery'], ['rat', 'bat', 'goblin', 'beetle'], '鉄装備へ進む三層の坑道。最深部の守護者は準備後の目標。', '鍛冶場の鉄鉱調達', 'iron', 3, 180, '#9c775b', 8),
+    map('reed_marsh', '葦根の湿原', 'swamp', 6, 2, ['willow', 'blueherb', 'reedroot', 'limestone'], ['viper', 'crab', 'leech', 'fungus', 'wisp'], '毒への備えと解毒を試す。柳材と薬草の採取が目的になる。', '湿地の薬草標本', 'blueherb', 3, 90, '#577976', 11),
+    map('crystal_cave', '白晶の洞窟', 'cave', 10, 3, ['quartz', 'crystal', 'silver', 'mushroom'], ['bat', 'cavescorpion', 'cavebear', 'crystalgolem'], '宝石と銀の採掘地。硬い相手に魔法と属性装備を試す。', '付与工房の結晶調査', 'quartz', 3, 150, '#6c8f9f', 19),
+    map('forest_ruin', '木漏れ日の遺跡', 'ruins', 14, 3, ['ashwood', 'ebony', 'amber', 'pottery', 'sigil'], ['specter', 'bandit', 'treant', 'moth', 'spider'], '木材への高位付与を育てる場所。亡霊には光属性を持ち込む。', '遺物の封印板調査', 'sigil', 2, 340, '#648260', 30),
+    map('salt_desert', '塩風の砂海', 'desert', 20, 3, ['bronze', 'gold', 'ruby', 'limestone', 'lostscript', 'sunherb'], ['sandworm', 'scarab', 'mummy', 'cavescorpion'], '長い通路と硬い甲殻。合金と炎の宝石を探す補給重視の遠征。', '古代鋳造物の回収', 'bronze', 3, 160, '#b69a63', 52),
+    map('samurai_valley', '霧立つ古戦場', 'battlefield', 24, 3, ['tamahagane', 'yew', 'steel', 'moonherb'], ['ronin', 'karakuri', 'skeleton', 'bandit'], '古い武具とからくりが残る谷。玉鋼やイチイ材を調達できる。', '古戦場の玉鋼回収', 'tamahagane', 2, 380, '#7d7468', 45),
+    map('frozen_fort', '霜紋の砦', 'snow', 28, 3, ['coldsteel', 'mithril', 'sapphire', 'sigil'], ['frostwolf', 'icewisp', 'sentinel', 'skeleton'], '炎属性を備えて寒冷地へ。ミスリルの対魔法性を知る段階。', '砦の希少金属調査', 'mithril', 2, 650, '#8daebe', 58),
+    map('volcanic_pass', '熔火の回廊', 'volcano', 38, 3, ['basalt', 'obsidian', 'tungsten', 'ruby', 'steel'], ['drake', 'firelizard', 'ashgolem', 'golem'], '氷属性が重要。高い物理強度と魔法抵抗の違いを考える資源域。', '高温鉱脈の標本', 'tungsten', 2, 600, '#ad6650', 90),
+    map('sunken_archive', '水没した封印書庫', 'archive', 50, 3, ['lostscript', 'amethyst', 'crystal', 'gear_fragment'], ['drowned', 'inkshade', 'archivekeeper', 'warlock', 'manaleech'], '闇への対策と長期探索。写本は用途未開発の知識資料として残す。', '失伝写本の保全', 'lostscript', 2, 650, '#597c95', 110),
+    map('storm_peak', '雷鳴の山頂', 'mountain', 65, 3, ['topaz', 'meteoric', 'titanium', 'spiritstone', 'spiritflower'], ['thunderbird', 'stormelemental', 'peakguard', 'wyvern'], '雷の敵と機械が守る山。軽金属・隕鉄・雷付与の素材を探す。', '山頂の隕鉄採取', 'meteoric', 2, 740, '#8c84a6', 120),
+    map('world_tree', '風鳴りの大樹廊', 'canopy', 72, 3, ['worldbranch', 'emerald', 'yew', 'spiritflower'], ['wyvern', 'treant', 'moth', 'thunderbird'], '巨大な古木の枝を渡る高所領域。最高峰の木材と翠玉を産する。', '世界樹の枝の採集', 'worldbranch', 2, 880, '#4f8a5b', 190),
+    map('star_rift', '星落ちの裂谷', 'rift', 80, 3, ['meteoric', 'adamant', 'spiritstone', 'starshard', 'diamond'], ['voidhound', 'stargolem', 'specter'], '高度な加工に向けた素材探し。星脈片の用途はまだ分からない。', '星脈片の観測', 'starshard', 1, 840, '#8776a4', 200),
+    map('clockwork_city', '歯車と黄金の機工街', 'clockwork', 95, 3, ['orichalcum', 'titanium', 'diamond', 'gear_fragment', 'philosopher_ash'], ['clockwork_knight', 'archivekeeper', 'peakguard', 'karakuri'], '自律機械が巡回する古代都市。オリハルコンと金剛石が眠る。', '機工街の貴金属調査', 'orichalcum', 2, 1150, '#a89256', 185),
+    map('deep_observatory', '深層観測所', 'observatory', 110, 3, ['adamant', 'sigil', 'lostscript', 'starshard', 'abyssalbone'], ['abysswatcher', 'obsidianwarden', 'warlock', 'abyssdragon'], '高レベル編成向けの研究遠征。失われた機構の用途は今後の拡張。', '観測所の記録回収', 'lostscript', 3, 980, '#78628f', 205),
+    map('world_boundary', '世界核の境界', 'boundary', 160, 3, ['adamant', 'spiritstone', 'starshard', 'worldseed', 'stariron'], ['worldecho', 'coreconstruct', 'abysswatcher', 'abyssdragon'], 'Lv.300への長期目標となる最深域。世界核素材の用途は未開発。', '境界の世界核標本', 'worldseed', 1, 1750, '#a487a9', 280),
+    map('celestial_gallery', '星辰の天球回廊', 'celestial', 190, 3, ['stariron', 'godcrystal', 'orichalcum', 'worldseed', 'philosopher_ash'], ['seraph_idol', 'worldecho', 'coreconstruct', 'stargolem'], '星鉄と神晶石が輝く天上の回廊。最上位の鍛造と付呪に挑む領域。', '神晶石の献上', 'godcrystal', 2, 2200, '#889ec7', 300)
   ];
   DATA.townNames = { prefixes: ['灰灯', '白樺', '赤銅', '水鏡', '霧渡', '星見', '風待', '月影', '青鐘', '日向', '黒石', '遠雷'], suffixes: ['の宿場', 'の港町', 'の砦町', 'の市', 'の工房街', 'の巡礼町', 'の集落', 'の交易所'] };
   DATA.rules = DATA.rules.map(rule => ({ ...rule, cost: rule.cost * 4 }));

@@ -1617,7 +1617,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
         if (usedRation) s.items[usedRation]--;
         s.addressPreview = null;
         playSE('defeat');
-        tell(`❌ 道標『${text.slice(0, 18)}…』の方角へ調査隊を出したが、周辺の瘴気と魔物の脅威（推定推奨Lv.${plan.map.level}〜）が凄まじく、現在のパーティー（平均Lv.${pLv}）では辿り着けず撤退した…！（調査費 ${prepGold} G${usedRation ? '・' + DATA.items[usedRation].name + '1個' : ''} を消耗）`);
+        tell(`❌ 道標『${text.slice(0, 18)}…』の方角へ調査隊を出したが、周辺の瘴気と魔物の脅威（推定推奨Lv.${plan.map.recommendedLevel || plan.map.level}〜）が凄まじく、現在のパーティー（平均Lv.${pLv}）では辿り着けず撤退した…！（調査費 ${prepGold} G${usedRation ? '・' + DATA.items[usedRation].name + '1個' : ''} を消耗）`);
         return render();
       }
       // Successful expedition still requires some travel cost
@@ -1625,7 +1625,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
       if (usedRation) s.items[usedRation]--;
       prevDiscoverAddress(text);
       playSE('loot');
-      tell(`🧭 遠征費 ${prepGold} G${usedRation ? '・' + DATA.items[usedRation].name + '1個' : ''} を費やし、未知の街『${plan.town.name}』（推奨Lv.${plan.map.level}）への到達ルートを開拓した！`);
+      tell(`🧭 遠征費 ${prepGold} G${usedRation ? '・' + DATA.items[usedRation].name + '1個' : ''} を費やし、未知の街『${plan.town.name}』（推奨Lv.${plan.map.recommendedLevel || plan.map.level}）への到達ルートを開拓した！`);
       return render();
     }
     return prevDiscoverAddress(text);
@@ -1731,7 +1731,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
       const matNames = (map.materials || []).map(id => apparentMaterialName(id));
       const isTarget = actQ && (actQ.mapId === map.id || actQ.q?.mapId === map.id || (actQ.q?.material && (map.materials || []).includes(actQ.q.material)));
       return `<article class="card atlas-card" style="--region:${esc(map.color || '#a7c291')};${isTarget ? 'border-color:var(--gold)!important;box-shadow:0 0 10px #d7b77a33;' : ''}">
-        <div class="row between"><span class="chip">推奨 Lv.${map.level} · ${map.depths}層</span><small>${esc(map.biome || '未分類')}${isTarget ? ' · <span class="gold">📌 依頼対象</span>' : ''}</small></div>
+        <div class="row between"><span class="chip">推奨 Lv.${map.recommendedLevel || map.level} · ${map.depths}層</span><small>${esc(map.biome || '未分類')}${isTarget ? ' · <span class="gold">📌 依頼対象</span>' : ''}</small></div>
         <h2>${esc(map.name)}</h2>
         <p class="muted">${esc(map.description || '未知の道を開拓する。')}</p>
         <div class="atlas-resource">
@@ -1760,7 +1760,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
           ${preview ? `<div class="discovery">
             <h3>✨ 到達成功：${esc(preview.town.name)} <span class="chip">街 Lv.${preview.town.level}</span></h3>
             <p>物価 ×${preview.town.price} / 工房品質 Q${preview.town.quality} / 拠点権 ${preview.town.baseCost} G</p>
-            <p class="muted">${esc(preview.map.name)} / 推奨 Lv.${preview.map.level}</p>
+            <p class="muted">${esc(preview.map.name)} / 推奨 Lv.${preview.map.recommendedLevel || preview.map.level}</p>
             <div class="actions">
               ${btn('この街を訪れる', 'travel-town', `data-id="${esc(preview.town.id)}"`)}
               ${btn('拠点を購入する', 'settle-town', `data-id="${esc(preview.town.id)}" ${s.gold < preview.town.baseCost ? 'disabled' : ''}`)}
