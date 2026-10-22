@@ -432,7 +432,7 @@
     }
     // EXIT remains labelled even while the party stands inside the doorway.
     const ex=ox+z+22,ey=oy+z;
-    if(d.seen[1]?.[1]){rect(ex-24,ey-19,48,17,'#b0d3b5');c.fillStyle='#18352e';c.font='bold 11px sans-serif';c.textAlign='center';c.fillText('EXIT',ex,ey-7);line(ex,ey-2,ex,ey+2,'#b0d3b5',2);}
+    if(d.seen[1]?.[1]){const isSurface=d.depth===1;const label=isSurface?'EXIT':'UP';const bg=isSurface?'#b0d3b5':'#c2cbb0';rect(ex-24,ey-19,48,17,bg);c.fillStyle='#18352e';c.font='bold 11px sans-serif';c.textAlign='center';c.fillText(label,ex,ey-7);line(ex,ey-2,ex,ey+2,bg,2);}
     const px=ox+d.x*z+22+(d.x===1&&d.y===1?11:0),py=oy+d.y*z+22;
     const glow=c.createRadialGradient(px,py,3,px,py,55);glow.addColorStop(0,'#e1c48044');glow.addColorStop(1,'#e1c48000');c.fillStyle=glow;c.fillRect(px-55,py-55,110,110);
     const leaderCell=d.facing===0?[2,4]:d.facing===2?[0,4]:[1,4];
@@ -443,5 +443,6 @@
     }
     const [dx,dy]=DIRS[d.facing]||DIRS[1];line(px+dx*10,py+dy*10,px+dx*23,py+dy*23,'#f2d590',2);circle(px+dx*23,py+dy*23,3,'#ffe6a4');
     c.textAlign='center';c.font='10px sans-serif';c.fillStyle='#708987';for(let x=1;x<19;x+=2)c.fillText(String(x),ox+x*z+22,H-13);
+    globalThis.draw = draw;
   };
 })();

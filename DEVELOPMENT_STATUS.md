@@ -225,7 +225,36 @@
   - Python テスト：全52件合格。
   - Pages ビルド：`node scripts/build-pages.cjs` 成功。
   - 実ブラウザテスト：`node test-browser.cjs` および `node test-browser.cjs --dist` により、1280px / 390px / 320px の全3幅で完全合格。
-- 次の操作：関連ファイル（`game.js`, `systems.js`, `exploration-ui.js`, `test-dungeon-improvements.cjs`, `DEVELOPMENT_PLAN.md`, `DEVELOPMENT_STATUS.md`）をstage/commitし、`origin/main` および `origin/dev` へ通常push。保護対象（ユーザーAGENTS.md、VIBE_STARTER_KIT_REVISED_v3.md、旧参考PNG削除状態）はstageしない。
+- TRAV_01共有完了：`0b20006` でmain/devへ通常push、両先端一致確認。
+
+## マップアート・モンスターアート完全適用・キャッシュ強制更新（FIX_ART_01）
+
+- 課題と改修方針：ユーザー環境（`dev.brpg.pages.dev`）で、MAP画面が幾何学タイルのまま、戦闘時のモンスターも絵文字アイコンのままになっていた問題を徹底調査・根本解決。
+  1. モンスターアート未表示の根本原因：
+     - `encounter()` の動的オーバーレイで遭遇敵（例: `hornhare` 角ウサギ）が選ばれた際、`enemyAliases` に `hornhare` が存在せず `rabbit` となっていたためフォールバック先を喪失。
+     - 図鑑モンスター `M0001`〜`M0030`（シート01欠番30種）が選ばれた際、画像セルが存在しなかったため、約25%〜30%の遭遇敵が絵文字フォールバックしていた。
+     - `monsterThumbHTML` が `enemyId` を優先していたため、名前が図鑑名（例: ブラックドッグ）に置換されても元の遭遇敵IDを見に行ってしまっていた。
+  2. マップアート未表示・誤表示の根本原因：
+     - Canvas描画の (1, 1) マス頭上に、深層フロア（B2階以上）でも「EXIT」という緑看板を描くハードコードが残っていたため昇降口上にもEXITが表示されていた。
+     - `map-art.js` で画像プリロード完了時（`onload`）に画面全体の `render()` が連動していなかった。
+     - `index.html` に記述されている CSS/JS のキャッシュバスター `?v=...` が更新されておらず、ブラウザが過去の古いスクリプトをHTTPキャッシュから実行し続けていた。
+- 実装内容：
+  - `monster-art.js`：
+    - `M0001`〜`M0030`（30種）のフォールバックマッピングを追加し、全400体が100%画像スプライトを持つ構成に。
+    - `enemyAliases` に `hornhare`、`boar`、`viper`、`crab`、`leech`、`cavescorpion`、`cavebear`、`crystalgolem`、`bandit`、および全17種のボス（`boss_boar`〜`boss_seraph`）を完全網羅。
+  - `systems.js`：`monsterThumbHTML` で `catalogId` を最優先参照するように改修。
+  - `exploration-ui.js`：(1, 1) の看板を `d.depth === 1 ? 'EXIT' : 'UP'` に分岐修正、`globalThis.draw = draw` を明示公開。
+  - `map-art.js`：`img.onload` 時に `draw()` だけでなく `if (s.view === 'explore') render()` を実行して画面同期を保証。
+  - `index.html`：全CSSおよび全JSのクエリパラメータを `?v=20261022-art-v2` に一括更新し、ブラウザキャッシュを強制破棄。
+  - `test-monster-art.cjs`：全400体の画像存在、全遭遇敵・ボスの画像存在（100%取得）を検証。
+  - `test-browser.cjs`：全幅（1280/390/320px）でカタログ全3体画像表示、戦闘敵画像表示（`#exp-enemy-view .monster-thumb`）の存在を検証。
+- 検証結果：
+  - Node.js テスト：全13スイート完全合格。
+  - Python テスト：全52件合格。
+  - Pages ビルド：`node scripts/build-pages.cjs` 成功。
+  - 実ブラウザテスト：`node test-browser.cjs` および `node test-browser.cjs --dist` により、1280px / 390px / 320px の全3幅でソース版・Pages配布版ともに完全合格。
+- 次の操作：関連ファイルをstage/commitし、`origin/main` および `origin/dev` へ通常push。保護対象（ユーザーAGENTS.md、VIBE_STARTER_KIT_REVISED_v3.md、旧参考PNG削除状態）はstageしない。
+
 
 
 

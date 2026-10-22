@@ -72,14 +72,20 @@ test('every registered crop matches a real PNG and stays within bounds', () => {
   }
 });
 
-test('dungeon encounter enemies (DATA.enemies) have valid monster sprite thumbnails', () => {
+test('dungeon encounter enemies (DATA.enemies & bosses) have valid monster sprite thumbnails', () => {
   const { box } = harness();
-  const testFoes = ['rat', 'slime', 'bat', 'spider', 'beetle', 'goblin', 'skeleton', 'wisp', 'wolf', 'golem', 'guardian'];
+  const testFoes = ['rat', 'slime', 'bat', 'spider', 'beetle', 'goblin', 'skeleton', 'wisp', 'wolf', 'golem', 'guardian', 'boar', 'hornhare', 'viper', 'crab', 'boss_boar', 'boss_seraph'];
   for (const foeId of testFoes) {
     const html = box.monsterThumbHTML(foeId, '');
     assert(html.length > 0, 'missing monster sprite for encounter enemy: ' + foeId);
     assert(html.includes('class="monster-thumb"'));
     assert(html.includes('<svg'));
+  }
+  // All 400 catalog monsters have registered sprites
+  for (let i = 1; i <= 400; i++) {
+    const id = 'M' + String(i).padStart(4, '0');
+    const html = box.monsterThumbHTML('', id);
+    assert(html.length > 0, 'missing sprite for catalog monster: ' + id);
   }
 });
 
@@ -87,9 +93,10 @@ test('catalog actually renders reviewed discovered sprites but does not reveal u
   const h = harness();
   h.run("s=fresh();catalogScreen();s.ext.catalogTab='cat_mon';s.ext.discoveredMonsters={M0031:1,M0061:2,M0001:1}");
   const html = h.run('catalogScreen()');
-  assert.equal((html.match(/class="monster-thumb"/g) || []).length, 2);
+  assert.equal((html.match(/class="monster-thumb"/g) || []).length, 3);
   assert(html.includes('aria-label="ホブゴブリン"'));
   assert(html.includes('aria-label="ヘルハウンド"'));
+  assert(html.includes('aria-label="スライム"'));
   assert(!html.includes('aria-label="河童"'));
 });
 

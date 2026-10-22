@@ -161,7 +161,7 @@ async function main() {
       await evaluate('render()');
       assert.equal(await evaluate(`document.querySelector('#monster-sheet-details').open`), false, 'Closing preview survives rerender');
       await evaluate(`catalogScreen();s.ext.catalogTab='cat_mon';s.ext.discoveredMonsters={M0031:1,M0061:2,M0001:1};moveView('catalog')`);
-      assert.equal(await evaluate(`document.querySelectorAll('#app .monster-thumb').length`), 2);
+      assert.equal(await evaluate(`document.querySelectorAll('#app .monster-thumb').length`), 3);
       await waitFor(`performance.getEntriesByType('resource').some(r=>r.name.endsWith('monsters_sheet02_M0031-M0060.png'))`, 'SVG sprite source fetched');
       await layout(width + ' reviewed sprite crops');
       await screenshot(width + '-catalog-art');
@@ -212,6 +212,7 @@ async function main() {
       await waitFor(`__brpgMedia.some(m=>m.src.endsWith('Cath_Slan_na_n_Og.mp3')&&!m.paused&&m.readyState>=2)`, 'native battle BGM playback');
       assert.equal(await evaluate('__brpgMedia.filter(m=>!m.paused).length'), 1, 'Only one BGM plays');
       assert(await evaluate(`document.querySelector('#exp-map-view').hidden&&!document.querySelector('#exp-enemy-view').hidden`));
+      assert(await evaluate(`document.querySelectorAll('#exp-enemy-view .monster-thumb').length >= 1`), 'Enemy view displays monster artwork sprites');
       await click('#exp-view-map');
       assert(await evaluate(`!document.querySelector('#exp-map-view').hidden&&document.querySelector('#exp-enemy-view').hidden`));
       await click('#exp-view-enemies');

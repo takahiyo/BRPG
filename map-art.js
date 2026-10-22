@@ -23,6 +23,9 @@
         if (typeof globalThis.draw === 'function' && globalThis.s?.dungeon) {
           globalThis.draw();
         }
+        if (globalThis.s?.view === 'explore' && typeof globalThis.render === 'function') {
+          globalThis.render();
+        }
       };
       images[key] = img;
     }

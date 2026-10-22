@@ -127,7 +127,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
   // wrong for several names and contained parchment frames and baked-in text.
   const monsterArt = globalThis.BRPGMonsterArt = { sheets: {}, cells: {} };
   function monsterThumbHTML(enemyId, catalogId) {
-    const entry = monsterArt.cells[enemyId] || monsterArt.cells[catalogId];
+    const entry = monsterArt.cells[catalogId] || monsterArt.cells[enemyId];
     const sheet = entry && monsterArt.sheets[entry.sheet];
     const rect = entry?.rect;
     if (entry?.verified !== true || !sheet || !rect || !/^[A-Za-z0-9_-]+\.png$/.test(sheet.src)) return '';

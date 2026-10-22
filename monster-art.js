@@ -69,28 +69,98 @@
     art.cells[id] = { name, sheet, rect: { x, y, width, height }, verified: true };
   }
 
-  // 4. Aliases for dungeon encounter enemies (DATA.enemies & map encounters)
+  // 4. Fallback mappings for Sheet 01 monsters (M0001-M0030) using Sheet 02-03 equivalents
+  const SHEET01_FALLBACKS = {
+    M0001: 'M0046', // スライム -> ヴァイパースライム
+    M0002: 'M0049', // 大ネズミ -> 鉄鼠
+    M0003: 'M0033', // 洞窟コウモリ -> インプ
+    M0004: 'M0050', // 大ムカデ -> ジャイアントマンティス
+    M0005: 'M0046', // 吸血ヒル -> ヴァイパースライム
+    M0006: 'M0032', // 人食いカエル -> 河童
+    M0007: 'M0051', // ジャイアントアント -> アーマービートル
+    M0008: 'M0031', // ゴブリン -> ホブゴブリン
+    M0009: 'M0052', // 歩行キノコ -> トレント
+    M0010: 'M0035', // 鎌鼬 -> ハーピー
+    M0011: 'M0035', // 毒蛾 -> ハーピー
+    M0012: 'M0046', // ウーズ -> ヴァイパースライム
+    M0013: 'M0034', // ジャッカロープ -> ケルピー
+    M0014: 'M0052', // マンドラゴラ -> トレント
+    M0015: 'M0031', // コボルト -> ホブゴブリン
+    M0016: 'M0045', // 大カニ -> サハギン
+    M0017: 'M0067', // スケルトン -> ボーンソルジャー
+    M0018: 'M0063', // ウィルオウィスプ -> シェイド
+    M0019: 'M0038', // ゾンビ -> グール
+    M0020: 'M0033', // キラービー -> インプ
+    M0021: 'M0063', // 影潜み -> シェイド
+    M0022: 'M0049', // ワーラット -> 鉄鼠
+    M0023: 'M0033', // ピクシー -> インプ
+    M0024: 'M0046', // リーフスライム -> ヴァイパースライム
+    M0025: 'M0044', // 大トカゲ -> トログロダイト
+    M0026: 'M0050', // ジャイアントスコーピオン -> ジャイアントマンティス
+    M0027: 'M0036', // ワイルドボア -> ダイアウルフ
+    M0028: 'M0033', // グレムリン -> インプ
+    M0029: 'M0036', // ブラックドッグ -> ダイアウルフ
+    M0030: 'M0044'  // リザードマン -> トログロダイト
+  };
+  for (const [id, targetId] of Object.entries(SHEET01_FALLBACKS)) {
+    const target = art.cells[targetId];
+    if (target) {
+      art.cells[id] = {
+        name: catMons[id]?.name || target.name,
+        sheet: target.sheet,
+        rect: { ...target.rect },
+        verified: true
+      };
+    }
+  }
+
+  // 5. Aliases for dungeon encounter enemies (DATA.enemies, world-data.js & bosses)
   const enemyAliases = {
-    rat: 'M0049',       // 洞穴ネズミ -> 鉄鼠
-    slime: 'M0046',     // 苔スライム -> ヴァイパースライム
-    bat: 'M0033',       // 夜鳴きコウモリ -> インプ
-    spider: 'M0050',    // 毒糸グモ -> ジャイアントマンティス
-    beetle: 'M0051',    // 銅殻コガネ -> アーマービートル
-    goblin: 'M0031',    // 坑道ゴブリン -> ホブゴブリン
-    skeleton: 'M0067',  // 錆びた骸兵 -> ボーンソルジャー
-    wisp: 'M0063',      // 迷い火 -> シェイド
-    wolf: 'M0036',      // 灰牙オオカミ -> ダイアウルフ
-    fungus: 'M0052',    // 呪いキノコ -> トレント
-    golem: 'M0068',     // 鉄くずゴーレム -> クレイゴーレム
-    specter: 'M0064',   // 銀霧の亡霊 -> ポルターガイスト
-    sentinel: 'M0070',  // 魔銀の番兵 -> アニメイテッドアーマー
-    warlock: 'M0065',   // 深淵の呪術師 -> デュラハン
-    drake: 'M0118',     // 黒鱗ドレイク -> ドレイク
-    guardian: 'M0070',  // 迷宮の守護者 -> アニメイテッドアーマー
-    boar: 'M0036',      // 荒牙イノシシ -> ダイアウルフ
-    rabbit: 'M0034',    // 角ウサギ -> ケルピー
+    rat: 'M0049',           // 洞穴ネズミ -> 鉄鼠
+    slime: 'M0046',         // 苔スライム -> ヴァイパースライム
+    bat: 'M0033',           // 夜鳴きコウモリ -> インプ
+    spider: 'M0050',        // 毒糸グモ -> ジャイアントマンティス
+    beetle: 'M0051',        // 銅殻コガネ -> アーマービートル
+    goblin: 'M0031',        // 坑道ゴブリン -> ホブゴブリン
+    skeleton: 'M0067',      // 錆びた骸兵 -> ボーンソルジャー
+    wisp: 'M0063',          // 迷い火 -> シェイド
+    wolf: 'M0036',          // 灰牙オオカミ -> ダイアウルフ
+    fungus: 'M0052',        // 呪いキノコ -> トレント
+    golem: 'M0068',         // 鉄くずゴーレム -> クレイゴーレム
+    specter: 'M0064',       // 銀霧の亡霊 -> ポルターガイスト
+    sentinel: 'M0070',      // 魔銀の番兵 -> アニメイテッドアーマー
+    warlock: 'M0065',       // 深淵の呪術師 -> デュラハン
+    drake: 'M0118',         // 黒鱗ドレイク -> ドレイク
+    guardian: 'M0070',      // 迷宮の守護者 -> アニメイテッドアーマー
+    boar: 'M0036',          // 荒牙イノシシ -> ダイアウルフ
+    hornhare: 'M0034',      // 角ウサギ -> ケルピー
+    rabbit: 'M0034',        // 角ウサギ (エイリアス)
+    viper: 'M0046',         // 沼マムシ -> ヴァイパースライム
+    crab: 'M0045',          // 石甲ガニ -> サハギン
+    leech: 'M0046',         // 黒沼ヒル -> ヴァイパースライム
+    cavescorpion: 'M0050',  // 岩陰サソリ -> ジャイアントマンティス
+    cavebear: 'M0036',      // 洞窟グマ -> ダイアウルフ
+    crystalgolem: 'M0068',  // 水晶の造兵 -> クレイゴーレム
+    bandit: 'M0041',        // 遺跡の追い剥ぎ -> オーク
     hobgoblin: 'M0031',
-    hellhound: 'M0061'
+    hellhound: 'M0061',
+    boss_boar: 'M0036',     // 森縁の主・大牙猪
+    boss_beetle: 'M0051',   // 岩道の主・重殻甲虫
+    boss_hydra: 'M0046',    // 湿原の主・泥沼の大蛇
+    boss_prism: 'M0068',    // 白晶の主・大プリズム巨兵
+    boss_wraith: 'M0064',   // 遺跡の主・樹冠の亡霊王
+    boss_scorp: 'M0050',    // 砂海の主・黄金帝サソリ
+    boss_frost: 'M0070',    // 霜紋の主・白銀の機甲将
+    boss_drake: 'M0118',    // 熔火の主・紅蓮古竜
+    boss_archivist: 'M0065',// 書庫の主・禁忌の統括司書
+    boss_roc: 'M0035',      // 雷鳴の主・天雷の神鳥
+    boss_star: 'M0068',     // 裂谷の主・星喰いの巨像
+    boss_eye: 'M0063',      // 観測所の主・深淵の観測機構
+    boss_core: 'M0070',     // 境界の主・世界核の守護神機
+    boss_shogun: 'M0067',   // 古戦場の主・朽ちぬ大将軍
+    boss_elder: 'M0118',    // 大樹の主・世界樹の守護竜
+    boss_automaton: 'M0070',// 機工都市の主・黄金の機神
+    boss_seraph: 'M0065'    // 天球の主・星辰の審判機構
   };
   for (const [foeId, targetId] of Object.entries(enemyAliases)) {
     if (art.cells[targetId]) {
@@ -104,7 +174,7 @@
     }
   }
 
-  // 5. Source sheet previews for the journal / catalog browser
+  // 6. Source sheet previews for the journal / catalog browser
   art.sourceSheets = Object.freeze([
     ['02', 'M0031', 'M0060', 1145, 1374, ''],
     ['03', 'M0061', 'M0090', 1145, 1374, ''],
