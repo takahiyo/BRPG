@@ -2,7 +2,7 @@
 
 更新：2026-10-22 JST / 担当：統括エージェント。
 
-最新状態：C0-C1実装・計測済み、C2ローカル検証成功・共有待ち。今回の基準HEADは `78d882a`（main/dev到達確認済み）。現在の復旧記録は末尾「距離戦闘計測の再開」を優先し、下記M/U/R/B節は過去の記録として参照する。
+最新状態：C0-C2検証・コード共有完了。コード復旧点は `fbd0e12`（origin/main・devの両先端一致確認済み）。現在の復旧記録は末尾「距離戦闘計測の再開」を優先し、下記M/U/R/B節は過去の記録として参照する。この共有結果の文書更新も同ブランチへ通常pushする。
 
 ## 復旧点
 
@@ -75,5 +75,6 @@
 - 計測：test-combat-balance.cjsで5編成×3地域Lv1/2/10×30シード=450戦を2回、900戦の再現一致、編成間の同一敵条件、全行動の到達・最終MANA保護・保存有効・100ターン以内の終了を確認。小さい連番だけの計測では入口旧編成29/30勝だったが、uint32に分散したシードでは20/30勝となり初期後衛の装備不整合が顕在化。新規杖編成は29/30勝、防御平均12→0回。Lv2/10と条件/限界はdocs/COMBAT_BALANCE.mdに記録。敵の数値は未変更。
 - C2検証完了：`node --test test.cjs test-regression.cjs test-overhaul.cjs test-equipment.cjs test-exploration.cjs test-save-manager.cjs test-quest-travel.cjs test-build-pages.cjs test-formation.cjs test-combat-balance.cjs` は10件成功（計測スイート約45秒）。`python -m unittest discover -s scripts -p "*_test_*.py" -v` は44件成功、`node scripts/build-pages.cjs` と `node test-browser.cjs --dist` は成功（1280/390/320px）。`git diff --check` 成功（改行変換警告のみ）。読み取り専用explore担当も3境界の修正とテスト前提を最終照合し追加指摘なし。独立担当はテストを再実行していない。
 - 初回回帰で新規杖を持つ僧侶のMP不足時の行動期待が「防御」のままだったため、届く杖の「攻撃」へテストを修正して全件再成功。game.js/formation.jsのブラウザキャッシュキーも更新。
-- 共有対象：game.js、formation.js、index.html、test-formation.cjs、test-combat-balance.cjs、docs/COMBAT_BALANCE.md、README.md、計画/状態の計9ファイル。ユーザーAGENTS.mdと共通規則原本、distはstageしない。現在はcommit/push前。gh未導入でCI/Pages公開成功は未確認。
-- 次：(1) 関連差分だけstage・レビュー・commitしmain/devへ通常push、先端照合 (2) 共有結果を状態記録 (3) 次回はLv2の装備更新・成長配分・連戦経済を検証。Google実認証と画像制作、全装備/高Lv/ボス/実機タッチは引き続き別の未完了課題。
+- C2共有完了：game.js、formation.js、index.html、test-formation.cjs、test-combat-balance.cjs、docs/COMBAT_BALANCE.md、README.md、計画/状態の計9ファイルを `fbd0e12db74a6d42cebd41ce71115e85c6886403` にcommit。`git push origin HEAD:refs/heads/main HEAD:refs/heads/dev` 成功、`git ls-remote` で両先端一致を確認。ユーザーAGENTS.mdと共通規則原本、distはstageしていない。gh未導入でCI/Pages公開成功は未確認。push成功と公開成功は区別する。
+- 文書checkpoint：この計画/状態の共有結果更新を別の通常commit/pushで保存する。文書自身のSHA追記だけの追加コミットは作らない。専用ブラウザ/サーバーは終了済み、一時プロファイル削除済み。外部のDB・認証・設定は操作していない。
+- 次：(1) Lv2の装備更新・成長配分・連戦経済を固定シードで検証 (2) ghが利用できる環境でCI/Pages反映を確認 (3) Google実認証と画像制作、全装備/高Lv/ボス/実機タッチを別段階で進める。
