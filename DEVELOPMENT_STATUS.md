@@ -136,4 +136,4 @@
 - D3完了：`systems.js` で探索済みタイルと踏破フロア（階段到達/ボス撃破/クエスト達成）を永続化し、再突入時に暗くならない仕様を実現。`facilities.js` に高Lv帯行動書「測量踏破の手引書」（Lv25）を追加し、探索者等の支援職同行または同手引書習得時に地図（Canvas `#map`）クリックによるBFS最短経路自動歩行を可能にした。自動探索の戦闘後歩行再開ラグを3秒から1.5秒に短縮。キーバインド（Space: 自動探索 / Enter: 階段・決定 / R: 帰還 / 戦闘時 Enter/T/B）を配備。
 - D4完了：自動戦闘タイマーのインターバルを1.1秒から1.5秒へ調整し、一瞬で戦闘が終わる問題を緩和。`systems.js` で `enemyTurn` をラップし、敵の各種行動（通常攻撃・装甲強化・毒・ドレイン・呪詛・薙ぎ払い）にSE（`playSE`）と視覚エフェクト（`.fx-attack`, `queueFX`）を付与。
 - D5検証完了：Nodeテスト13スイート（全36件）成功、Pythonテスト（51件）成功、Pagesビルド成功、Chrome実ブラウザテスト（1280/390/320px）で全探索・BGM切替・戦闘操作の正常動作を確認。
-- 共有対象：上記関連ファイル一式。AGENTS.md・VIBE_STARTER_KIT_REVISED_v3.mdおよび旧参考PNG削除は未stageで保護。
+- D5共有完了：関連差分を `65cc7c94f58963d982045467cd6c1ae2a78bd3a2` にcommitし、`git push origin HEAD:refs/heads/main HEAD:refs/heads/dev` 成功、`git ls-remote` で両先端一致を確認。CI/Pages公開は未確認。残る未共有差分はAGENTS.md・VIBE_STARTER_KIT_REVISED_v3.md・旧参考PNG削除のみ。
