@@ -252,6 +252,58 @@
     if (!equipmentViews.has(h.id)) equipmentViews.set(h.id, { slot: 'weapon', sources: { personal: true, storage: true, companions: false, equipped: false } });
     return equipmentViews.get(h.id);
   }
+  function equipmentModalContent(h, slot) {
+    const eq = BRPGEquipment, locked = !!(s.dungeon || s.battle);
+    const current = item(h[slot]);
+    const durability = current ? eq.durability(current) : null;
+    const occupied = slot === 'shield' && item(h.weapon)?.hands === 2;
+    const bag = eq.inventory(h), stored = s.gear.filter(g => g.ownerId === null);
+    const matching = g => eq.slotOf(g) === (slot.startsWith('acc') ? 'accessory' : slot);
+    const candidates = bag.filter(matching);
+    const storedCandidates = stored.filter(matching);
+
+    const card = (g, storage = false) => {
+      const owner = eq.equippedOwner(g), suit = eq.suitability(h, g), permitted = canEquip(h, g), own = owner?.id === h.id;
+      const destination = s.roster.filter(a => a.id !== h.id && a.id !== g.ownerId);
+      const durability = eq.durability(g);
+      return `<article class="inventory-card ${own ? 'is-equipped' : ''} rarity-${g.rarity || 'common'}"><div class="row between"><h4>${esc(gearName(g))}</h4><small>${esc(eq.types[g.type]?.name || g.type)}${g.hands === 2 ? ' · 両手' : ''}</small></div><p>${g.slot === 'weapon' ? '攻撃' : '防御'} +${eq.valueFor(h, g)} · <span class="durability ${durability.level}">${durability.icon} ${durability.percent}%</span></p>${owner ? `<span class="equipped-badge" title="${esc(owner.name)}が装備中">✓ ${esc(owner.name)}が装備中</span>` : ''}<small class="${suit.suitable ? 'muted' : 'equipment-unsuitable'}">${esc(suit.text)}</small><small>${esc(gearRequirementText(g))}${!permitted ? ' · 能力条件未達' : ''}</small><div class="actions">${btn(own ? '✓ 装備中' : 'これを装備', 'character-equip', `data-id="${h.id}" data-gear="${g.id}" data-slot="${slot}" ${locked || own || !permitted || storage && !eq.canReceive(h) ? 'disabled' : ''}`, own ? '' : 'primary')}${storage ? btn('所持品へ取り出す', 'character-transfer', `data-id="${h.id}" data-gear="${g.id}" ${locked || !eq.canReceive(h) ? 'disabled' : ''}`) : btn('倉庫へ預ける', 'character-transfer', `data-id="storage" data-gear="${g.id}" ${locked || own ? 'disabled' : ''}`)}</div>${!storage && destination.length ? `<details class="inventory-transfer"><summary>仲間へ渡す</summary><div class="actions">${destination.map(a => btn(esc(a.name) + ' (' + eq.usage(a) + '/' + eq.capacity(a) + ')', 'character-transfer', `data-id="${a.id}" data-gear="${g.id}" ${locked || !eq.canReceive(a) ? 'disabled' : ''}`)).join('')}</div></details>` : ''}</article>`;
+    };
+
+    return `<div class="equipment-modal-current"><div class="row between"><div><span class="eyebrow">${esc(eq.labels[slot])} 部位</span><h4>現在の装備: ${esc(current ? gearName(current) : occupied ? '両手武器が使用中' : '装備なし')}</h4></div>${current ? btn('この部位を外す', 'character-unequip', `data-id="${h.id}" data-slot="${slot}" ${locked ? 'disabled' : ''}`) : ''}</div>${current ? `<p>${current.slot === 'weapon' ? '攻撃' : '防御'} +${eq.valueFor(h, current)} · <span class="durability ${durability.level}">${durability.icon} 耐久 ${durability.percent}%</span></p>` : ''}</div><div class="section-space"><h4>所持品の候補 (${candidates.length})</h4><div class="inventory-grid">${candidates.map(g => card(g)).join('') || '<p class="muted">この部位の所持品はありません。</p>'}</div></div>${storedCandidates.length ? `<div class="section-space"><h4>街の倉庫の候補 (${storedCandidates.length})</h4><div class="inventory-grid">${storedCandidates.map(g => card(g, true)).join('')}</div></div>` : ''}`;
+  }
+  function openEquipmentDialog(h, slot) {
+    let dialog = $('equipment-dialog');
+    if (!dialog && typeof document !== 'undefined') {
+      dialog = document.createElement('dialog');
+      dialog.id = 'equipment-dialog';
+      dialog.className = 'equipment-dialog';
+      const charDialog = $('character-dialog');
+      if (charDialog?.parentNode) charDialog.parentNode.insertBefore(dialog, charDialog);
+      else document.body.appendChild(dialog);
+    }
+    if (!dialog) return;
+    const eq = BRPGEquipment;
+    dialog.innerHTML = `<button id="equipment-dialog-close" class="dialog-close" data-action="equipment-dialog-close" aria-label="閉じる">閉じる ✕</button><div class="equipment-modal-header"><h3>${esc(h.name)} · ${esc(eq.labels[slot])}の装備変更</h3></div><div id="equipment-dialog-body">${equipmentModalContent(h, slot)}</div>`;
+    if (!dialog.open && typeof dialog.showModal === 'function') dialog.showModal();
+  }
+  function closeEquipmentDialog() {
+    const dialog = $('equipment-dialog');
+    if (dialog) {
+      if (dialog.open && typeof dialog.close === 'function') dialog.close();
+      dialog.innerHTML = '';
+    }
+  }
+  function refreshEquipmentDialog() {
+    const dialog = $('equipment-dialog');
+    if (dialog?.open) {
+      const h = s.roster.find(a => a.id === s.selection);
+      if (h) {
+        const slot = equipmentView(h).slot;
+        const bodyEl = $('equipment-dialog-body');
+        if (bodyEl) bodyEl.innerHTML = equipmentModalContent(h, slot);
+      }
+    }
+  }
   function inventoryEquipmentSection(h) {
     const eq = BRPGEquipment, locked = !!(s.dungeon || s.battle);
     eq.normalizeState();
@@ -260,7 +312,7 @@
     const slotControls = slots.map(slot => {
       const g = item(h[slot]), occupied = slot === 'shield' && item(h.weapon)?.hands === 2;
       const durability = g ? eq.durability(g) : null;
-      return `<button type="button" class="equipment-slot equipment-slot-${slot} ${g ? 'filled' : ''} ${selectedSlot === slot ? 'selected' : ''}" data-action="character-slot" data-id="${h.id}" data-slot="${slot}" aria-pressed="${selectedSlot === slot}"><span class="equipment-slot-caption"><small>${eq.labels[slot]}</small>${g ? '<b class="equipped-mark" title="装備中">✓ 装備中</b>' : ''}</span><b class="equipment-slot-name" title="${esc(g ? gearName(g) : occupied ? '両手武器が使用中' : '未装備')}">${esc(g ? gearName(g) : occupied ? '両手武器が使用中' : '未装備')}</b>${g ? `<span class="durability ${durability.level}" title="耐久 ${durability.percent}%">${durability.icon} 耐久 ${durability.percent}%</span><span>${g.slot === 'weapon' ? '攻' : '防'} +${eq.valueFor(h, g)}</span>` : ''}</button>`;
+      return `<button type="button" class="equipment-slot equipment-slot-${slot} ${g ? 'filled' : ''} ${selectedSlot === slot ? 'selected' : ''}" data-action="character-slot" data-id="${h.id}" data-slot="${slot}" aria-pressed="${selectedSlot === slot}" title="クリックして${esc(eq.labels[slot])}の装備変更画面を開く"><span class="equipment-slot-caption"><small>${eq.labels[slot]}</small>${g ? '<b class="equipped-mark" title="装備中">✓ 装備中</b>' : ''}</span><b class="equipment-slot-name" title="${esc(g ? gearName(g) : occupied ? '両手武器が使用中' : '未装備')}">${esc(g ? gearName(g) : occupied ? '両手武器が使用中' : '未装備')}</b>${g ? `<span class="durability ${durability.level}" title="耐久 ${durability.percent}%">${durability.icon} 耐久 ${durability.percent}%</span><span>${g.slot === 'weapon' ? '攻' : '防'} +${eq.valueFor(h, g)}</span>` : ''}<span class="equipment-slot-action-hint">変更 ▾</span></button>`;
     }).join('');
     const card = (g, storage = false) => {
       const owner = eq.equippedOwner(g), suit = eq.suitability(h, g), permitted = canEquip(h, g), own = owner?.id === h.id;
@@ -268,12 +320,12 @@
       const durability = eq.durability(g);
       return `<article class="inventory-card ${own ? 'is-equipped' : ''} rarity-${g.rarity || 'common'}"><div class="row between"><h4>${esc(gearName(g))}</h4><small>${esc(eq.types[g.type].name)}${g.hands === 2 ? ' · 両手' : ''}</small></div><p>${g.slot === 'weapon' ? '攻撃' : '防御'} +${eq.valueFor(h, g)} · <span class="durability ${durability.level}">${durability.icon} ${durability.percent}%</span></p>${owner ? `<span class="equipped-badge" title="${esc(owner.name)}が装備中">✓ ${esc(owner.name)}が装備中</span>` : ''}<small class="${suit.suitable ? 'muted' : 'equipment-unsuitable'}">${esc(suit.text)}</small><small>${esc(gearRequirementText(g))}${!permitted ? ' · 能力条件未達' : ''}</small><div class="actions">${btn(own ? '✓ 装備中' : 'これを装備', 'character-equip', `data-id="${h.id}" data-gear="${g.id}" data-slot="${selectedSlot}" ${locked || own || !permitted || storage && !eq.canReceive(h) ? 'disabled' : ''}`, own ? '' : 'primary')}${storage ? btn('所持品へ取り出す', 'character-transfer', `data-id="${h.id}" data-gear="${g.id}" ${locked || !eq.canReceive(h) ? 'disabled' : ''}`) : btn('倉庫へ預ける', 'character-transfer', `data-id="storage" data-gear="${g.id}" ${locked || own ? 'disabled' : ''}`)}</div>${!storage && destination.length ? `<details class="inventory-transfer"><summary>仲間へ渡す</summary><div class="actions">${destination.map(a => btn(esc(a.name) + ' (' + eq.usage(a) + '/' + eq.capacity(a) + ')', 'character-transfer', `data-id="${a.id}" data-gear="${g.id}" ${locked || !eq.canReceive(a) ? 'disabled' : ''}`)).join('')}</div></details>` : ''}</article>`;
     };
-    const bag = eq.inventory(h), stored = s.gear.filter(g => g.ownerId === null), matching = g => eq.slotOf(g) === (selectedSlot.startsWith('acc') ? 'accessory' : selectedSlot), candidates = bag.filter(matching);
+    const bag = eq.inventory(h), stored = s.gear.filter(g => g.ownerId === null);
     const sourceControls = [['personal', '自分の所持品'], ['storage', '倉庫品'], ['companions', '仲間の所持品'], ['equipped', '仲間の装備品']].map(([key, label]) => btn((view.sources[key] ? '☑ ' : '☐ ') + label, 'character-auto-source', `data-id="${h.id}" data-source="${key}" aria-pressed="${!!view.sources[key]}" ${locked ? 'disabled' : ''}`, view.sources[key] ? 'selected' : '')).join('');
     const autoPanel = `<section class="slot-candidates"><h4>お任せ装備</h4><p class="muted">候補の出所を選び、攻撃・防御の合計が高くなるよう装備します。現在の装備は常に候補です。仲間の装備品を選ぶと、その仲間から装備を外して移動します。</p><div class="actions">${sourceControls}</div>${btn('選んだ範囲からお任せ装備', 'character-auto-equip', `data-id="${h.id}" ${locked ? 'disabled' : ''}`, 'primary')}</section>`;
     const equippedIds = new Set(s.roster.flatMap(a => eq.slots.map(k => a[k]).filter(Boolean)));
     const movable = bag.filter(g => !equippedIds.has(g.id)).length;
-    return `${autoPanel}<div class="equipment-paperdoll" aria-label="装備部位">${slotControls}</div><section class="slot-candidates"><div class="row between"><h4>${esc(eq.labels[selectedSlot])}の装備候補</h4>${h[selectedSlot] ? btn('この部位を外す', 'character-unequip', `data-id="${h.id}" data-slot="${selectedSlot}" ${locked ? 'disabled' : ''}`) : ''}</div><div class="inventory-grid">${candidates.map(g => card(g)).join('') || '<p class="muted">この部位の所持品はありません。</p>'}${stored.filter(matching).map(g => card(g, true)).join('')}</div></section><div class="row between section-space"><h4>${esc(h.name)}の所持品</h4><strong class="${bag.length > eq.capacity(h) ? 'equipment-unsuitable' : 'gold'}">${bag.length} / ${eq.capacity(h)} 枠</strong></div><p class="muted">装備中の品も1枠使用します。部位を選ぶと対応する候補に絞り込めます。装備適性がなくても装着でき、基礎性能が半減し、付呪・称号・能力補正は働きません。${bag.length > eq.capacity(h) ? '転職前の所持品は保持します。枠を空けるまで追加できません。' : ''}</p>${movable ? btn(`装備していない所持品を倉庫へまとめて移動（${movable}点）`, 'character-store-bulk', `data-id="${h.id}" ${locked ? 'disabled' : ''}`) : ''}<div class="inventory-grid">${bag.map(g => card(g)).join('') || '<p class="muted">所持品はありません。</p>'}</div><details class="equipment-storage section-space"><summary>街の倉庫 · ${stored.length}点</summary><p class="muted">倉庫の品は街で取り出せます。</p><div class="inventory-grid">${stored.map(g => card(g, true)).join('') || '<p class="muted">保管品はありません。</p>'}</div>${locked ? '<p class="muted">装備変更・所持品の受渡し・倉庫利用は街で行えます。</p>' : ''}`;
+    return `${autoPanel}<div class="equipment-paperdoll" aria-label="装備部位">${slotControls}</div><div class="row between section-space"><h4>${esc(h.name)}の所持品</h4><strong class="${bag.length > eq.capacity(h) ? 'equipment-unsuitable' : 'gold'}">${bag.length} / ${eq.capacity(h)} 枠</strong></div><p class="muted">装備中の品も1枠使用します。部位を選ぶと専用モーダルで候補の比較・変更ができます。装備適性がなくても装着でき、基礎性能が半減し、付呪・称号・能力補正は働きません。${bag.length > eq.capacity(h) ? '転職前の所持品は保持します。枠を空けるまで追加できません。' : ''}</p>${movable ? btn(`装備していない所持品を倉庫へまとめて移動（${movable}点）`, 'character-store-bulk', `data-id="${h.id}" ${locked ? 'disabled' : ''}`) : ''}<div class="inventory-grid">${bag.map(g => card(g)).join('') || '<p class="muted">所持品はありません。</p>'}</div><details class="equipment-storage section-space"><summary>街の倉庫 · ${stored.length}点</summary><p class="muted">倉庫の品は街で取り出せます。</p><div class="inventory-grid">${stored.map(g => card(g, true)).join('') || '<p class="muted">保管品はありません。</p>'}</div>${locked ? '<p class="muted">装備変更・所持品の受渡し・倉庫利用は街で行えます。</p>' : ''}`;
   }
   function growthSection(h, comparison) {
     const d = draftFor(h), total = draftTotal(h), remaining = freePoints(h) - total;
@@ -294,6 +346,7 @@
     if (dialog?.open && h) $('character-body').innerHTML = characterScreen(h);
   }
   openCharacter = function(id) {
+    closeEquipmentDialog();
     const h = s.roster.find(a => a.id === id); if (!h) return;
     if (s.selection !== id) cancelGrowth();
     stopAll(); s.selection = id;
@@ -427,23 +480,43 @@
   boot = function() {
     // Capture keeps legacy direct-allocation controls inert even in an already-open old screen.
     document.addEventListener('click', ev => {
+      const eqDialog = $('equipment-dialog');
+      if (eqDialog?.open && ev.target === eqDialog) { closeEquipmentDialog(); return; }
       const b = ev.target.closest('[data-action]');
       if (!b || b.disabled) return;
       const action = b.dataset.action, id = Number(b.dataset.id);
       if (action === 'alloc-stat') { ev.stopImmediatePropagation(); return; }
       if (!action.startsWith('character-') && !action.startsWith('tavern-')) return;
       ev.stopImmediatePropagation();
-      if (action === 'character-slot') { const h = s.roster.find(x => x.id === id); if (h) { equipmentView(h).slot = b.dataset.slot; refreshDetail(); } }
+      if (action === 'character-slot') {
+        const h = s.roster.find(x => x.id === id);
+        if (h) {
+          equipmentView(h).slot = b.dataset.slot;
+          openEquipmentDialog(h, b.dataset.slot);
+          refreshDetail();
+        }
+      } else if (action === 'equipment-dialog-close') closeEquipmentDialog();
       else if (action === 'character-auto-source') { const h = s.roster.find(x => x.id === id); if (h && !s.dungeon && !s.battle && Object.hasOwn(equipmentView(h).sources, b.dataset.source)) { const v = equipmentView(h); v.sources[b.dataset.source] = !v.sources[b.dataset.source]; refreshDetail(); } }
       else if (action === 'character-auto-equip') { const h = s.roster.find(x => x.id === id); if (h) BRPGEquipment.autoEquip(id, equipmentView(h).sources); }
       else if (action === 'character-store-bulk') globalThis.BRPGEquipment?.transferUnworn(id);
       else if (action === 'character-prev' || action === 'character-next') {
+        closeEquipmentDialog();
         const index = s.roster.findIndex(h => h.id === id), direction = action === 'character-next' ? 1 : -1;
         cancelGrowth(); openCharacter(s.roster[(index + direction + s.roster.length) % s.roster.length].id);
       } else if (action === 'character-growth') globalThis.adjustCharacterGrowth(id, b.dataset.stat, Number(b.dataset.step));
-      else if (action === 'character-equip') globalThis.BRPGEquipment?.equip(Number(b.dataset.gear), id, b.dataset.slot);
-      else if (action === 'character-unequip') globalThis.BRPGEquipment?.unequip(id, b.dataset.slot);
-      else if (action === 'character-transfer') globalThis.BRPGEquipment?.transfer(Number(b.dataset.gear), b.dataset.id === 'storage' ? null : id);
+      else if (action === 'character-equip') {
+        globalThis.BRPGEquipment?.equip(Number(b.dataset.gear), id, b.dataset.slot);
+        closeEquipmentDialog();
+        refreshDetail();
+      } else if (action === 'character-unequip') {
+        globalThis.BRPGEquipment?.unequip(id, b.dataset.slot);
+        refreshDetail();
+        refreshEquipmentDialog();
+      } else if (action === 'character-transfer') {
+        globalThis.BRPGEquipment?.transfer(Number(b.dataset.gear), b.dataset.id === 'storage' ? null : id);
+        refreshDetail();
+        refreshEquipmentDialog();
+      }
       else if (action === 'character-growth-confirm') confirmGrowth(id);
       else if (action === 'character-growth-cancel') { cancelGrowth(); refreshDetail(); }
       else if (action === 'tavern-recruit') recruit(b.dataset.job);

@@ -161,6 +161,15 @@ D1-D5は検証・共有完了（`65cc7c9` & `48e8b1b`）。origin/mainおよびo
 | M_ART_03 | 持ち運び用共通プロンプト配備・検証・Git共有（`docs/map-art/`） | M_ART_02 | `docs/map-art/マップアセット共通プロンプト.md` 作成、Obsidianリンク・Pythonテスト（51件）通過、main/devへ通常push | コミット・両先端照合 |
 | M_ART_04 | 受領マップアセット4枚の整理・改名・移動・配布統合 | M_ART_03 | プロジェクト直下へ移動、SHA-256一致検証、受領記録（`docs/map-art/MAP_ART_RECEIVED.md`）、`scripts/build-pages.cjs` 配布登録、専用テスト作成、全テスト通過後にmain/devへ通常push | コミット・両先端照合 |
 
-M_ART_01〜M_ART_03は `df47bf1` で共有完了。
+M_ART_01〜M_ART_03は `df47bf1` で共有完了。M_ART_04は `eb60952` で共有完了。
+
+## 装備UI改善：部位選択時の装備可能品一覧モーダル化（EQ_MODAL_01）
+
+部位選択時の装備可能品一覧がキャラクター詳細画面を縦長に埋めて邪魔になる問題を解消するため、部位選択時に専用の変更モーダル（`<dialog id="equipment-dialog">`）を開く構造へ改修する。
+
+| ID | 目的・対象 | 依存 | 完了条件・検証 | チェックポイント |
+| --- | --- | --- | --- | --- |
+| EQ_MODAL_01 | 部位選択時の候補一覧モーダル化（characters.js, equipment.css, index.html） | M_ART_04 | インラインの巨大な候補一覧を撤去、部位クリックで専用モーダル起動、装備・解除・倉庫操作と連動、Nodeテスト・Pythonテスト・実Chrome 1280/390/320px（ソースおよび配布dist）完全通過後にmain/devへ通常push | コミット・両先端照合 |
+
 
 

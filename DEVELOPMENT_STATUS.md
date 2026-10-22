@@ -151,6 +151,20 @@
 - 移動・改名：モンスター画像ルール（ルート配置・バイト不変）に準拠し、プロジェクト直下へ `map_sheet01_structures.png` 〜 `map_sheet04_dungeon.png` として移動。全4件で移動前後のSHA-256一致を確認（再圧縮・切出し加工なし）。
 - 受領記録作成：`docs/map-art/MAP_ART_RECEIVED.md` を新設し、元名/先名/実寸/SHA-256/対応ID範囲と検品前フォールバック注意を記録。Obsidian stem重複を回避。
 - 配布・回帰検証：`scripts/build-pages.cjs` の配布許可リストへ4枚を追加。`scripts/map_art_test_received.py` を新設し画像契約を自動検証。Pythonテスト全52件、Pagesビルドテスト（`test-build-pages.cjs`）、Nodeテスト全36件が合格。
-- 次の操作：関連ファイル（4画像、受領記録、テスト、build-pages.cjs、計画/状態）をstage/commitし、`origin/main` および `origin/dev` へ通常push。保護対象（ユーザーAGENTS.md、VIBE_STARTER_KIT_REVISED_v3.md、旧参考PNG削除状態）はstageしない。
+- M_ART_04共有完了：`eb6095272f69a878cf1fca1c8eb3991a1b2389a5` でmain/devへ通常push、両先端一致確認。
+
+## 装備UI改善：部位選択時の装備可能品一覧モーダル化（EQ_MODAL_01）
+
+- 課題と改修方針：キャラクター詳細画面（`character-dialog`）で部位選択時に表示されていた装備可能品一覧が縦に長く画面を占拠していたため、インライン候補一覧を撤去。部位スロットボタンクリック時に専用モーダル（`<dialog id="equipment-dialog">`）を開く構造へ刷新。
+- 実装内容：
+  - `characters.js`：`equipmentModalContent` を新設し、部位ごとの現在装備・外すボタン・所持品候補・倉庫品候補をモーダル内へ集約。`openEquipmentDialog`、`closeEquipmentDialog`、`refreshEquipmentDialog` を実装。装備実行時にモーダルを閉じ詳細を即座に更新、解除や倉庫受渡し時はモーダル内を即座に再描画。ペーパードール各部位に「変更 ▾」ガイドを付与。
+  - `index.html`：`<dialog id="equipment-dialog">` を配備。CSS/JSキャッシュキーを更新。
+  - `equipment.css`：モーダルスタイル（`#equipment-dialog`、`.equipment-modal-header`、`.equipment-modal-current`、`.equipment-slot-action-hint`）を追加し、390px/320px狭幅でのレスポンシブ表示を担保。
+- 検証結果：
+  - Node.js テスト：`test-equipment.cjs`、`test.cjs`、`test-dungeon-improvements.cjs`、`test-overhaul.cjs`、`test-monster-art.cjs`、`test-audio.cjs`、`test-build-pages.cjs` 全て合格。
+  - 実ブラウザテスト（`test-browser.cjs`）：Chrome 1280px / 390px / 320px の全3幅で、ソース版および配布ビルド版（`--dist`）ともに装備解除・再装備・長い名前・保存・施設操作すべて例外なく完全合格。
+  - Python テスト：全52件合格。
+- 次の操作：関連ファイル（`characters.js`, `equipment.css`, `index.html`, `DEVELOPMENT_PLAN.md`, `DEVELOPMENT_STATUS.md`）をstage/commitし、`origin/main` および `origin/dev` へ通常push。保護対象（ユーザーAGENTS.md、VIBE_STARTER_KIT_REVISED_v3.md、旧参考PNG削除状態）はstageしない。
+
 
 
