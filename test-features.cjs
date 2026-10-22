@@ -254,3 +254,30 @@ test('Character detail navigation uses formation order (front 1-3, back 1-3) and
     }
   `, box);
 });
+
+test('Walk toward entrance steps smoothly toward (1,1) via timer instead of instant warp', () => {
+  const { box } = harness();
+  box.assert = assert;
+  vm.runInContext(`
+    s = fresh();
+    enterMap('forest_edge');
+    // Move 3 steps away from entrance
+    step(1, 0, false);
+    step(1, 0, false);
+    step(0, 1, false);
+    const startX = s.dungeon.x;
+    const startY = s.dungeon.y;
+    assert(startX !== 1 || startY !== 1, 'Party moved away from entrance');
+
+    // Call walkTowardEntrance()
+    walkTowardEntrance();
+
+    // The first step should be taken immediately (1 step closer)
+    const distAfter1 = Math.abs(s.dungeon.x - 1) + Math.abs(s.dungeon.y - 1);
+    const distStart = Math.abs(startX - 1) + Math.abs(startY - 1);
+    assert.equal(distAfter1, distStart - 1, 'First step taken immediately, not 5-step warp');
+
+    // stopAll() clears the timer cleanly
+    stopAll();
+  `, box);
+});

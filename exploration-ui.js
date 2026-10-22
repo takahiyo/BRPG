@@ -14,7 +14,7 @@
     }
   }
   function cancelResume() { if (resumeWait !== null) clearInterval(resumeWait); resumeWait = null; }
-  stopAll = function() { cancelResume(); walkOnly = false; clearClickWalk(); return baseStopAll(); };
+  stopAll = function() { cancelResume(); walkOnly = false; clearClickWalk(); globalThis.clearEntranceWalk?.(); return baseStopAll(); };
   resumeExpedition = function() {
     if (resumeWait !== null) return;
     if (resolvingVictory && s.autoExpedition && s.dungeon && !s.battle) {

@@ -1139,6 +1139,15 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     return null;
   }
 
+  let entranceWalkTimer = null;
+  function clearEntranceWalk() {
+    if (entranceWalkTimer !== null) {
+      clearTimeout(entranceWalkTimer);
+      entranceWalkTimer = null;
+    }
+  }
+  globalThis.clearEntranceWalk = clearEntranceWalk;
+
   function walkTowardEntrance() {
     const d = s.dungeon;
     if (!d || s.battle) return;
@@ -1155,24 +1164,51 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
       tell((d.depth > 1 ? '昇降口(1,1)' : '地上出口(1,1)') + 'への経路が見えません。周囲を移動して通路を確認してください。');
       return render();
     }
-    // Walk up to 5 steps along discovered path toward (1,1), stopping immediately if an encounter occurs
-    let moved = 0;
-    for (const [dx, dy] of path.slice(0, 5)) {
-      if (!s.dungeon || s.battle) break;
-      step(dx, dy, false);
-      moved++;
-      if (s.dungeon && s.dungeon.x === 1 && s.dungeon.y === 1) {
+    clearEntranceWalk();
+
+    function stepTowards() {
+      entranceWalkTimer = null;
+      if (!s.dungeon || s.battle || s.view !== 'explore') return;
+      if (s.dungeon.x === 1 && s.dungeon.y === 1) {
         if (s.dungeon.depth > 1) {
           tell('🪜 昇降口(1,1)に到着しました。「上の階へ」でB' + (s.dungeon.depth - 1) + 'Fへ上れます。');
         } else {
           tell('🚪 地上出口(1,1)に到着しました！「街へ帰還」で安全に帰還できます。');
         }
-        break;
+        render();
+        return;
       }
+      const curPath = findPathToEntrance(s.dungeon);
+      if (!curPath || !curPath.length) {
+        tell((s.dungeon.depth > 1 ? '昇降口(1,1)' : '地上出口(1,1)') + 'への道が途切れました。');
+        render();
+        return;
+      }
+      const [dx, dy] = curPath[0];
+      step(dx, dy, true);
+      if (s.dungeon && !s.battle && (s.dungeon.x !== 1 || s.dungeon.y !== 1)) {
+        entranceWalkTimer = setTimeout(stepTowards, 160);
+      } else if (s.dungeon && s.dungeon.x === 1 && s.dungeon.y === 1) {
+        if (s.dungeon.depth > 1) {
+          tell('🪜 昇降口(1,1)に到着しました。「上の階へ」でB' + (s.dungeon.depth - 1) + 'Fへ上れます。');
+        } else {
+          tell('🚪 地上出口(1,1)に到着しました！「街へ帰還」で安全に帰還できます。');
+        }
+      }
+      render();
     }
+
+    // Step first step immediately
+    const [dx, dy] = path[0];
+    step(dx, dy, true);
     if (s.dungeon && !s.battle && (s.dungeon.x !== 1 || s.dungeon.y !== 1)) {
-      const rem = findPathToEntrance(s.dungeon);
-      tell('🚶 ' + (s.dungeon.depth > 1 ? '昇降口(1,1)' : '出口(1,1)') + 'へ向かって ' + moved + '歩 移動しました（残り ' + (rem ? rem.length : '?') + '歩）。');
+      entranceWalkTimer = setTimeout(stepTowards, 160);
+    } else if (s.dungeon && s.dungeon.x === 1 && s.dungeon.y === 1) {
+      if (s.dungeon.depth > 1) {
+        tell('🪜 昇降口(1,1)に到着しました。「上の階へ」でB' + (s.dungeon.depth - 1) + 'Fへ上れます。');
+      } else {
+        tell('🚪 地上出口(1,1)に到着しました！「街へ帰還」で安全に帰還できます。');
+      }
     }
     render();
   }
