@@ -46,7 +46,7 @@ function validSave(v){
      }
    }
  }
- const floor=d=>d&&typeof d.mapId==='string'&&typeof d.identity==='string'&&num(d.seed)&&num(d.level,1)&&d.level<=300&&num(d.quality,1)&&num(d.depth,1)&&Number.isInteger(d.x)&&d.x>0&&d.x<18&&Number.isInteger(d.y)&&d.y>0&&d.y<12&&Number.isInteger(d.facing)&&d.facing>=0&&d.facing<4&&num(d.started)&&num(d.steps)&&num(d.sinceBattle)&&matrix(d.map,t=>['#','.','o','c','>','!'].includes(t))&&matrix(d.seen,t=>typeof t==='boolean')&&matrix(d.visits,t=>num(t));
+ const floor=d=>d&&typeof d.mapId==='string'&&typeof d.identity==='string'&&num(d.seed)&&num(d.level,1)&&d.level<=300&&num(d.quality,1)&&num(d.depth,1)&&Number.isInteger(d.x)&&d.x>0&&d.x<(d.map?.[0]?.length||18)&&Number.isInteger(d.y)&&d.y>0&&d.y<(d.map?.length||12)&&Number.isInteger(d.facing)&&d.facing>=0&&d.facing<4&&num(d.started)&&num(d.steps)&&num(d.sinceBattle)&&matrix(d.map,t=>['#','.','o','c','>','!','<'].includes(t))&&matrix(d.seen,t=>typeof t==='boolean')&&matrix(d.visits,t=>num(t));
  const gear=g=>g&&Number.isInteger(g.id)&&DATA.materials[g.material]&&['weapon','armor'].includes(g.slot)&&['physical','magic'].includes(g.method)&&(!g.enchant||DATA.enchants[g.enchant])&&(g.enchants===undefined||(arr(g.enchants)&&g.enchants.length<=3&&g.enchants.every(eid=>DATA.enchants[eid])))&&num(g.quality,1)&&g.quality<=13&&num(g.dur)&&num(g.maxDur,1)&&g.dur<=g.maxDur;
  if(!v||v.version!==3||!['gold','debt','nextGear','nextHero','kills','randomState'].every(k=>num(v[k]))||!v.materials||!Object.keys(DATA.materials).every(k=>num(v.materials[k]))||!v.stock||!v.items)return false;
  if(!Object.entries(v.items).every(([k,n])=>DATA.items[k]&&num(n))||!Object.entries(v.stock).every(([k,lots])=>DATA.materials[k]&&lots&&Object.entries(lots).every(([q,n])=>num(+q,1)&&+q<=13&&num(n))))return false;
@@ -114,21 +114,396 @@ function unlocked(id){const b=DATA.rules.find(b=>b.id===id);return!!b&&s.books.i
 function stopWalk(){clearInterval(walkTimer);walkTimer=null;}
 function stopBattle(){clearInterval(battleTimer);battleTimer=null;}
 function stopAll(){stopWalk();stopBattle();s.autoExpedition=false;}
-function generate(seed,depth){const r=rng((seed+depth*7919)>>>0),m=Array.from({length:13},()=>Array(19).fill('#'));function dig(x,y){m[y][x]='.';const dirs=[...DIRS];for(let i=3;i>0;i--){const j=Math.floor(r()*(i+1));[dirs[i],dirs[j]]=[dirs[j],dirs[i]];}for(const [dx,dy]of dirs){const nx=x+dx*2,ny=y+dy*2;if(nx>0&&ny>0&&nx<18&&ny<12&&m[ny][nx]==='#'){m[y+dy][x+dx]='.';dig(nx,ny);}}}dig(1,1);for(let y=1;y<12;y++)for(let x=1;x<18;x++)if(m[y][x]==='.'&&(x!==1||y!==1)){const n=r();m[y][x]=n<.14?'o':n<.16?'c':'.';}m[11][17]='>';return m;}
-function makeFloor(map,seed,depth){const tiles=generate(seed,depth);tiles[11][17]=depth>=map.depths?'!':'>';if(depth>1)tiles[1][1]='<';return{mapId:map.id,identity:(map.id.startsWith('address-')?'address:':'guild:')+map.id+':'+seed,seed,depth,level:Math.min(300,map.level+depth-1),quality:Math.min(13,1+Math.floor(Math.min(300,map.level+depth-1)/25)),difficulty:1,map:tiles,seen:Array.from({length:13},()=>Array(19).fill(false)),visits:Array.from({length:13},()=>Array(19).fill(0)),x:1,y:1,facing:1,steps:0,sinceBattle:0,loop:0,autoSteps:0,started:Date.now()};}
-function reveal(){const d=s.dungeon;for(let y=0;y<13;y++)for(let x=0;x<19;x++)if(Math.abs(x-d.x)+Math.abs(y-d.y)<=3)d.seen[y][x]=true;d.visits[d.y][d.x]++;}
-function enterMap(id,corpseId=null){if(s.dungeon||s.battle)return;if(!alive().length){tell('全員が戦闘不能または気絶しています。神殿の治療か蘇生薬・魔力水を利用してください。');return render();}const c=s.corpses.find(c=>c.id===corpseId),m=worldMap(c?c.floor.mapId:id),seed=c?c.floor.seed:m.seed??hash('guild:'+m.id),identity=c?c.floor.identity:(m.id.startsWith('address-')?'address:':'guild:')+m.id+':'+seed;if(s.corpses.some(c=>c.floor.identity===identity&&c.until>Date.now())){tell('この探索地は再入場待機中です。別の地域を選べます。');return render();}stopAll();s.dungeon=c?structuredClone(c.floor):makeFloor(m,seed,1);Object.assign(s.dungeon,{x:1,y:1,started:Date.now(),sinceBattle:0,autoSteps:0});s.view='explore';reveal();tell(m.name+'へ到着。敵Lv.'+s.dungeon.level+' / 採集品質Q'+s.dungeon.quality+'。');render();}
-function enter(address,difficulty=1,corpseId=null){if(corpseId)return enterMap('',corpseId);if(address){discoverAddress(address);return enterMap(s.addressPreview.map.id);}return enterMap('forest_edge');}
-function returnTown(){if(!s.dungeon||s.battle)return;const d=s.dungeon;if(d.depth!==1||d.x!==1||d.y!==1){if(!(s.items.scroll>0)){tell(d.depth>1?'深層からは直接歩いて帰還できません。1階の地上出口へ戻る必要があります。':'帰還符がありません。1階の地上出口へ戻る必要があります。');return render();}s.items.scroll--;}stopAll();delete s.floorCache;s.dungeon=null;s.view='town';tell(currentTown().name+'へ帰還。傷・MP・毒は持ち越す。');render();}
-function descend(){const d=s.dungeon;if(!d||s.battle||d.map[d.y][d.x]!=='>')return;stopAll();s.floorCache??={};s.floorCache[d.depth]=structuredClone(d);const nextDepth=d.depth+1,cached=s.floorCache[nextDepth];if(cached){s.dungeon=cached;s.dungeon.x=1;s.dungeon.y=1;s.dungeon.facing=2;}else{const {seed,started,mapId}=d;s.dungeon=makeFloor(worldMap(mapId),seed,nextDepth);s.dungeon.started=started;s.dungeon.x=1;s.dungeon.y=1;s.dungeon.facing=2;}reveal();tell('階層B'+s.dungeon.depth+'F / 敵Lv.'+s.dungeon.level+'へ進んだ。');render();}
-function ascend(){const d=s.dungeon;if(!d||s.battle||d.depth<=1)return;if(d.x!==1||d.y!==1)return;stopAll();s.floorCache??={};s.floorCache[d.depth]=structuredClone(d);const prevDepth=d.depth-1,cached=s.floorCache[prevDepth];if(cached){s.dungeon=cached;s.dungeon.x=17;s.dungeon.y=11;s.dungeon.facing=0;}else{const {seed,started,mapId}=d;s.dungeon=makeFloor(worldMap(mapId),seed,prevDepth);s.dungeon.started=started;s.dungeon.x=17;s.dungeon.y=11;s.dungeon.facing=0;}reveal();tell('上の階（B'+s.dungeon.depth+'F）へ戻った。');render();}
-globalThis.ascend=ascend;
-function bossChallenge(){const d=s.dungeon;if(d&&!s.battle&&d.map[d.y][d.x]==='!')encounter(true);}
-function addMaterial(key,n,q=1){if(!DATA.materials[key])return;s.stock[key]??={};s.stock[key][q]=(s.stock[key][q]||0)+n;s.materials[key]=(s.materials[key]||0)+n;}
-function availableMaterial(key,q=1){return Object.entries(s.stock[key]||{}).reduce((n,[tier,count])=>n+(+tier>=q?count:0),0);}
-function consumeMaterial(key,n,q=1){if(availableMaterial(key,q)<n)return false;for(const tier of Object.keys(s.stock[key]).map(Number).sort((a,b)=>a-b)){if(tier<q)continue;const take=Math.min(n,s.stock[key][tier]);s.stock[key][tier]-=take;s.materials[key]-=take;n-=take;if(!n)break;}return true;}
-function earnGold(amount){const repayment=Math.min(s.debt,Math.ceil(amount*.3));s.debt-=repayment;s.gold+=amount-repayment;if(repayment)note('収入から'+repayment+' Gを宿泊債務へ返済。');}
-function step(dx,dy,automatic=false){const d=s.dungeon;if(!d||s.battle||s.view!=='explore')return;const x=d.x+dx,y=d.y+dy;if(!d.map[y]?.[x]||d.map[y][x]==='#')return;if(!automatic)stopAll();d.facing=DIRS.findIndex(a=>a[0]===dx&&a[1]===dy);d.x=x;d.y=y;d.steps++;if(d.steps%4===0)party().forEach(h=>h.sp=Math.max(0,(h.sp??maxSP(h))-1));d.sinceBattle++;reveal();const c=s.corpses.find(c=>c.floor.identity===d.identity&&c.floor.depth===d.depth&&c.floor.x===x&&c.floor.y===y);if(c){s.gear.push(...c.gear);c.links.forEach(link=>{const h=s.roster.find(h=>h.id===link.id);if(h){for(const slot of HERO_SLOTS)if(!h[slot]&&link[slot]&&item(link[slot]))h[slot]=link[slot];}});s.corpses=s.corpses.filter(a=>a!==c);tell('残された装備を回収した。');}const t=d.map[y][x],m=worldMap(d.mapId);if(t==='o'){const key=pick(m.materials);addMaterial(key,1+(random()<.3?1:0),d.quality);d.map[y][x]='.';tell(DATA.materials[key].name+' Q'+d.quality+'を採集した。');}if(t==='c'){const key=pick(m.materials);addMaterial(key,2,d.quality);d.map[y][x]='.';tell('古い採集跡から'+DATA.materials[key].name+' Q'+d.quality+'を2個見つけた。');}if(t==='>'||t==='!'){stopAll();tell(t==='>'?'次の階への道を発見。進行は手動で選べる。':'この地域の主の気配。「主に挑む」で戦闘。');}if(d.sinceBattle>2&&t!=='!'&&t!=='>'&&random()<Math.min(.48,.10+d.sinceBattle*.025))encounter();else render();}
+function dungeonDimensions(map, depth) {
+  const recLv = map?.recommendedLevel || map?.level || 1;
+  let w = 19, h = 13;
+  w += (depth - 1) * 2;
+  h += (depth - 1) * 2;
+  if (recLv >= 80) { w += 4; h += 2; }
+  else if (recLv >= 30) { w += 2; h += 2; }
+  else if (recLv >= 10) { w += 2; }
+  if (w % 2 === 0) w++;
+  if (h % 2 === 0) h++;
+  return { w: Math.min(27, w), h: Math.min(19, h) };
+}
+function generate(seed, depth, mapDef = null, upPos = null) {
+  const mDef = mapDef || DATA.maps[0];
+  const dim = dungeonDimensions(mDef, depth);
+  const W = dim.w, H = dim.h;
+  const r = rng((seed + depth * 7919) >>> 0);
+  const m = Array.from({ length: H }, () => Array(W).fill('#'));
+
+  let startX, startY;
+  if (upPos) {
+    startX = Math.max(1, Math.min(W - 2, upPos[0]));
+    startY = Math.max(1, Math.min(H - 2, upPos[1]));
+  } else {
+    startX = 1 + Math.floor(r() * Math.floor((W - 2) / 2)) * 2;
+    startY = 1 + Math.floor(r() * Math.floor((H - 2) / 2)) * 2;
+  }
+  const digX = startX % 2 === 1 ? startX : (startX + 1 < W - 1 ? startX + 1 : startX - 1);
+  const digY = startY % 2 === 1 ? startY : (startY + 1 < H - 1 ? startY + 1 : startY - 1);
+
+  function dig(x, y) {
+    m[y][x] = '.';
+    const dirs = [...DIRS];
+    for (let i = 3; i > 0; i--) {
+      const j = Math.floor(r() * (i + 1));
+      [dirs[i], dirs[j]] = [dirs[j], dirs[i]];
+    }
+    for (const [dx, dy] of dirs) {
+      const nx = x + dx * 2, ny = y + dy * 2;
+      if (nx > 0 && ny > 0 && nx < W - 1 && ny < H - 1 && m[ny][nx] === '#') {
+        m[y + dy][x + dx] = '.';
+        dig(nx, ny);
+      }
+    }
+  }
+  dig(digX, digY);
+
+  m[startY][startX] = '.';
+  if (digX !== startX || digY !== startY) {
+    m[Math.round((startY + digY) / 2)][Math.round((startX + digX) / 2)] = '.';
+  }
+
+  const passages = [];
+  for (let y = 1; y < H - 1; y++) {
+    for (let x = 1; x < W - 1; x++) {
+      if (m[y][x] === '.') passages.push([x, y]);
+    }
+  }
+
+  for (const [x, y] of passages) {
+    if (x === startX && y === startY) continue;
+    const n = r();
+    if (n < 0.12) m[y][x] = 'o';
+    else if (n < 0.15) m[y][x] = 'c';
+  }
+
+  const farCandidates = passages.filter(([x, y]) => Math.abs(x - startX) + Math.abs(y - startY) >= Math.floor((W + H) * 0.42));
+  const pool = farCandidates.length > 0 ? farCandidates : passages.filter(([x, y]) => !(x === startX && y === startY));
+  const downPos = pool.length > 0 ? pool[Math.floor(r() * pool.length)] : [W - 2, H - 2];
+  const [downX, downY] = downPos;
+
+  m[startY][startX] = '<';
+  m[downY][downX] = depth >= mDef.depths ? '!' : '>';
+
+  // 古今東西のRPGギミック配置
+  const gimmicks = {};
+  const hazardRoll = rng((seed + depth * 13337 + 404) >>> 0);
+  const availableTiles = passages.filter(([x, y]) =>
+    !(x === startX && y === startY) &&
+    !(x === downX && y === downY) &&
+    m[y][x] === '.'
+  );
+
+  // 1. スイッチと施錠扉
+  if (availableTiles.length >= 10 && hazardRoll() < 0.55) {
+    const doorIdx = Math.floor(hazardRoll() * availableTiles.length);
+    const [doorX, doorY] = availableTiles.splice(doorIdx, 1)[0];
+    const switchIdx = Math.floor(hazardRoll() * availableTiles.length);
+    const [swX, swY] = availableTiles.splice(switchIdx, 1)[0];
+    gimmicks[`${doorX},${doorY}`] = { type: 'locked_door', open: false, link: `${swX},${swY}` };
+    gimmicks[`${swX},${swY}`] = { type: 'switch', triggered: false, target: `${doorX},${doorY}` };
+  }
+
+  // 2. 自動移動床（コンベア・氷床）
+  const conveyorCount = Math.floor(hazardRoll() * 3);
+  for (let c = 0; c < conveyorCount && availableTiles.length > 0; c++) {
+    const cIdx = Math.floor(hazardRoll() * availableTiles.length);
+    const [cx, cy] = availableTiles.splice(cIdx, 1)[0];
+    const dirs = ['north', 'east', 'south', 'west'];
+    gimmicks[`${cx},${cy}`] = { type: 'conveyor', dir: dirs[Math.floor(hazardRoll() * 4)] };
+  }
+
+  // 3. 落とし穴（最深階以外）
+  if (depth < mDef.depths && availableTiles.length > 0 && hazardRoll() < 0.6) {
+    const pitCount = 1 + Math.floor(hazardRoll() * 2);
+    for (let p = 0; p < pitCount && availableTiles.length > 0; p++) {
+      const pIdx = Math.floor(hazardRoll() * availableTiles.length);
+      const [px, py] = availableTiles.splice(pIdx, 1)[0];
+      gimmicks[`${px},${py}`] = { type: 'pit', discovered: false, disarmed: false };
+    }
+  }
+
+  // 4. 一方通行（段差・一方通行扉）
+  if (availableTiles.length > 0 && hazardRoll() < 0.5) {
+    const owIdx = Math.floor(hazardRoll() * availableTiles.length);
+    const [owX, owY] = availableTiles.splice(owIdx, 1)[0];
+    const owDirs = ['north', 'east', 'south', 'west'];
+    gimmicks[`${owX},${owY}`] = { type: 'oneway', allow: owDirs[Math.floor(hazardRoll() * 4)] };
+  }
+
+  return { map: m, startX, startY, downX, downY, width: W, height: H, gimmicks };
+}
+function makeFloor(map, seed, depth, upPos = null) {
+  const gen = generate(seed, depth, map, upPos);
+  const W = gen.width, H = gen.height;
+  return {
+    mapId: map.id,
+    identity: (map.id.startsWith('address-') ? 'address:' : 'guild:') + map.id + ':' + seed,
+    seed,
+    depth,
+    level: Math.min(300, map.level + depth - 1),
+    quality: Math.min(13, 1 + Math.floor(Math.min(300, map.level + depth - 1) / 25)),
+    difficulty: 1,
+    map: gen.map,
+    seen: Array.from({ length: H }, () => Array(W).fill(false)),
+    visits: Array.from({ length: H }, () => Array(W).fill(0)),
+    x: gen.startX,
+    y: gen.startY,
+    startX: gen.startX,
+    startY: gen.startY,
+    downX: gen.downX,
+    downY: gen.downY,
+    facing: 1,
+    steps: 0,
+    sinceBattle: 0,
+    loop: 0,
+    autoSteps: 0,
+    started: Date.now(),
+    gimmicks: gen.gimmicks
+  };
+}
+function reveal() {
+  const d = s.dungeon;
+  if (!d) return;
+  const H = d.map.length, W = d.map[0].length;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if (Math.abs(x - d.x) + Math.abs(y - d.y) <= 3) {
+        if (!d.seen[y]) d.seen[y] = Array(W).fill(false);
+        d.seen[y][x] = true;
+      }
+    }
+  }
+  if (!d.visits[d.y]) d.visits[d.y] = Array(W).fill(0);
+  d.visits[d.y][d.x]++;
+}
+function enterMap(id, corpseId = null) {
+  if (s.dungeon || s.battle) return;
+  if (!alive().length) { tell('全員が戦闘不能または気絶しています。神殿の治療か蘇生薬・魔力水を利用してください。'); return render(); }
+  const c = s.corpses.find(c => c.id === corpseId), m = worldMap(c ? c.floor.mapId : id), seed = c ? c.floor.seed : m.seed ?? hash('guild:' + m.id), identity = c ? c.floor.identity : (m.id.startsWith('address-') ? 'address:' : 'guild:') + m.id + ':' + seed;
+  if (s.corpses.some(c => c.floor.identity === identity && c.until > Date.now())) { tell('この探索地は再入場待機中です。別の地域を選べます。'); return render(); }
+  stopAll();
+  s.dungeon = c ? structuredClone(c.floor) : makeFloor(m, seed, 1);
+  Object.assign(s.dungeon, { x: s.dungeon.startX ?? 1, y: s.dungeon.startY ?? 1, started: Date.now(), sinceBattle: 0, autoSteps: 0 });
+  s.view = 'explore';
+  reveal();
+  tell(m.name + 'へ到着。敵Lv.' + s.dungeon.level + ' / 採集品質Q' + s.dungeon.quality + '。');
+  render();
+}
+function enter(address, difficulty = 1, corpseId = null) {
+  if (corpseId) return enterMap('', corpseId);
+  if (address) { discoverAddress(address); return enterMap(s.addressPreview.map.id); }
+  return enterMap('forest_edge');
+}
+function returnTown() {
+  if (!s.dungeon || s.battle) return;
+  const d = s.dungeon;
+  const atEntrance = (d.depth === 1 && d.x === (d.startX ?? 1) && d.y === (d.startY ?? 1));
+  if (!atEntrance) {
+    if (!(s.items.scroll > 0)) {
+      tell(d.depth > 1 ? '深層からは直接歩いて帰還できません。1階の地上出口へ戻る必要があります。' : '帰還符がありません。1階の地上出口へ戻る必要があります。');
+      return render();
+    }
+    s.items.scroll--;
+  }
+  stopAll();
+  delete s.floorCache;
+  s.dungeon = null;
+  s.view = 'town';
+  tell(currentTown().name + 'へ帰還。傷・MP・毒は持ち越す。');
+  render();
+}
+function descend() {
+  const d = s.dungeon;
+  if (!d || s.battle || d.map[d.y][d.x] !== '>') return;
+  stopAll();
+  s.floorCache ??= {};
+  s.floorCache[d.depth] = structuredClone(d);
+  const nextDepth = d.depth + 1, cached = s.floorCache[nextDepth];
+  const downPos = [d.x, d.y];
+  if (cached) {
+    s.dungeon = cached;
+    s.dungeon.x = downPos[0];
+    s.dungeon.y = downPos[1];
+    s.dungeon.facing = 2;
+  } else {
+    const { seed, started, mapId } = d;
+    s.dungeon = makeFloor(worldMap(mapId), seed, nextDepth, downPos);
+    s.dungeon.started = started;
+    s.dungeon.x = downPos[0];
+    s.dungeon.y = downPos[1];
+    s.dungeon.facing = 2;
+  }
+  reveal();
+  tell('階層B' + s.dungeon.depth + 'F / 敵Lv.' + s.dungeon.level + 'へ進んだ。');
+  render();
+}
+function ascend() {
+  const d = s.dungeon;
+  if (!d || s.battle || d.depth <= 1) return;
+  if (d.map[d.y][d.x] !== '<') return;
+  stopAll();
+  s.floorCache ??= {};
+  s.floorCache[d.depth] = structuredClone(d);
+  const prevDepth = d.depth - 1, cached = s.floorCache[prevDepth];
+  const upPos = [d.x, d.y];
+  if (cached) {
+    s.dungeon = cached;
+    s.dungeon.x = upPos[0];
+    s.dungeon.y = upPos[1];
+    s.dungeon.facing = 0;
+  } else {
+    const { seed, started, mapId } = d;
+    s.dungeon = makeFloor(worldMap(mapId), seed, prevDepth);
+    s.dungeon.started = started;
+    s.dungeon.x = upPos[0];
+    s.dungeon.y = upPos[1];
+    s.dungeon.facing = 0;
+  }
+  reveal();
+  tell('上の階（B' + s.dungeon.depth + 'F）へ戻った。');
+  render();
+}
+globalThis.ascend = ascend;
+function bossChallenge() { const d = s.dungeon; if (d && !s.battle && d.map[d.y][d.x] === '!') encounter(true); }
+function addMaterial(key, n, q = 1) { if (!DATA.materials[key]) return; s.stock[key] ??= {}; s.stock[key][q] = (s.stock[key][q] || 0) + n; s.materials[key] = (s.materials[key] || 0) + n; }
+function availableMaterial(key, q = 1) { return Object.entries(s.stock[key] || {}).reduce((n, [tier, count]) => n + (+tier >= q ? count : 0), 0); }
+function consumeMaterial(key, n, q = 1) { if (availableMaterial(key, q) < n) return false; for (const tier of Object.keys(s.stock[key]).map(Number).sort((a, b) => a - b)) { if (tier < q) continue; const take = Math.min(n, s.stock[key][tier]); s.stock[key][tier] -= take; s.materials[key] -= take; n -= take; if (!n) break; } return true; }
+function earnGold(amount) { const repayment = Math.min(s.debt, Math.ceil(amount * .3)); s.debt -= repayment; s.gold += amount - repayment; if (repayment) note('収入から' + repayment + ' Gを宿泊債務へ返済。'); }
+function step(dx, dy, automatic = false) {
+  const d = s.dungeon;
+  if (!d || s.battle || s.view !== 'explore') return;
+  const x = d.x + dx, y = d.y + dy;
+  if (!d.map[y]?.[x] || d.map[y][x] === '#') return;
+
+  const destKey = `${x},${y}`;
+  const gDest = d.gimmicks?.[destKey];
+  if (gDest && (gDest.type === 'locked_door' || gDest.type === 'door') && !gDest.open) {
+    tell('頑丈な鉄格子の扉が閉ざされている。どこかに開く仕掛けがあるようだ。');
+    return render();
+  }
+
+  if (gDest && gDest.type === 'oneway') {
+    const moveDir = dx === 1 ? 'east' : dx === -1 ? 'west' : dy === 1 ? 'south' : 'north';
+    const moveDirShort = dx === 1 ? 'E' : dx === -1 ? 'W' : dy === 1 ? 'S' : 'N';
+    if (gDest.allow && gDest.allow !== moveDir && gDest.allow !== moveDirShort) {
+      tell('段差があり、この方向からは進めない！（一方通行）');
+      return render();
+    }
+  }
+
+  const curKey = `${d.x},${d.y}`;
+  const gCur = d.gimmicks?.[curKey];
+  if (gCur && gCur.type === 'oneway') {
+    const moveDir = dx === 1 ? 'east' : dx === -1 ? 'west' : dy === 1 ? 'south' : 'north';
+    const moveDirShort = dx === 1 ? 'E' : dx === -1 ? 'W' : dy === 1 ? 'S' : 'N';
+    if (gCur.allow && gCur.allow !== moveDir && gCur.allow !== moveDirShort) {
+      tell('段差があり、この方向へは進めない！（一方通行）');
+      return render();
+    }
+  }
+
+  if (!automatic) stopAll();
+  d.facing = DIRS.findIndex(a => a[0] === dx && a[1] === dy);
+  d.x = x;
+  d.y = y;
+  d.steps++;
+  if (d.steps % 4 === 0) party().forEach(h => h.sp = Math.max(0, (h.sp ?? maxSP(h)) - 1));
+  d.sinceBattle++;
+  reveal();
+
+  const c = s.corpses.find(c => c.floor.identity === d.identity && c.floor.depth === d.depth && c.floor.x === x && c.floor.y === y);
+  if (c) {
+    s.gear.push(...c.gear);
+    c.links.forEach(link => {
+      const h = s.roster.find(h => h.id === link.id);
+      if (h) {
+        for (const slot of HERO_SLOTS) if (!h[slot] && link[slot] && item(link[slot])) h[slot] = link[slot];
+      }
+    });
+    s.corpses = s.corpses.filter(a => a !== c);
+    tell('残された装備を回収した。');
+  }
+
+  if (gDest && gDest.type === 'switch') {
+    if (!gDest.triggered && !gDest.pressed) {
+      gDest.triggered = true;
+      gDest.pressed = true;
+      if (gDest.target && d.gimmicks[gDest.target]) {
+        d.gimmicks[gDest.target].open = true;
+      }
+      if (gDest.doorId) {
+        for (const k of Object.keys(d.gimmicks)) {
+          if (d.gimmicks[k].id === gDest.doorId || k === gDest.doorId) d.gimmicks[k].open = true;
+        }
+      }
+      playSE('secret');
+      tell('⚡ ガチャン！床のスイッチを踏み、遠くで重い扉が開く音が響いた！');
+    }
+  }
+
+  if (gDest && gDest.type === 'conveyor') {
+    const dirMap = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0], N: [0, -1], S: [0, 1], E: [1, 0], W: [-1, 0] };
+    const [cdx, cdy] = dirMap[gDest.dir] || [0, 0];
+    if (cdx !== 0 || cdy !== 0) {
+      const nx = d.x + cdx, ny = d.y + cdy;
+      if (d.map[ny]?.[nx] && d.map[ny][nx] !== '#') {
+        tell('🌀 流れる床に足を取られ、強制的に流された！');
+        d.x = nx;
+        d.y = ny;
+        reveal();
+      }
+    }
+  }
+
+  if (gDest && gDest.type === 'pit' && !gDest.disarmed) {
+    if (d.depth < worldMap(d.mapId).depths) {
+      stopAll();
+      playSE('defeat');
+      tell('⚠️ 落とし穴だ！足元の床が抜け、下の階層へと真っ逆さまに転落した…！');
+      party().forEach(h => {
+        const dmg = Math.max(1, Math.floor(stats(h).hp * 0.1));
+        h.hp = Math.max(1, h.hp - dmg);
+      });
+      s.floorCache ??= {};
+      s.floorCache[d.depth] = structuredClone(d);
+      const nextDepth = d.depth + 1, cached = s.floorCache[nextDepth];
+      if (cached) {
+        s.dungeon = cached;
+        s.dungeon.x = x; s.dungeon.y = y;
+      } else {
+        s.dungeon = makeFloor(worldMap(d.mapId), d.seed, nextDepth, [d.downX, d.downY]);
+        s.dungeon.x = x; s.dungeon.y = y;
+      }
+      if (s.dungeon.map[y]?.[x] === '#') s.dungeon.map[y][x] = '.';
+      reveal();
+      return render();
+    }
+  }
+
+  const t = d.map[y][x], m = worldMap(d.mapId);
+  if (t === 'o') {
+    const key = pick(m.materials);
+    addMaterial(key, 1 + (random() < .3 ? 1 : 0), d.quality);
+    d.map[y][x] = '.';
+    tell(DATA.materials[key].name + ' Q' + d.quality + 'を採集した。');
+  }
+  if (t === 'c') {
+    const key = pick(m.materials);
+    addMaterial(key, 2, d.quality);
+    d.map[y][x] = '.';
+    tell('古い採集跡から' + DATA.materials[key].name + ' Q' + d.quality + 'を2個見つけた。');
+  }
+  if (t === '>' || t === '!' || t === '<') {
+    stopAll();
+    tell(t === '>' ? '次の階への道を発見。進行は手動で選べる。' : t === '!' ? 'この地域の主の気配。「主に挑む」で戦闘。' : d.depth === 1 ? '地上への出口。「街へ帰還」で生還できる。' : '上の階への階段。');
+  }
+  if (d.sinceBattle > 2 && t !== '!' && t !== '>' && t !== '<' && random() < Math.min(.48, .10 + d.sinceBattle * .025)) encounter();
+  else render();
+}
 function nextWalkDirection(){const d=s.dungeon;if(!d)return null;const offsets=s.walkRule==='left'&&unlocked('left')?[3,0,1,2]:[1,0,3,2];let options=offsets.map(o=>(d.facing+o)%4).filter(i=>{const [dx,dy]=DIRS[i];return d.map[d.y+dy]?.[d.x+dx]&&d.map[d.y+dy][d.x+dx]!=='#';});if(s.walkRule==='random'&&unlocked('random'))return pick(options);if(s.walkRule==='avoid'&&unlocked('avoid'))options.sort((a,b)=>{const [ax,ay]=DIRS[a],[bx,by]=DIRS[b];return d.visits[d.y+ay][d.x+ax]-d.visits[d.y+by][d.x+bx];});return options[0]??null;}
 function walkTick(){if(!s.dungeon||s.battle||s.view!=='explore'){stopWalk();return;}const i=nextWalkDirection();if(i===null){stopAll();return;}s.dungeon.autoSteps++;step(...DIRS[i],true);if(walkTimer&&s.autoExpedition&&!s.battle){stopWalk();resumeExpedition();}}
 function resumeExpedition(){if(s.autoExpedition&&s.dungeon&&!s.battle&&!walkTimer)walkTimer=setInterval(walkTick,walkDelay());}

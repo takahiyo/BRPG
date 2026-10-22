@@ -46,9 +46,10 @@ function syncFloorExploration(f) {
   e.clearedFloors ??= {};
   const fKey = f.mapId + ':' + f.depth;
   const isMapCleared = (s.quests?.[f.mapId]?.completed) || (s.won && f.mapId === 'forest_edge') || e.clearedFloors[fKey];
+  const H = f.map?.length || 13, W = f.map?.[0]?.length || 19;
   if (isMapCleared) {
-    for (let y = 0; y < 13; y++) {
-      for (let x = 0; x < 19; x++) {
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
         f.seen[y][x] = true;
       }
     }
@@ -56,14 +57,23 @@ function syncFloorExploration(f) {
   }
   const saved = e.revealedFloors[fKey];
   if (saved) {
-    for (let y = 0; y < 13; y++) {
-      for (let x = 0; x < 19; x++) {
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
         if (saved[y]?.[x]) f.seen[y][x] = true;
       }
     }
   }
 }
-makeFloor=function(map,seed,depth){const f=oldMakeFloor(map,seed,depth),r=rng((seed+depth*13337)>>>0),open=['forest','desert','snow','canopy','battlefield','celestial'].includes(map.biome),extra=open?14:6;for(let i=0;i<extra;i++){const x=2+Math.floor(r()*15),y=2+Math.floor(r()*9);if(f.map[y][x]==='#'&&((f.map[y][x-1]!=='#'&&f.map[y][x+1]!=='#')||(f.map[y-1][x]!=='#'&&f.map[y+1][x]!=='#')))f.map[y][x]=r()<.16?'o':'.';}syncFloorExploration(f);return f;};
+makeFloor=function(map,seed,depth,upPos=null){
+  const f=oldMakeFloor(map,seed,depth,upPos),r=rng((seed+depth*13337)>>>0),open=['forest','desert','snow','canopy','battlefield','celestial'].includes(map.biome),extra=open?14:6;
+  const H=f.map?.length||13, W=f.map?.[0]?.length||19;
+  for(let i=0;i<extra;i++){
+    const x=2+Math.floor(r()*(W-4)),y=2+Math.floor(r()*(H-4));
+    if(f.map[y]?.[x]==='#'&&((f.map[y]?.[x-1]!=='#'&&f.map[y]?.[x+1]!=='#')||(f.map[y-1]?.[x]!=='#'&&f.map[y+1]?.[x]!=='#')))f.map[y][x]=r()<.16?'o':'.';
+  }
+  syncFloorExploration(f);
+  return f;
+};
 
 const prevReveal = reveal;
 reveal = function() {
@@ -1120,14 +1130,15 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     }
   };
 
-  // Helper: BFS Shortest Path on Seen Walkable Tiles back to Entrance (1, 1)
+  // Helper: BFS Shortest Path on Seen Walkable Tiles back to Entrance / Stairs Up
   function findPathToEntrance(d) {
-    if (!d || (d.x === 1 && d.y === 1)) return [];
+    const targetX = d?.startX ?? 1, targetY = d?.startY ?? 1;
+    if (!d || (d.x === targetX && d.y === targetY)) return [];
     const queue = [[d.x, d.y, []]];
     const visited = new Set([`${d.x},${d.y}`]);
     while (queue.length) {
       const [cx, cy, path] = queue.shift();
-      if (cx === 1 && cy === 1) return path;
+      if (cx === targetX && cy === targetY) return path;
       for (const [dx, dy] of DIRS) {
         const nx = cx + dx, ny = cy + dy, key = `${nx},${ny}`;
         if (d.map[ny]?.[nx] && d.map[ny][nx] !== '#' && d.seen[ny]?.[nx] && !visited.has(key)) {
@@ -1151,7 +1162,9 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
   function walkTowardEntrance() {
     const d = s.dungeon;
     if (!d || s.battle) return;
-    if (d.x === 1 && d.y === 1) {
+    const targetX = d.startX ?? 1, targetY = d.startY ?? 1;
+    const entranceLabel = d.depth > 1 ? `昇降口(${targetX},${targetY})` : `地上出口(${targetX},${targetY})`;
+    if (d.x === targetX && d.y === targetY) {
       if (d.depth > 1) {
         ascend();
       } else {
@@ -1161,7 +1174,7 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     }
     const path = findPathToEntrance(d);
     if (!path || !path.length) {
-      tell((d.depth > 1 ? '昇降口(1,1)' : '地上出口(1,1)') + 'への経路が見えません。周囲を移動して通路を確認してください。');
+      tell(entranceLabel + 'への経路が見えません。周囲を移動して通路を確認してください。');
       return render();
     }
     clearEntranceWalk();
@@ -1169,30 +1182,31 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     function stepTowards() {
       entranceWalkTimer = null;
       if (!s.dungeon || s.battle || s.view !== 'explore') return;
-      if (s.dungeon.x === 1 && s.dungeon.y === 1) {
+      const curTargetX = s.dungeon.startX ?? 1, curTargetY = s.dungeon.startY ?? 1;
+      if (s.dungeon.x === curTargetX && s.dungeon.y === curTargetY) {
         if (s.dungeon.depth > 1) {
-          tell('🪜 昇降口(1,1)に到着しました。「上の階へ」でB' + (s.dungeon.depth - 1) + 'Fへ上れます。');
+          tell(`🪜 昇降口(${curTargetX},${curTargetY})に到着しました。「上の階へ」でB` + (s.dungeon.depth - 1) + 'Fへ上れます。');
         } else {
-          tell('🚪 地上出口(1,1)に到着しました！「街へ帰還」で安全に帰還できます。');
+          tell(`🚪 地上出口(${curTargetX},${curTargetY})に到着しました！「街へ帰還」で安全に帰還できます。`);
         }
         render();
         return;
       }
       const curPath = findPathToEntrance(s.dungeon);
       if (!curPath || !curPath.length) {
-        tell((s.dungeon.depth > 1 ? '昇降口(1,1)' : '地上出口(1,1)') + 'への道が途切れました。');
+        tell((s.dungeon.depth > 1 ? `昇降口(${curTargetX},${curTargetY})` : `地上出口(${curTargetX},${curTargetY})`) + 'への道が途切れました。');
         render();
         return;
       }
       const [dx, dy] = curPath[0];
       step(dx, dy, true);
-      if (s.dungeon && !s.battle && (s.dungeon.x !== 1 || s.dungeon.y !== 1)) {
+      if (s.dungeon && !s.battle && (s.dungeon.x !== curTargetX || s.dungeon.y !== curTargetY)) {
         entranceWalkTimer = setTimeout(stepTowards, 160);
-      } else if (s.dungeon && s.dungeon.x === 1 && s.dungeon.y === 1) {
+      } else if (s.dungeon && s.dungeon.x === curTargetX && s.dungeon.y === curTargetY) {
         if (s.dungeon.depth > 1) {
-          tell('🪜 昇降口(1,1)に到着しました。「上の階へ」でB' + (s.dungeon.depth - 1) + 'Fへ上れます。');
+          tell(`🪜 昇降口(${curTargetX},${curTargetY})に到着しました。「上の階へ」でB` + (s.dungeon.depth - 1) + 'Fへ上れます。');
         } else {
-          tell('🚪 地上出口(1,1)に到着しました！「街へ帰還」で安全に帰還できます。');
+          tell(`🚪 地上出口(${curTargetX},${curTargetY})に到着しました！「街へ帰還」で安全に帰還できます。`);
         }
       }
       render();
@@ -1201,13 +1215,13 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     // Step first step immediately
     const [dx, dy] = path[0];
     step(dx, dy, true);
-    if (s.dungeon && !s.battle && (s.dungeon.x !== 1 || s.dungeon.y !== 1)) {
+    if (s.dungeon && !s.battle && (s.dungeon.x !== targetX || s.dungeon.y !== targetY)) {
       entranceWalkTimer = setTimeout(stepTowards, 160);
-    } else if (s.dungeon && s.dungeon.x === 1 && s.dungeon.y === 1) {
+    } else if (s.dungeon && s.dungeon.x === targetX && s.dungeon.y === targetY) {
       if (s.dungeon.depth > 1) {
-        tell('🪜 昇降口(1,1)に到着しました。「上の階へ」でB' + (s.dungeon.depth - 1) + 'Fへ上れます。');
+        tell(`🪜 昇降口(${targetX},${targetY})に到着しました。「上の階へ」でB` + (s.dungeon.depth - 1) + 'Fへ上れます。');
       } else {
-        tell('🚪 地上出口(1,1)に到着しました！「街へ帰還」で安全に帰還できます。');
+        tell(`🚪 地上出口(${targetX},${targetY})に到着しました！「街へ帰還」で安全に帰還できます。`);
       }
     }
     render();
@@ -1523,9 +1537,12 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     const d = s.dungeon;
     if (!d) return townScreen();
     const map = worldMap(d.mapId), t = d.map[d.y][d.x], battle = !!s.battle;
-    const atEntrance = d.x === 1 && d.y === 1;
+    const startX = d.startX ?? 1, startY = d.startY ?? 1;
+    const isSurface = d.depth === 1;
+    const atEntrance = d.x === startX && d.y === startY;
     const pathBack = !atEntrance ? findPathToEntrance(d) : [];
-    const stepsBack = pathBack ? pathBack.length : Math.abs(d.x - 1) + Math.abs(d.y - 1);
+    const stepsBack = pathBack ? pathBack.length : Math.abs(d.x - startX) + Math.abs(d.y - startY);
+    const entranceName = isSurface ? '地上出口' : '昇降口';
     const digestHTML = battle && s.battle.lastTurnDigest?.length
       ? `<div class="battle-digest" role="status" aria-live="polite"><b>⚡ 戦闘展開ログ（TURN ${s.battle.turn}）</b>${s.battle.lastTurnDigest.map(line => `<p>${line}</p>`).join('')}</div>`
       : '';
@@ -1543,10 +1560,10 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     <div class="expedition-layout ${battle ? 'in-battle' : ''}">
       <section class="expedition-map">
         <div class="panel map-panel">
-          <canvas id="map" width="760" height="500" aria-label="探索地図。⌂入口(1,1)、◆素材、▣宝箱、◎階段、✧封印、†残留装備。"></canvas>
+          <canvas id="map" width="760" height="500" aria-label="探索地図。⌂出口/昇降口、◆素材、▣宝箱、◎階段、✧封印、†残留装備。"></canvas>
           <div class="map-caption">
-            <span>⌂ 入口(1,1)　◆ 素材　▣ 宝箱　◎ 階段　† 装備</span>
-            <span>現在地 (${d.x}, ${d.y}) ${atEntrance ? '【⌂入口】' : `· 入口まで約${stepsBack}歩`} ${battle ? ' / 戦闘中' : ''}</span>
+            <span>⌂ ${entranceName}(${startX},${startY})　◆ 素材　▣ 宝箱　◎ 階段　† 装備</span>
+            <span>現在地 (${d.x}, ${d.y}) ${atEntrance ? `【⌂${entranceName}】` : `· ${entranceName}まで約${stepsBack}歩`} ${battle ? ' / 戦闘中' : ''}</span>
           </div>
           ${battle ? '' : `<div class="map-controls">
             <div class="dpad">
@@ -1557,17 +1574,17 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
             </div>
             <div class="map-command-stack">
               ${btn(walkTimer ? '自動歩行 停止' : '自動歩行', 'walk')}
-              ${t === '>' ? btn('次の階へ ↓', 'descend', '', 'primary') : t === '!' ? btn('封印に触れる', 'boss', '', 'danger') : ''}
+              ${t === '>' ? btn('次の階へ ↓', 'descend', '', 'primary') : t === '<' ? btn('上の階へ ↑', 'ascend', '', 'primary') : t === '!' ? btn('封印に触れる', 'boss', '', 'danger') : ''}
               ${atEntrance
-                ? btn('🏠 入口から街へ帰還（無料）', 'return', '', 'primary')
-                : `${btn(`🚶 徒歩で入口(1,1)へ戻る（あと${stepsBack}歩）`, 'walk-entrance')}${btn(`📜 帰還符で即帰還（残${s.items.scroll || 0}）`, 'return', !(s.items.scroll > 0) ? 'disabled' : '')}`
+                ? (isSurface ? btn('🏠 出口から街へ帰還（無料）', 'return', '', 'primary') : btn('🪜 昇降口から上の階へ', 'ascend', '', 'primary'))
+                : `${btn(`🚶 徒歩で${entranceName}へ戻る（あと${stepsBack}歩）`, 'walk-entrance')}${btn(`📜 帰還符で即帰還（残${s.items.scroll || 0}）`, 'return', !(s.items.scroll > 0) ? 'disabled' : '')}`
               }
             </div>
           </div>`}
         </div>
         ${battle ? '' : `<div class="return-guide">
-          <span>🧭 <b>徒歩での帰還方法：</b>左上の <b>⌂ 入口 (1, 1)</b> マスまで歩いて戻れば、帰還符なしでいつでも街へ帰還できます。</span>
-          ${atEntrance ? `<span class="gold">✓ 現在 ⌂入口(1,1) にいます！そのまま帰還可能</span>` : btn(`🚶 発見済み通路を辿って入口へ戻る`, 'walk-entrance')}
+          <span>🧭 <b>徒歩での帰還方法：</b><b>⌂ ${entranceName} (${startX}, ${startY})</b> マスまで歩いて戻れば、帰還符なしでいつでも${isSurface ? '街へ帰還' : '上の階へ移動'}できます。</span>
+          ${atEntrance ? `<span class="gold">✓ 現在 ⌂${entranceName}(${startX},${startY}) にいます！そのまま${isSurface ? '帰還' : '上の階へ移動'}可能</span>` : btn(`🚶 発見済み通路を辿って${entranceName}へ戻る`, 'walk-entrance')}
         </div>`}
         <div class="expedition-auto">
           <div><b>連続自動探索</b><small>歩行 → 戦闘 → 歩行 / 階段・封印で停止</small></div>

@@ -332,3 +332,102 @@ test('Dungeon recommended level reflects practical clearing level (6-hero, full 
   `, box);
 });
 
+test('Dungeon map dynamic scaling, Wizardry-style vertical floor stairs alignment, and RPG gimmicks', async () => {
+  const { box } = harness();
+  vm.runInContext(`
+    // 1. Dynamic Map Dimensions by depth & difficulty
+    const forest = worldMap('forest_edge'); // recLv 4, 2 depths
+    const f1 = makeFloor(forest, 100, 1);
+    assert.equal(f1.map[0].length, 19, 'B1F width is 19');
+    assert.equal(f1.map.length, 13, 'B1F height is 13');
+
+    const f2 = makeFloor(forest, 100, 2);
+    assert.equal(f2.map[0].length, 21, 'B2F width is expanded to 21');
+    assert.equal(f2.map.length, 15, 'B2F height is expanded to 15');
+
+    const rift = worldMap('star_rift'); // recLv 200, lv 80
+    const sr1 = makeFloor(rift, 200, 1);
+    assert.equal(sr1.map[0].length, 23, 'High difficulty star_rift B1F width is expanded to 23');
+    assert.equal(sr1.map.length, 15, 'High difficulty star_rift B1F height is expanded to 15');
+
+    // 2. Wizardry-style vertical alignment
+    enterMap('rocky_path'); // 2 depths
+    const d1 = s.dungeon;
+    assert.equal(d1.depth, 1);
+    const downX = d1.downX, downY = d1.downY;
+    assert(downX !== 1 || downY !== 1, 'Stairs down is not stuck at (1,1)');
+    assert(d1.map[downY][downX] === '>', 'Stairs down tile is placed at (downX, downY)');
+
+    // Move to stairs down and descend
+    d1.x = downX;
+    d1.y = downY;
+    descend();
+    const d2 = s.dungeon;
+    assert.equal(d2.depth, 2, 'Descended to B2F');
+    assert.equal(d2.x, downX, 'Player starts at same coordinates (downX) on B2F');
+    assert.equal(d2.y, downY, 'Player starts at same coordinates (downY) on B2F');
+    assert.equal(d2.map[downY][downX], '<', 'Up stairs on B2F is at exact matching coordinates');
+
+    // Ascend back to B1F
+    ascend();
+    assert.equal(s.dungeon.depth, 1, 'Ascended back to B1F');
+    assert.equal(s.dungeon.x, downX, 'Player returns to stairs down coordinates on B1F');
+    assert.equal(s.dungeon.y, downY, 'Player returns to stairs down coordinates on B1F');
+
+    // 3. Gimmicks: Conveyor, Oneway, Switch & Door, Pit
+    const d = s.dungeon;
+    d.sinceBattle = -999; // prevent random encounter during movement checks
+    d.gimmicks = d.gimmicks || {};
+    // Place a conveyor pushing East at (d.x+1, d.y) if open
+    const cx = d.x + 1, cy = d.y;
+    d.map[cy][cx] = '.';
+    d.map[cy][cx + 1] = '.';
+    d.gimmicks[\`\${cx},\${cy}\`] = { type: 'conveyor', dir: 'E' };
+    step(1, 0, false);
+    assert.equal(d.x, cx + 1, 'Conveyor pushed player one extra tile East to cx + 1');
+
+    // Test Oneway door
+    const ox = d.x + 1, oy = d.y;
+    d.map[oy][ox] = '.';
+    d.gimmicks[\`\${ox},\${oy}\`] = { type: 'oneway', allow: 'W' }; // allows only stepping West
+    const startX = d.x;
+    step(1, 0, false); // Step East into West-only door -> should block
+    assert.equal(d.x, startX, 'Stepping against one-way passage is blocked');
+
+    // Test Switch and Locked Door
+    const sx = d.x, sy = d.y + 1; // place switch
+    const doorX = d.x - 1, doorY = d.y; // place locked door
+    d.map[sy][sx] = '.';
+    d.map[doorY][doorX] = '.';
+    d.gimmicks[\`\${doorX},\${doorY}\`] = { type: 'door', id: 'door1', open: false };
+    d.gimmicks[\`\${sx},\${sy}\`] = { type: 'switch', doorId: 'door1', pressed: false };
+
+    // Try walking through locked door
+    step(-1, 0, false);
+    assert.equal(d.x, startX, 'Locked door blocks movement');
+
+    // Step onto switch
+    step(0, 1, false);
+    assert.equal(d.x, sx, 'Moved onto switch');
+    assert.equal(d.y, sy, 'Moved onto switch');
+    assert(d.gimmicks[\`\${sx},\${sy}\`].pressed, 'Switch is pressed');
+    assert(d.gimmicks[\`\${doorX},\${doorY}\`].open, 'Door is unlocked by switch');
+
+    // Move back and walk through unlocked door
+    step(0, -1, false);
+    step(-1, 0, false);
+    assert.equal(d.x, doorX, 'Unlocked door allows movement through');
+
+    // Test Pit on multi-depth dungeon
+    const pitX = d.x, pitY = d.y + 1;
+    d.map[pitY][pitX] = '.';
+    d.gimmicks[\`\${pitX},\${pitY}\`] = { type: 'pit' };
+    const curDepth = d.depth;
+    step(0, 1, false);
+    assert.equal(s.dungeon.depth, curDepth + 1, 'Stepping into pit drops party to next depth');
+    assert.equal(s.dungeon.x, pitX, 'Party drops to exact matching X coordinate on lower floor');
+    assert.equal(s.dungeon.y, pitY, 'Party drops to exact matching Y coordinate on lower floor');
+  `, box);
+});
+
+

@@ -616,8 +616,10 @@
   function ensureFloorHazards(d) {
     if(!d||d.hazards)return d?.hazards||{};
     const r=rng(((d.seed||1)+d.depth*13337+9001)>>>0),hz={};
-    for(let y=1;y<12;y++)for(let x=1;x<18;x++){
-      if((x<=2&&y<=2)||(x===17&&y===11)||d.map[y][x]!=='.')continue;
+    const H=d.map?.length||13, W=d.map?.[0]?.length||19;
+    const startX=d.startX??1, startY=d.startY??1, downX=d.downX??(W-2), downY=d.downY??(H-2);
+    for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++){
+      if((Math.abs(x-startX)<=1&&Math.abs(y-startY)<=1)||(x===downX&&y===downY)||d.map[y]?.[x]!=='.')continue;
       const roll=r();
       if(roll<.075){
         const kind=roll<.03?'trap':roll<.055?'miasma':'arcane';
