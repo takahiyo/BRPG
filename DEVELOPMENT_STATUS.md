@@ -282,6 +282,7 @@
   - 実ブラウザテスト：`node test-browser.cjs` および `node test-browser.cjs --dist` により、1280px / 390px / 320px の全3幅でソース版・Pages配布版ともに完全合格。
 - 共有先：`origin/main` および `origin/dev` へ通常push。
 
+
 ## マップ視認性・希少種バランス・BGMフォルダ整理（MAP_BGM_ELITE_01）
 
 - 改善内容：
@@ -309,6 +310,7 @@
   - 実ブラウザテスト：`node test-browser.cjs` および `node test-browser.cjs --dist` により、1280px / 390px / 320px の全3幅で通常版・配布版ともに完全合格。
 - 共有先：`origin/main` および `origin/dev` へ通常push。
 
+
 ## 探索操作・隊列ナビ・モンスター整合UI改善（UX_IMPROVE_02）
 
 - 改善内容：
@@ -333,6 +335,27 @@
   - Pages ビルド：`node scripts/build-pages.cjs` 成功。
   - 実ブラウザテスト：`node test-browser.cjs` および `node test-browser.cjs --dist` により、1280px / 390px / 320px の全3幅で通常版・配布版ともに完全合格。
 - 共有先：`origin/main` および `origin/dev` へ通常push。
+
+## 装備変更画面UI修正（EQUIPMENT_MODAL_FIX_01）
+
+- 改善内容：
+  1. **装備モーダルの閉じるボタンおよび射程フィルタのクリック動作修正** (`characters.js`)：
+     - `boot()` 内のクリックイベントリスナーで `if (!action.startsWith('character-') && !action.startsWith('tavern-')) return;` となっていたため、`equipment-dialog-close` や `equipment-reach-filter` が無視されていた不具合を修正。
+     - `!action.startsWith('equipment-')` を追加し、閉じるボタンおよび「すべて / 近距離 / 中距離 / 遠距離」フィルタのクリックが即座に反応するように修正。
+     - 装備モーダル外枠クリックでの閉じる挙動（`ev.target === eqDialog`）も維持・保証。
+     - ダイアログ初期オープン時に `equipmentReachFilter = 'all'` にリセットし、常に全候補が表示された状態から絞り込み可能。
+  2. **戦闘距離・射程仕様の確認** (`formation.js`)：
+     - `reachable(actor, foes, allies, reach)` において、`reach === 'long'`（遠距離：弓、杖等）の場合は敵前衛の生存に関わらず全生存敵（`live`）が対象可能。
+     - ユーザーの確認質問「自軍後列を1、敵軍後列を4とした場合、遠距離武器なら自軍後列から敵軍後列を直接攻撃できる、で良いのか」に対して、まさにその通りの仕様であることを確認。
+  3. **自動テストの整備** (`test-features.cjs`)：
+     - 装備モーダルのオープン、射程ボタンクリックによる候補フィルタリング、閉じるボタンによるモーダルクローズを包括的にテスト検証。
+- 検証結果：
+  - Node.js テスト：`test-features.cjs` 含む全テストスイート完全合格。
+  - Python テスト：全52件合格。
+  - Pages ビルド：`node scripts/build-pages.cjs` 成功。
+  - 実ブラウザテスト：`node test-browser.cjs` および `node test-browser.cjs --dist` により、1280px / 390px / 320px の全3幅で通常版・配布版ともに完全合格。
+- 共有先：`origin/main` および `origin/dev` へ通常push。
+
 
 
 

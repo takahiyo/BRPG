@@ -319,6 +319,7 @@
     return `<div class="equipment-modal-current"><div class="row between"><div><span class="eyebrow">${esc(eq.labels[slot])} 部位</span><h4>現在の装備: ${esc(current ? gearName(current) : occupied ? '両手武器が使用中' : '装備なし')}</h4></div>${current ? btn('この部位を外す', 'character-unequip', `data-id="${h.id}" data-slot="${slot}" ${locked ? 'disabled' : ''}`) : ''}</div>${filterBar}${current ? `<p>${current.slot === 'weapon' ? '攻撃' : '防御'} +${eq.valueFor(h, current)} · <span class="durability ${durability.level}">${durability.icon} 耐久 ${durability.percent}%</span></p>` : ''}</div><div class="section-space"><h4>所持品の候補 (${candidates.length})</h4><div class="inventory-grid">${candidates.map(g => card(g)).join('') || '<p class="muted">この部位の所持品はありません。</p>'}</div></div>${storedCandidates.length ? `<div class="section-space"><h4>街の倉庫の候補 (${storedCandidates.length})</h4><div class="inventory-grid">${storedCandidates.map(g => card(g, true)).join('')}</div></div>` : ''}`;
   }
   function openEquipmentDialog(h, slot) {
+    equipmentReachFilter = 'all';
     let dialog = $('equipment-dialog');
     if (!dialog && typeof document !== 'undefined') {
       dialog = document.createElement('dialog');
@@ -549,7 +550,7 @@
       if (!b || b.disabled) return;
       const action = b.dataset.action, id = Number(b.dataset.id);
       if (action === 'alloc-stat') { ev.stopImmediatePropagation(); return; }
-      if (!action.startsWith('character-') && !action.startsWith('tavern-')) return;
+      if (!action.startsWith('character-') && !action.startsWith('tavern-') && !action.startsWith('equipment-')) return;
       ev.stopImmediatePropagation();
       if (action === 'character-slot') {
         const h = s.roster.find(x => x.id === id);

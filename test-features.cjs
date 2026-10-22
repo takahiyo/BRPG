@@ -17,7 +17,7 @@ function harness() {
     }
   });
   const box = {
-    console, Date, Math, URL, structuredClone, confirm: () => true,
+    console, Date, Math, URL, structuredClone, confirm: () => true, assert,
     setInterval: () => 1, clearInterval: noop,
     document: {
       addEventListener(type, handler) {
@@ -27,7 +27,10 @@ function harness() {
       getElementById(id) {
         if (!elements.has(id)) elements.set(id, {
           style: {}, dataset: {}, value: '', innerHTML: '', textContent: '',
-          addEventListener: noop, getContext: () => drawing, showModal: noop, close: noop,
+          addEventListener: noop, getContext: () => drawing,
+          showModal() { this.open = true; },
+          close() { this.open = false; },
+          open: false,
           focus() { box.focusedId = id; }
         });
         return elements.get(id);
@@ -49,8 +52,8 @@ function harness() {
     vm.runInContext(read(f), box, { filename: f });
   }
 
-  // Ensure global 's' is set inside box context
-  vm.runInContext('s = fresh();', box);
+  // Ensure global 's' is set inside box context and boot listeners are registered
+  vm.runInContext('boot(); s = fresh();', box);
 
   return { box, handlers };
 }
@@ -93,17 +96,39 @@ test('LIFE, MANA, SP can be increased directly via character growth', () => {
   `, box);
 });
 
-test('Equipment modal includes reach filter for weapons and filters candidates', () => {
-  const { box } = harness();
+test('Equipment modal includes reach filter for weapons, handles filter clicks and close button', () => {
+  const { box, handlers } = harness();
+  box.dispatch = function(type, dataset) {
+    const target = { dataset, tagName: 'BUTTON', disabled: false, closest: () => target };
+    const event = { target, stopped: false, stopImmediatePropagation() { this.stopped = true; }, preventDefault() {} };
+    for (const handler of (handlers.get(type) || [])) {
+      handler(event);
+      if (event.stopped) break;
+    }
+  };
   vm.runInContext(`
     const hero = s.roster[0];
+    s.selection = hero.id;
     s.gear.push(
       { id: 101, material: 'iron', type: 'sword', slot: 'weapon', range: 'near', quality: 1, dur: 50, maxDur: 50, ownerId: hero.id },
       { id: 102, material: 'iron', type: 'spear', slot: 'weapon', range: 'medium', quality: 1, dur: 50, maxDur: 50, ownerId: hero.id },
       { id: 103, material: 'wood', type: 'bow', slot: 'weapon', range: 'long', quality: 1, dur: 50, maxDur: 50, ownerId: hero.id }
     );
-    const html = characterScreen(hero);
-    if (!html.includes('CHARACTER RECORD')) throw new Error('characterScreen failed');
+    // Open equipment dialog for weapon
+    dispatch('click', { action: 'character-slot', id: String(hero.id), slot: 'weapon' });
+    const dialog = document.getElementById('equipment-dialog');
+    assert.equal(dialog.open, true, 'dialog opens');
+    assert(dialog.innerHTML.includes('data-reach="long"'), 'includes reach filter buttons');
+
+    // Click long range filter
+    dispatch('click', { action: 'equipment-reach-filter', reach: 'long' });
+    const bodyHtml = document.getElementById('equipment-dialog-body').innerHTML;
+    assert(bodyHtml.includes('硬木の弓'), 'includes long range bow');
+    assert(!bodyHtml.includes('石の剣'), 'excludes near range sword');
+
+    // Click close button
+    dispatch('click', { action: 'equipment-dialog-close' });
+    assert.equal(dialog.open, false, 'dialog closes on equipment-dialog-close');
   `, box);
 });
 
