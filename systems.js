@@ -1133,12 +1133,16 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     const d = s.dungeon;
     if (!d || s.battle) return;
     if (d.x === 1 && d.y === 1) {
-      returnTown();
+      if (d.depth > 1) {
+        ascend();
+      } else {
+        returnTown();
+      }
       return;
     }
     const path = findPathToEntrance(d);
     if (!path || !path.length) {
-      tell('入口(1,1)への経路が見えません。周囲を移動して通路を確認してください。');
+      tell((d.depth > 1 ? '昇降口(1,1)' : '地上出口(1,1)') + 'への経路が見えません。周囲を移動して通路を確認してください。');
       return render();
     }
     // Walk up to 5 steps along discovered path toward (1,1), stopping immediately if an encounter occurs
@@ -1148,13 +1152,17 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
       step(dx, dy, false);
       moved++;
       if (s.dungeon && s.dungeon.x === 1 && s.dungeon.y === 1) {
-        tell('🏠 入口(1,1)に到着しました！「入口から街へ帰還」で帰還符を使わずに街へ戻れます。');
+        if (s.dungeon.depth > 1) {
+          tell('🪜 昇降口(1,1)に到着しました。「上の階へ」でB' + (s.dungeon.depth - 1) + 'Fへ上れます。');
+        } else {
+          tell('🚪 地上出口(1,1)に到着しました！「街へ帰還」で安全に帰還できます。');
+        }
         break;
       }
     }
     if (s.dungeon && !s.battle && (s.dungeon.x !== 1 || s.dungeon.y !== 1)) {
       const rem = findPathToEntrance(s.dungeon);
-      tell(`🚶 入口(1,1)へ向かって ${moved}歩 移動しました（残り ${rem ? rem.length : '?'}歩）。`);
+      tell('🚶 ' + (s.dungeon.depth > 1 ? '昇降口(1,1)' : '出口(1,1)') + 'へ向かって ' + moved + '歩 移動しました（残り ' + (rem ? rem.length : '?') + '歩）。');
     }
     render();
   }

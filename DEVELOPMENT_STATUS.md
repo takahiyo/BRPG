@@ -197,7 +197,36 @@
   - Python テスト：全52件合格。
   - Pages ビルド：`node scripts/build-pages.cjs` 成功。
   - 実ブラウザテスト：`node test-browser.cjs` および `node test-browser.cjs --dist` により、1280px / 390px / 320px の全3幅で戦闘時の敵サムネイル描画・図鑑表示・全操作が完全合格。
-- 次の操作：関連ファイル（`monster-art.js`, `test-monster-art.cjs`, `DEVELOPMENT_PLAN.md`, `DEVELOPMENT_STATUS.md`）をstage/commitし、`origin/main` および `origin/dev` へ通常push。保護対象（ユーザーAGENTS.md、VIBE_STARTER_KIT_REVISED_v3.md、旧参考PNG削除状態）はstageしない。
+- MON_ART_01共有完了：`e4303b9` でmain/devへ通常push、両先端一致確認。
+
+## ダンジョン探索：階層移動・昇降口改修（TRAV_01）
+
+- 課題と改修方針：ダンジョンで階層移動（下降）した際、2階以上の開始地点 (1, 1) が地上出口になってしまっていた不具合を修正。3階に降りた場合、徒歩なら 3F (1, 1) → 2F (17, 11) → 2F (1, 1) → 1F (17, 11) → 1F (1, 1) → 街出口 と順に戻らなければならないようにする。
+- 実装内容：
+  - `game.js`：
+    - `makeFloor`：`depth > 1` のとき `tiles[1][1] = '<'`（上り階段タイル）。
+    - `returnTown`：徒歩帰還の判定を `if (d.depth !== 1 || d.x !== 1 || d.y !== 1)` に更新。2階以上からの徒歩直接帰還をブロック。街帰還時に `delete s.floorCache`。
+    - `ascend`：新設。`d.depth > 1 && d.x === 1 && d.y === 1` で発動。現在のフロアを `s.floorCache[d.depth]` に保存し、`d.depth - 1` のフロアへ復帰（出現位置は下り階段 `x = 17, y = 11`、向き上）。
+    - `descend`：更新。現在のフロアを `s.floorCache[d.depth]` に保存し、`d.depth + 1` のフロアへ移動（出現位置は昇降口 `x = 1, y = 1`、向き下）。
+    - `globalThis.ascend = ascend;` を配備。
+  - `systems.js`：
+    - `walkTowardEntrance`：`(1, 1)` 到着時に `d.depth > 1` なら `ascend()`、`d.depth === 1` なら `returnTown()` を実行。道中メッセージも「昇降口(1,1)」と「地上出口(1,1)」を区別。
+  - `exploration-ui.js`：
+    - `atSurfaceExit`（1F (1, 1)）と `atStairsUp`（2F以上 (1, 1)）を分離判定。
+    - ヘッダー表示：`atSurfaceExit` で「地上出口 · 無料で帰還できます」、`atStairsUp` で「昇降口 · B{depth-1}Fへ上れます」。
+    - 手動タイルアクション：`tile === '<' || atStairsUp` のとき `btn('上の階へ', 'ascend')` を表示。
+    - 右側帰還パネル：`atStairsUp` のときは「WAY UP / 上の階へ / 昇降口からB{depth-1}Fへ上る」を表示し、街出口ボタンを表示しない。
+    - Canvas描画：`(1, 1)` において 1F はアーチ門スプライト、2F以上は上り階段スプライトを描画。
+    - キーバインド：`Enter` で `tile === '<' || atStairsUp` 時に `ascend()`。`R`/`H` で `atStairsUp` 時に `ascend()`。
+  - `test-dungeon-improvements.cjs`：
+    - `Multi-floor dungeon traversal: depth > 1 has stairs-up (ascend) instead of town exit, requires returning to 1F on foot` テストを追加。
+- 検証結果：
+  - Node.js テスト：全13スイート（38件、900戦の戦闘シミュレーション含む）完全合格。
+  - Python テスト：全52件合格。
+  - Pages ビルド：`node scripts/build-pages.cjs` 成功。
+  - 実ブラウザテスト：`node test-browser.cjs` および `node test-browser.cjs --dist` により、1280px / 390px / 320px の全3幅で完全合格。
+- 次の操作：関連ファイル（`game.js`, `systems.js`, `exploration-ui.js`, `test-dungeon-improvements.cjs`, `DEVELOPMENT_PLAN.md`, `DEVELOPMENT_STATUS.md`）をstage/commitし、`origin/main` および `origin/dev` へ通常push。保護対象（ユーザーAGENTS.md、VIBE_STARTER_KIT_REVISED_v3.md、旧参考PNG削除状態）はstageしない。
+
 
 
 

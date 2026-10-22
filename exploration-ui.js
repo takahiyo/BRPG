@@ -114,7 +114,7 @@
   };
   exploreScreen = function() {
     const d=s.dungeon;if(!d)return townScreen();
-    const battle=!!s.battle, map=worldMap(d.mapId), atEntrance=d.x===1&&d.y===1, tile=d.map[d.y][d.x];
+    const battle=!!s.battle, map=worldMap(d.mapId), atSurfaceExit=d.depth===1&&d.x===1&&d.y===1, atStairsUp=d.depth>1&&d.x===1&&d.y===1, atEntrance=atSurfaceExit||atStairsUp, tile=d.map[d.y][d.x];
     const returnPath=typeof findPathToEntrance==='function'?findPathToEntrance(d):null;
     const hazards=globalThis.BRPGFacilities?.ensureFloorHazards(d)||{};
     const known=Object.values(hazards).filter(h=>h.discovered&&!h.disarmed).length;
@@ -123,15 +123,15 @@
     return `<div class="exp-workspace"><section class="exp-party" aria-label="探索中の仲間"><div class="exp-subheading"><h2>探索中の仲間</h2><small>名前で詳細を開く</small></div>${strip(false)}</section>
       <div class="sectionhead expedition-head"><div><p class="eyebrow">${battle?'ENCOUNTER / TURN '+s.battle.turn:'EXPEDITION / FIELD NOTES'}</p><h1>${esc(map?.name||'忘れられた鉱廊')}<span class="exp-depth">B${d.depth}</span></h1></div><div class="exp-location"><b>${d.steps} <small>歩</small></b><span>地域Lv.${d.level||1} · 素材Q${d.quality||1}</span></div></div>
       <div class="expedition-layout ${battle?'in-battle':''}"><section class="expedition-map"><div class="panel map-panel">
-        <div class="exp-map-heading"><span>${icon('compass')}探索地図</span><span>${battle?'戦闘中':atEntrance?'入口 · 無料で帰還できます':`現在地 ${d.x}, ${d.y}`}</span></div>
+        <div class="exp-map-heading"><span>${icon('compass')}探索地図</span><span>${battle?'戦闘中':atSurfaceExit?'地上出口 · 無料で帰還できます':atStairsUp?`昇降口 · B${d.depth-1}Fへ上れます`:`現在地 ${d.x}, ${d.y}`}</span></div>
         ${battle?`<div class="exp-view-switch" role="group" aria-label="探索表示の切替">${[['map','MAP','exp-map-view'],['enemies','敵','exp-enemy-view']].map(([view,label,panel])=>`<button type="button" id="exp-view-${view}" data-action="exp-stage-view" data-view="${view}" aria-controls="${panel}" aria-pressed="${stageView===view}" class="${stageView===view?'selected':''}">${label}</button>`).join('')}</div>`:''}
         <div class="exp-map-stage">
           <div id="exp-map-view" ${showEnemies?'hidden':''}><canvas id="map" width="936" height="648" role="img" aria-label="探索地図。石造りの出口が入口の1,1。人物が現在地、結晶が採集地点、木箱が宝箱、階段が次の階。未踏の区画は霧で隠れています。"></canvas><div class="exp-map-fog-caption">${battle?'キー: Enter/Space実行 | Tおまかせ | B自動戦闘':'移動: WASD/矢印/クリック | Space: 自動探索 | Enter: 階段/決定 | R: 帰還'}</div></div>
           ${battle?`<section id="exp-enemy-view" class="exp-enemies" aria-label="遭遇した魔物" tabindex="0" ${showEnemies?'':'hidden'}><div class="exp-subheading"><h2>遭遇した魔物</h2><small>${observed()?'同行者が状態を観測中':'現在LIFE・脅威度は未観測'}</small></div>${uiEnemies()}</section>`:''}
         </div>
         <div class="exp-map-legend"><span>${icon('door')}出口</span><span>${icon('gem')}採集</span><span>${icon('chest')}宝箱</span><span>${icon('stairs')}階段</span><span>${icon('shield')}封印</span></div>
-        ${!battle?`<div class="exp-manual-controls"><div class="dpad">${btn('↑','step','data-dx="0" data-dy="-1" aria-label="北へ"')}${btn('←','step','data-dx="-1" data-dy="0" aria-label="西へ"')}${btn('↓','step','data-dx="0" data-dy="1" aria-label="南へ"')}${btn('→','step','data-dx="1" data-dy="0" aria-label="東へ"')}</div><div class="exp-tile-action">${tile==='>'?btn(icon('stairs')+'次の階へ','descend','','primary'):tile==='!'?btn(icon('shield')+'地域の主に挑む','boss','','danger'):`<span>移動して周囲を探索</span><small>${known?'既知の地形・危険箇所 '+known+' / ':''}遭遇は移動時に発生します</small>`}</div></div>`:''}
-      </div></section><aside class="expedition-side">${controls()}${battle?uiBattlePanel():`<section class="panel exp-return"><p class="eyebrow">WAY HOME</p><h2>${icon('door')}街へ帰る</h2><p>${atEntrance?'いま出口の前にいます。費用を使わずに帰還できます。':'地図左上の石の出口まで戻ると、無料で帰還できます。'}</p><div class="exp-return-actions">${atEntrance?btn('出口から街へ帰還','return','','primary'):btn(icon('walk')+`入口へ歩いて戻る${returnPath?' / '+returnPath.length+'歩':''}`,'exp-walk-entrance')}${!atEntrance?btn('帰還符で即帰還 / 残'+(s.items.scroll||0),'return',s.items.scroll>0?'':'disabled'):''}${btn('道標で即時帰還 / SP3','instant-return',party().some(h=>h.hp>0&&h.mp>0&&(h.sp??0)>=3&&(h.job==='explorer'||h.job==='guide'))||s.ext?.facilityRules?.owned?.includes('instant_return')?'':'disabled')}</div></section><details class="panel exp-provisions"><summary>旅の道具を使う</summary>${uiFieldSupplies()}</details>`}<section class="panel expedition-log"><div class="exp-log-header"><p class="eyebrow">RECENT LOG</p><button type="button" class="exp-log-toggle" data-action="toggle-log-expand">${s.ext?.logExpanded?'最新のみ表示':`過去の記録を展開 (${s.log.length}件)`}</button></div>${resumeWait!==null?'<p class="exp-victory-note">勝利しました。1.5秒後に探索を再開します。</p>':''}${battle&&s.battle.lastTurnDigest?.length?`<div class="battle-digest">${s.battle.lastTurnDigest.map(line=>`<p>${line}</p>`).join('')}</div>`:''}${logHTML(s.ext?.logExpanded?100:6)}</section></aside></div></div>`;
+        ${!battle?`<div class="exp-manual-controls"><div class="dpad">${btn('↑','step','data-dx="0" data-dy="-1" aria-label="北へ"')}${btn('←','step','data-dx="-1" data-dy="0" aria-label="西へ"')}${btn('↓','step','data-dx="0" data-dy="1" aria-label="南へ"')}${btn('→','step','data-dx="1" data-dy="0" aria-label="東へ"')}</div><div class="exp-tile-action">${tile==='>'?btn(icon('stairs')+'次の階へ','descend','','primary'):(tile==='<'||atStairsUp)?btn(icon('stairs')+`上の階（B${d.depth-1}F）へ`,'ascend','','primary'):tile==='!'?btn(icon('shield')+'地域の主に挑む','boss','','danger'):atSurfaceExit?btn(icon('door')+'街へ帰還','return','','primary'):`<span>移動して周囲を探索</span><small>${known?'既知の地形・危険箇所 '+known+' / ':''}遭遇は移動時に発生します</small>`}</div></div>`:''}
+      </div></section><aside class="expedition-side">${controls()}${battle?uiBattlePanel():`<section class="panel exp-return"><p class="eyebrow">${atStairsUp?'WAY UP':'WAY HOME'}</p><h2>${atStairsUp?icon('stairs')+'上の階へ':icon('door')+'街へ帰る'}</h2><p>${atSurfaceExit?'いま地上出口の前にいます。費用を使わずに帰還できます。':atStairsUp?`上の階（B${d.depth-1}F）への昇降口です。徒歩で街へ戻るには1階の地上出口まで戻る必要があります。`:d.depth===1?'地図左上の石の出口まで戻ると、無料で帰還できます。':`昇降口(1,1)まで戻ると上の階へ上れます。街へ帰るには1Fの地上出口まで戻る必要があります。`}</p><div class="exp-return-actions">${atSurfaceExit?btn('出口から街へ帰還','return','','primary'):atStairsUp?btn(icon('stairs')+`昇降口からB${d.depth-1}Fへ上る`,'ascend','','primary'):btn(icon('walk')+(d.depth===1?'出口へ歩いて戻る':'昇降口へ歩いて戻る')+`${returnPath?' / '+returnPath.length+'歩':''}`,'exp-walk-entrance')}${!atSurfaceExit?btn('帰還符で即帰還 / 残'+(s.items.scroll||0),'return',s.items.scroll>0?'':'disabled'):''}${btn('道標で即時帰還 / SP3','instant-return',party().some(h=>h.hp>0&&h.mp>0&&(h.sp??0)>=3&&(h.job==='explorer'||h.job==='guide'))||s.ext?.facilityRules?.owned?.includes('instant_return')?'':'disabled')}</div></section><details class="panel exp-provisions"><summary>旅の道具を使う</summary>${uiFieldSupplies()}</details>`}<section class="panel expedition-log"><div class="exp-log-header"><p class="eyebrow">RECENT LOG</p><button type="button" class="exp-log-toggle" data-action="toggle-log-expand">${s.ext?.logExpanded?'最新のみ表示':`過去の記録を展開 (${s.log.length}件)`}</button></div>${resumeWait!==null?'<p class="exp-victory-note">勝利しました。1.5秒後に探索を再開します。</p>':''}${battle&&s.battle.lastTurnDigest?.length?`<div class="battle-digest">${s.battle.lastTurnDigest.map(line=>`<p>${line}</p>`).join('')}</div>`:''}${logHTML(s.ext?.logExpanded?100:6)}</section></aside></div></div>`;
   };
   battleScreen=exploreScreen;
 
@@ -186,7 +186,8 @@
       if(!s.dungeon||mode==='walk'&&s.battle)return;
       toggleExpedition();walkOnly=mode==='walk'&&s.autoExpedition;render();return;
     }
-    if(['actor','execute','template','target','step','exp-walk-entrance','return','instant-return','descend','boss','use-item'].includes(action))stopAll();
+    if(['actor','execute','template','target','step','exp-walk-entrance','return','instant-return','descend','ascend','boss','use-item'].includes(action))stopAll();
+    if(action==='ascend'){globalThis.ascend?.();return;}
     if(action==='exp-walk-entrance'){globalThis.walkTowardEntrance?.();return;}
     return baseHandle(event);
   };
@@ -279,13 +280,15 @@
           event.preventDefault();
           const d = s.dungeon, tile = d.map[d.y]?.[d.x];
           if (tile === '>') { descend(); return; }
+          if (tile === '<' || (d.depth > 1 && d.x === 1 && d.y === 1)) { ascend(); return; }
           if (tile === '!') { bossChallenge(); return; }
-          if (d.x === 1 && d.y === 1) { returnTown(); return; }
+          if (d.depth === 1 && d.x === 1 && d.y === 1) { returnTown(); return; }
           return;
         }
         if (key === 'r' || key === 'R' || key === 'h' || key === 'H') {
           event.preventDefault();
-          if (s.dungeon.x === 1 && s.dungeon.y === 1) returnTown();
+          if (s.dungeon.depth === 1 && s.dungeon.x === 1 && s.dungeon.y === 1) returnTown();
+          else if (s.dungeon.depth > 1 && s.dungeon.x === 1 && s.dungeon.y === 1) ascend();
           else globalThis.walkTowardEntrance?.();
           return;
         }
@@ -358,8 +361,24 @@
         if((x+y)%3===0){line(px+7,py+9,px+14,py+10,'#4b5a55');line(px+28,py+32,px+33,py+29,'#51605a');}
       }
       if(x===1&&y===1){
-        const drawnArch=art?.drawCell(c,'structures',0,0,px,py,z,z);
-        if(!drawnArch)arch(px,py);
+        if(d.depth===1){
+          const drawnArch=art?.drawCell(c,'structures',0,0,px,py,z,z);
+          if(!drawnArch)arch(px,py);
+        }else{
+          const drawnStairsUp=art?.drawCell(c,'structures',2,0,px,py,z,z);
+          if(!drawnStairsUp){
+            rect(px+5,py+6,34,34,'#14282c');
+            for(let i=0;i<5;i++){rect(px+7+i*3,py+9+i*5,30-i*6,5,'#9aa99c');rect(px+7+i*3,py+13+i*5,30-i*6,1,'#536d69');}
+            line(px+5,py+7,px+5,py+37,'#88c8b4',2);line(px+38,py+7,px+38,py+37,'#88c8b4',2);
+          }
+        }
+      }
+      if(t==='<'){
+        const drawnStairsUp=art?.drawCell(c,'structures',2,0,px,py,z,z);
+        if(!drawnStairsUp){
+          rect(px+5,py+6,34,34,'#14282c');
+          for(let i=0;i<5;i++){rect(px+7+i*3,py+9+i*5,30-i*6,5,'#9aa99c');rect(px+7+i*3,py+13+i*5,30-i*6,1,'#536d69');}
+        }
       }
       if(t==='o'){
         const drawnNode=art?.drawCell(c,'structures',2,2,px,py,z,z);

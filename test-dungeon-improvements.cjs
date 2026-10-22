@@ -156,4 +156,91 @@ test('Map click-to-walk requires explorer or survey_walk book and paths toward t
   `);
 });
 
+test('Multi-floor dungeon traversal: depth > 1 has stairs-up (ascend) instead of town exit, requires returning to 1F on foot', () => {
+  const box = harness();
+  box.run(`
+    s = fresh();
+    enterMap('forest_edge');
+    assert.equal(s.dungeon.depth, 1);
+    assert.equal(s.dungeon.x, 1);
+    assert.equal(s.dungeon.y, 1);
+
+    // On 1F (1, 1), free walk-out to town is permitted without scrolls
+    s.items.scroll = 0;
+    returnTown();
+    assert(!s.dungeon, 'Free exit allowed on 1F (1, 1)');
+
+    // Re-enter and move to stairs down on 1F
+    enterMap('forest_edge');
+    s.dungeon.x = 17; s.dungeon.y = 11;
+    assert.equal(s.dungeon.map[11][17], '>');
+    descend();
+
+    // Now on 2F (depth 2) at (1, 1)
+    const d2 = s.dungeon;
+    assert.equal(d2.depth, 2);
+    assert.equal(d2.x, 1);
+    assert.equal(d2.y, 1);
+    assert.equal(d2.map[1][1], '<', '2F (1, 1) is stairs up tile (<), not exit');
+
+    // On 2F (1, 1), walking directly to town without scrolls is BLOCKED!
+    returnTown();
+    assert(s.dungeon, 'Cannot walk directly to town from 2F');
+    assert.equal(s.dungeon.depth, 2);
+    assert.match(s.log[0], /1階の地上出口へ戻る必要があります/);
+
+    // Using ascend() moves from 2F back to 1F at the stairs position (17, 11)
+    ascend();
+    assert.equal(s.dungeon.depth, 1, 'Ascending from 2F returns to 1F');
+    assert.equal(s.dungeon.x, 17);
+    assert.equal(s.dungeon.y, 11);
+
+    // Walk back to 1F (1, 1) and exit to town
+    s.dungeon.x = 1; s.dungeon.y = 1;
+    returnTown();
+    assert(!s.dungeon, 'Exited to town from 1F (1, 1)');
+
+    // Test multi-floor step-by-step retreat: Descend to 3F in old_mine (depths: 3)
+    enterMap('old_mine'); // 1F
+    s.dungeon.x = 17; s.dungeon.y = 11;
+    descend(); // to 2F
+    assert.equal(s.dungeon.depth, 2);
+    s.dungeon.x = 17; s.dungeon.y = 11;
+    descend(); // to 3F
+    assert.equal(s.dungeon.depth, 3);
+    assert.equal(s.dungeon.x, 1); assert.equal(s.dungeon.y, 1);
+
+    // On 3F (1, 1): cannot exit to town on foot
+    returnTown();
+    assert.equal(s.dungeon.depth, 3);
+
+    // Ascend 3F -> 2F
+    ascend();
+    assert.equal(s.dungeon.depth, 2);
+    assert.equal(s.dungeon.x, 17); assert.equal(s.dungeon.y, 11);
+
+    // Walk on 2F to (1, 1) and ascend 2F -> 1F
+    s.dungeon.x = 1; s.dungeon.y = 1;
+    ascend();
+    assert.equal(s.dungeon.depth, 1);
+    assert.equal(s.dungeon.x, 17); assert.equal(s.dungeon.y, 11);
+
+    // Finally walk to 1F (1, 1) and exit to town
+    s.dungeon.x = 1; s.dungeon.y = 1;
+    returnTown();
+    assert(!s.dungeon, 'Successfully returned to town step-by-step from 3F -> 2F -> 1F');
+
+    // Return scroll (teleport) works from any deep floor
+    enterMap('old_mine');
+    s.dungeon.x = 17; s.dungeon.y = 11;
+    descend(); // 2F
+    s.dungeon.x = 17; s.dungeon.y = 11;
+    descend(); // 3F
+    s.items.scroll = 2;
+    returnTown();
+    assert(!s.dungeon, 'Return scroll escapes directly from 3F');
+    assert.equal(s.items.scroll, 1, 'Consumed 1 return scroll');
+  `);
+});
+
 console.log('PASS: RecentLog repeat counts, expand toggle, explored fog persistence, and click-to-walk with survey_walk.');
