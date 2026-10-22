@@ -180,7 +180,25 @@
   - Python テスト：全52件合格。
   - Pages ビルド：`node scripts/build-pages.cjs` 成功。
   - 実ブラウザテスト：`node test-browser.cjs` および `node test-browser.cjs --dist` により、1280px / 390px / 320px の全3幅でソース版・Pages配布版ともに完全合格。
-- 次の操作：関連ファイル（`map-art.js`, `exploration-ui.js`, `index.html`, `scripts/build-pages.cjs`, `test-browser.cjs`, `DEVELOPMENT_PLAN.md`, `DEVELOPMENT_STATUS.md`）をstage/commitし、`origin/main` および `origin/dev` へ通常push。保護対象（ユーザーAGENTS.md、VIBE_STARTER_KIT_REVISED_v3.md、旧参考PNG削除状態）はstageしない。
+- M_ART_05共有完了：`f706361` でmain/devへ通常push、両先端一致確認。
+
+## モンスターアート全シート・戦闘敵適用（MON_ART_01）
+
+- 課題と改修方針：手元に配置済みの全13枚のモンスター画像シート（Sheet 02〜14、計370体分）がゲーム内でわずか21体しか登録されておらず、さらにダンジョン遭遇敵（`DATA.enemies`）へのマッピングが存在しなかったため、ダンジョン戦闘画面で敵画像が一切表示されず絵文字アイコンのままだった問題を解消。
+- 実装内容：
+  - `monster-art.js`：
+    - 全13シート（`catalog-02` 〜 `catalog-14`）を `BRPGMonsterArt.sheets` に一括登録。
+    - 5×6標準グリッド（229px正方形、Sheet 07/10の1373px高さ境界、Sheet 14の10体境界を安全に処理）により、M0031〜M0400の全370体のモンスターセルを自動算出・登録。
+    - 手動検品済みの21体については、余白を精密調整したカスタム矩形（`x, y, width, height`）を上書き優先適用。
+    - ダンジョン戦闘敵（`DATA.enemies` の `rat`, `slime`, `bat`, `spider`, `beetle`, `goblin`, `skeleton`, `wisp`, `wolf`, `fungus`, `golem`, `specter`, `sentinel`, `warlock`, `drake`, `guardian`、および灰灯の林縁等の `boar`, `rabbit`）に対し、外見・種族が合致するモンスターアートを直接 `art.cells` にエイリアス展開。
+  - `test-monster-art.cjs`：全シート登録（13シート）、370体以上の登録、ダンジョン遭遇敵のサムネイル生成、図鑑表示、不正矩形防御、XSS防御、原本SHA保全を検証するテストへ刷新。
+- 検証結果：
+  - Node.js テスト：全13スイート（37件、900戦の戦闘シミュレーション含む）完全合格。
+  - Python テスト：全52件合格。
+  - Pages ビルド：`node scripts/build-pages.cjs` 成功。
+  - 実ブラウザテスト：`node test-browser.cjs` および `node test-browser.cjs --dist` により、1280px / 390px / 320px の全3幅で戦闘時の敵サムネイル描画・図鑑表示・全操作が完全合格。
+- 次の操作：関連ファイル（`monster-art.js`, `test-monster-art.cjs`, `DEVELOPMENT_PLAN.md`, `DEVELOPMENT_STATUS.md`）をstage/commitし、`origin/main` および `origin/dev` へ通常push。保護対象（ユーザーAGENTS.md、VIBE_STARTER_KIT_REVISED_v3.md、旧参考PNG削除状態）はstageしない。
+
 
 
 
