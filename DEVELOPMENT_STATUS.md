@@ -137,3 +137,12 @@
 - D4完了：自動戦闘タイマーのインターバルを1.1秒から1.5秒へ調整し、一瞬で戦闘が終わる問題を緩和。`systems.js` で `enemyTurn` をラップし、敵の各種行動（通常攻撃・装甲強化・毒・ドレイン・呪詛・薙ぎ払い）にSE（`playSE`）と視覚エフェクト（`.fx-attack`, `queueFX`）を付与。
 - D5検証完了：Nodeテスト13スイート（全36件）成功、Pythonテスト（51件）成功、Pagesビルド成功、Chrome実ブラウザテスト（1280/390/320px）で全探索・BGM切替・戦闘操作の正常動作を確認。
 - D5共有完了：関連差分を `65cc7c94f58963d982045467cd6c1ae2a78bd3a2` にcommitし、`git push origin HEAD:refs/heads/main HEAD:refs/heads/dev` 成功、`git ls-remote` で両先端一致を確認。CI/Pages公開は未確認。残る未共有差分はAGENTS.md・VIBE_STARTER_KIT_REVISED_v3.md・旧参考PNG削除のみ。
+
+## マップデザイン刷新・画像生成仕様策定（M_ART_01〜M_ART_03）
+
+- M_ART_01完了：`docs/MAP_ART_SPEC.md` を作成。壁・床・宝箱・罠・階段等の稚拙な幾何学描画を画像生成アセットへ置き換えるための正本仕様書。モンスターアート（`MONSTER_ART_SPEC.md`）と完全互換の1145×1374px、5列×6行、229px正方形セル、四辺19px余白、透過PNG、見下ろし角（床/罠: 60度、壁/オブジェクト: 2.5D 30〜45度）の制作規格および `exploration-ui.js`（`BRPGMapArt`）へのCanvas描画契約・未検品時の安全なフォールバック設計を策定。
+- M_ART_02完了：`docs/MAP_ART_TABLES.md` を作成。全4シート（Sheet 01: 構造物・宝箱・結晶、Sheet 02: 地形ギミック・トラップ、Sheet 03: 灰灯の林縁・森林、Sheet 04: 地下迷宮・古代遺跡・鉱廊）計120セルの詳細制作指示・外見描写・世界観フレーバーを体系化。
+- M_ART_03完了：`docs/map-art/マップアセット共通プロンプト.md` を作成。画像生成AI（ChatGPT / Midjourney等）へ渡すシステムプロンプト・共通指示文を整備。Obsidian相互リンク整合性を確保。
+- 検証完了：Pythonテスト全51件成功（Obsidianファイル名・リンクターゲット・frontmatter検証を含む）、Nodeテスト全36件成功、Pagesビルド成功。
+- 次の操作：関連差分（`docs/MAP_ART_SPEC.md`, `docs/MAP_ART_TABLES.md`, `docs/map-art/マップアセット共通プロンプト.md`, `DEVELOPMENT_PLAN.md`, `DEVELOPMENT_STATUS.md`）をコミットし、`origin/main` および `origin/dev` へ通常push。保護対象（ユーザーAGENTS.md、VIBE_STARTER_KIT_REVISED_v3.md、旧参考PNG削除状態）はstageしない。
+
