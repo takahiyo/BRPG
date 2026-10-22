@@ -6,8 +6,15 @@
   let viewBattle = null, stageView = 'map';
   const baseStopAll = stopAll, baseResume = resumeExpedition, baseVictory = victory;
   const baseEncounter = encounter, baseStep = step;
+  let clickWalkTimer = null;
+  function clearClickWalk() {
+    if (clickWalkTimer !== null) {
+      clearTimeout(clickWalkTimer);
+      clickWalkTimer = null;
+    }
+  }
   function cancelResume() { if (resumeWait !== null) clearInterval(resumeWait); resumeWait = null; }
-  stopAll = function() { cancelResume(); walkOnly = false; return baseStopAll(); };
+  stopAll = function() { cancelResume(); walkOnly = false; clearClickWalk(); return baseStopAll(); };
   resumeExpedition = function() {
     if (resumeWait !== null) return;
     if (resolvingVictory && s.autoExpedition && s.dungeon && !s.battle) {
@@ -227,20 +234,38 @@
       render();
       return;
     }
-    stopAll();
-    let moved = 0;
-    for (const [dx, dy] of path.slice(0, 5)) {
-      if (!s.dungeon || s.battle) break;
-      step(dx, dy, false);
-      moved++;
-      if (s.dungeon && s.dungeon.x === tx && s.dungeon.y === ty) {
+    clearClickWalk();
+
+    function stepTowards() {
+      clickWalkTimer = null;
+      if (!s.dungeon || s.battle || s.view !== 'explore') return;
+      if (s.dungeon.x === tx && s.dungeon.y === ty) {
         tell(`🎯 指定地点（${tx}, ${ty}）に到着しました。`);
-        break;
+        render();
+        return;
       }
+      const curPath = findPathToTile(s.dungeon, tx, ty);
+      if (!curPath || !curPath.length) {
+        tell('その地点への道が途切れました。');
+        render();
+        return;
+      }
+      const [dx, dy] = curPath[0];
+      step(dx, dy, true);
+      if (s.dungeon && !s.battle && (s.dungeon.x !== tx || s.dungeon.y !== ty)) {
+        clickWalkTimer = setTimeout(stepTowards, 160);
+      } else if (s.dungeon && s.dungeon.x === tx && s.dungeon.y === ty) {
+        tell(`🎯 指定地点（${tx}, ${ty}）に到着しました。`);
+      }
+      render();
     }
+
+    const [dx, dy] = path[0];
+    step(dx, dy, true);
     if (s.dungeon && !s.battle && (s.dungeon.x !== tx || s.dungeon.y !== ty)) {
-      const rem = findPathToTile(s.dungeon, tx, ty);
-      tell(`🚶 指定地点（${tx}, ${ty}）へ向かって ${moved}歩 移動（残り ${rem ? rem.length : '?'}歩）。再クリックで継続。`);
+      clickWalkTimer = setTimeout(stepTowards, 160);
+    } else if (s.dungeon && s.dungeon.x === tx && s.dungeon.y === ty) {
+      tell(`🎯 指定地点（${tx}, ${ty}）に到着しました。`);
     }
     render();
   }

@@ -162,3 +162,95 @@ test('Rare individuals (希少個体) are rolled once per battle, at most one, a
   const rate = result.eliteBattles / result.battles;
   assert(rate > 0.005 && rate < 0.09, 'rare battle rate should be about 4%, got ' + rate);
 });
+
+test('Monster name and graphics (catalogId) stay strictly aligned', () => {
+  const { box } = harness();
+  vm.runInContext(`
+    s = fresh();
+    enterMap('forest_edge');
+    for (let i = 0; i < 200; i++) {
+      encounter();
+      if (!s.battle) continue;
+      for (const e of s.battle.enemies) {
+        if (e.id === 'slime' && (e.name.includes('スライム') || e.name === 'スライム')) {
+          const catName = DATA.catalog.monsters[e.catalogId]?.name || '';
+          if (e.catalogId && !catName.includes('スライム') && e.catalogId !== 'M0046') {
+            throw new Error('Slime enemy got mismatched catalogId: ' + e.catalogId + ' with name: ' + e.name);
+          }
+        }
+        if (e.id === 'bat' && (e.name.includes('コウモリ') || e.name.includes('バット'))) {
+          const catName = DATA.catalog.monsters[e.catalogId]?.name || '';
+          if (e.catalogId && !catName.includes('コウモリ') && !catName.includes('バット') && e.catalogId !== 'M0033') {
+            throw new Error('Bat enemy got mismatched catalogId: ' + e.catalogId + ' with name: ' + e.name);
+          }
+        }
+        // If enemy was given a catalog monster identity, its name must match catalog monster name
+        if (e.catalogId && e.catalogId.startsWith('M') && !['M0046', 'M0033', 'M0049'].includes(e.catalogId)) {
+          const catEntry = DATA.catalog.monsters[e.catalogId];
+          if (catEntry && !e.name.includes(catEntry.name)) {
+            throw new Error('Enemy name ' + e.name + ' does not match catalog monster ' + catEntry.name + ' (' + e.catalogId + ')');
+          }
+        }
+      }
+      s.battle = null; stopAll();
+    }
+  `, box);
+});
+
+test('Enemy formation does not display D&D drag hints or empty slot drop hints', () => {
+  const { box } = harness();
+  vm.runInContext(`
+    s = fresh();
+    enterMap('forest_edge');
+    encounter();
+    const enemyHtml = uiEnemies();
+    if (enemyHtml.includes('ドラッグで移動')) {
+      throw new Error('Enemy formation should not include "ドラッグで移動": ' + enemyHtml);
+    }
+    if (enemyHtml.includes('（D&Dで配置）')) {
+      throw new Error('Enemy formation should not include "（D&Dで配置）": ' + enemyHtml);
+    }
+    if (enemyHtml.includes('data-drop-row')) {
+      throw new Error('Enemy formation should not have data-drop-row: ' + enemyHtml);
+    }
+    s.battle = null; stopAll();
+  `, box);
+});
+
+test('Character detail navigation uses formation order (front 1-3, back 1-3) and renders side buttons', () => {
+  const { box } = harness();
+  vm.runInContext(`
+    s = fresh();
+    const hero1 = s.roster[0]; // Ash (front 1)
+    const heroHtml = characterScreen(hero1);
+    if (!heroHtml.includes('character-nav-side prev')) {
+      throw new Error('Missing side prev navigation button');
+    }
+    if (!heroHtml.includes('character-nav-side next')) {
+      throw new Error('Missing side next navigation button');
+    }
+    if (!heroHtml.includes('前衛 1')) {
+      throw new Error('Missing formation position label in pager: ' + heroHtml);
+    }
+
+    // Test ordered navigation
+    openCharacter(hero1.id);
+    const bodyBefore = document.getElementById('character-body').innerHTML;
+    if (!bodyBefore.includes(hero1.name)) throw new Error('Hero 1 not opened');
+
+    // Click next -> should open front 2, then front 3, then back 1, 2, 3
+    const frontHeroes = party().filter(h => h.row === 'front');
+    const backHeroes = party().filter(h => h.row === 'back');
+    const expectedOrder = [...frontHeroes, ...backHeroes];
+
+    for (let i = 0; i < expectedOrder.length; i++) {
+      const current = expectedOrder[i];
+      openCharacter(current.id);
+      const nextExpected = expectedOrder[(i + 1) % expectedOrder.length];
+      const hNext = characterScreen(current);
+      if (!hNext.includes(nextExpected.name)) {
+        throw new Error('Next button title should point to ' + nextExpected.name);
+      }
+    }
+  `, box);
+});

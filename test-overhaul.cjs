@@ -63,7 +63,7 @@ assert(!adjustCharacterGrowth(hero.id, 'STR', -1), 'cannot refund already commit
 assert(adjustCharacterGrowth(hero.id, 'VIT', 1));
 assert(previewCharacterGrowth(hero).after.stats.sp > previewCharacterGrowth(hero).before.stats.sp);
 dispatch('click', { action: 'character-next', id: String(hero.id) });
-assert.equal(s.selection, s.roster[1].id);
+assert.equal(s.selection, 3, 'switches to next hero in formation order (front 2: Neri)');
 openCharacter(hero.id);
 assert.equal(previewCharacterGrowth(hero).before.stats.sp, previewCharacterGrowth(hero).after.stats.sp, 'switching discards draft');
 assert(adjustCharacterGrowth(hero.id, 'STR', 1));

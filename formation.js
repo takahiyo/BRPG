@@ -143,9 +143,12 @@
     }
     return previousHandle(event);
   };
-  function rowHTML(members, row, renderCard, empty = true) {
+  function rowHTML(members, row, renderCard, empty = true, isEnemy = false) {
     const list = members.filter(h => h.row === row);
-    return `<section class="formation-row formation-${row}" data-drop-row="${row}" aria-label="${row === 'front' ? '前衛' : '後衛'}"><div class="formation-label"><b>${row === 'front' ? '前衛' : '後衛'}</b><small>${list.length} / 3 · ドラッグで移動</small></div><div class="formation-slots" data-drop-row="${row}">${list.map(renderCard).join('')}${empty ? Array.from({ length: Math.max(0, 3 - list.length) }, () => `<div class="formation-empty" data-drop-row="${row}" aria-label="空き枠">空き枠（D&Dで配置）</div>`).join('') : ''}</div></section>`;
+    const dropAttr = isEnemy ? '' : ` data-drop-row="${row}"`;
+    const labelHint = isEnemy ? `${list.length} / 3` : `${list.length} / 3 · ドラッグで移動`;
+    const emptyHint = isEnemy ? '空き枠' : '空き枠（D&Dで配置）';
+    return `<section class="formation-row formation-${row}"${dropAttr} aria-label="${row === 'front' ? '前衛' : '後衛'}"><div class="formation-label"><b>${row === 'front' ? '前衛' : '後衛'}</b><small>${labelHint}</small></div><div class="formation-slots"${dropAttr}>${list.map(renderCard).join('')}${empty ? Array.from({ length: Math.max(0, 3 - list.length) }, () => `<div class="formation-empty"${dropAttr} aria-label="空き枠">${emptyHint}</div>`).join('') : ''}</div></section>`;
   }
   strip = function(battle = false) { normalize(); return `<div class="formation-party">${['front', 'back'].map(row => rowHTML(party(), row, h => mini(h, battle))).join('')}</div>`; };
   const previousMini = mini;
@@ -171,7 +174,7 @@
     }
     if (cards.size !== s.battle.enemies.length) return html;
     const card = e => cards.get(e.key).replace(/(<b>[\s\S]*?<\/b>)/, `$1<small>${e.row === 'front' ? '前衛' : '後衛'} · ${LABELS[enemyRange(e)]}</small>`);
-    return `<div class="formation-enemies">${['front', 'back'].map(row => rowHTML(s.battle.enemies, row, card)).join('')}</div>`;
+    return `<div class="formation-enemies">${['front', 'back'].map(row => rowHTML(s.battle.enemies, row, card, true, true)).join('')}</div>`;
   };
   // Describe the actual range in character skills and equipment descriptions.
   const previousSkills = heroSkills;

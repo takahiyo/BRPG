@@ -378,15 +378,31 @@
     const d = draftFor(h), total = draftTotal(h), remaining = freePoints(h) - total;
     return `<div class="row between"><h3>成長</h3><span class="gold">残り ${remaining} Pt${total ? ' · 仮配分 ' + total + ' Pt' : ''}</span></div><div class="growth-grid">${KEYS.map(k => `<div class="growth-control"><div><b>${k}</b><small>${ATTRIBUTE_NAMES[k]}</small></div><span>${changeValue(comparison.before.attributes[k], comparison.after.attributes[k])}</span><div class="actions">${btn('−', 'character-growth', `data-id="${h.id}" data-stat="${k}" data-step="-1" aria-label="${ATTRIBUTE_NAMES[k]}の仮配分を減らす" ${!d.values[k] || s.battle ? 'disabled' : ''}`)}${btn('＋', 'character-growth', `data-id="${h.id}" data-stat="${k}" data-step="1" aria-label="${ATTRIBUTE_NAMES[k]}の仮配分を増やす" ${remaining <= 0 || s.battle ? 'disabled' : ''}`)}</div></div>`).join('')}</div><p class="muted">＋／−で仮配分し、確定するとポイントを使います。取り消しや画面を閉じる操作では消費しません。</p><div class="actions">${btn('この配分で確定', 'character-growth-confirm', `data-id="${h.id}" ${!total || s.battle ? 'disabled' : ''}`, 'primary')}${btn('仮配分を取り消す', 'character-growth-cancel', total ? '' : 'disabled')}</div>${s.battle ? '<p class="muted">戦闘中は成長を確定できません。</p>' : ''}`;
   }
+  function orderedRoster() {
+    const activeFront = party().filter(h => h.row === 'front');
+    const activeBack = party().filter(h => h.row === 'back');
+    const bench = (s.roster || []).filter(h => !s.active.includes(h.id));
+    return [...activeFront, ...activeBack, ...bench];
+  }
   characterScreen = function(h) {
     initialize(h); const j = DATA.jobs[h.job], comparison = previewGrowth(h), learned = uiSkillList(h).filter(sk => sk.level <= h.lv), index = s.roster.indexOf(h);
     const catSkills = (j.catalogSkills || []).map(sid => DATA.catalog?.skills?.[sid]).filter(Boolean);
+    const rosterOrder = orderedRoster();
+    const orderIdx = rosterOrder.findIndex(a => a.id === h.id);
+    const positionLabel = h.row === 'front' && s.active.includes(h.id)
+      ? ('前衛 ' + (party().filter(a => a.row === 'front').findIndex(a => a.id === h.id) + 1))
+      : h.row === 'back' && s.active.includes(h.id)
+      ? ('後衛 ' + (party().filter(a => a.row === 'back').findIndex(a => a.id === h.id) + 1))
+      : '待機';
+    const prevHero = rosterOrder.length > 1 ? rosterOrder[(orderIdx - 1 + rosterOrder.length) % rosterOrder.length] : null;
+    const nextHero = rosterOrder.length > 1 ? rosterOrder[(orderIdx + 1) % rosterOrder.length] : null;
+    const sideNav = rosterOrder.length > 1 ? ('<button type="button" class="character-nav-side prev" data-action="character-prev" data-id="' + h.id + '" aria-label="前の仲間" title="前の仲間：' + esc(prevHero.name) + '">◀</button><button type="button" class="character-nav-side next" data-action="character-next" data-id="' + h.id + '" aria-label="次の仲間" title="次の仲間：' + esc(nextHero.name) + '">▶</button>') : '';
     const catSection = catSkills.length ? `<div class="detail-section"><h4>職能専門技能（主職『${esc(j.name)}』）</h4>${catSkills.map(ck => {
       const unlocked = h.lv >= ck.minLv;
       const behNames = (ck.behaviors || []).map(bid => DATA.catalog?.behaviors?.[bid]?.name || bid).join('・');
       return `<article class="skill-line ${unlocked ? '' : 'locked'}"><div class="row between"><b>${esc(ck.name)} <span class="chip">${esc(ck.kind)}</span></b><small>${unlocked ? '体得済み' : '要 Lv.' + ck.minLv}${behNames ? ' · 行動：' + esc(behNames) : ''}</small></div><p>${esc(ck.effect)}${ck.limit ? ` <small class="muted">（${esc(ck.limit)}）</small>` : ''}</p></article>`;
     }).join('')}</div>` : '';
-    return `<div class="character-pager">${btn('← 前の仲間', 'character-prev', `data-id="${h.id}" ${s.roster.length < 2 ? 'disabled' : ''}`)}<span>${index + 1} / ${s.roster.length}</span>${btn('次の仲間 →', 'character-next', `data-id="${h.id}" ${s.roster.length < 2 ? 'disabled' : ''}`)}</div><div class="hero-top"><div class="avatar">${typeof jobCrestSVG === 'function' ? jobCrestSVG(h.job) : j.icon}</div><div><p class="eyebrow">CHARACTER RECORD</p><h2>${esc(h.name)} <span class="gold">Lv.${h.lv}</span></h2><small>${esc(j.name)} / ${GENDERS[h.gender]} / ${h.row === 'front' ? '前衛' : '後衛'} / ${s.active.includes(h.id) ? '探索参加中' : '街で待機'}</small></div></div><div class="quest-box" style="margin:-4px 0 16px;border-left:3px solid var(--gold)"><div class="row between"><b>【ジョブ特性】${esc(jobTraitInfo(h.job).name)}</b><span class="chip">${esc(jobTraitInfo(h.job).tag)}</span></div><p class="muted" style="margin:4px 0 0">${esc(jobTraitInfo(h.job).desc)}</p></div><div class="character-grid"><section class="character-section"><h3>状態</h3>${bars(h)}<p>${statusLabel(h)} · 経験値 ${h.xp} / ${xpNeeded(h)}</p><dl class="stat-grid">${Object.entries(DERIVED).map(([k, name]) => `<div><dt>${name}</dt><dd>${changeValue(comparison.before.stats[k], comparison.after.stats[k])}</dd></div>`).join('')}</dl></section><section class="character-section">${growthSection(h, comparison)}</section><section class="character-section character-equipment"><h3>装備</h3>${equipmentSection(h)}</section><section class="character-section"><h3>体得した技 <small>${learned.length}種</small></h3><div class="learned-skills">${learned.map(sk => `<article class="skill-line"><div class="row between"><b>${esc(sk.name)}</b><small>MANA ${sk.mp} / SP ${sk.sp || 0}</small></div><p>${esc(skillDescription(sk.desc) || '鍛錬によって体得した技。')}</p></article>`).join('') || '<p class="muted">まだ体得した戦闘技はありません。</p>'}${catSection}</div></section></div>${s.battle && h.hp > 0 && s.active.includes(h.id) ? btn('この仲間に指示する', 'actor-close', `data-id="${h.id}"`, 'primary wide') : ''}`;
+    return `${sideNav}<div class="character-pager"><span class="character-pager-tag">${positionLabel} · ${orderIdx + 1} / ${rosterOrder.length}</span></div><div class="hero-top"><div class="avatar">${typeof jobCrestSVG === 'function' ? jobCrestSVG(h.job) : j.icon}</div><div><p class="eyebrow">CHARACTER RECORD</p><h2>${esc(h.name)} <span class="gold">Lv.${h.lv}</span></h2><small>${esc(j.name)} / ${GENDERS[h.gender]} / ${h.row === 'front' ? '前衛' : '後衛'} / ${s.active.includes(h.id) ? '探索参加中' : '街で待機'}</small></div></div><div class="quest-box" style="margin:-4px 0 16px;border-left:3px solid var(--gold)"><div class="row between"><b>【ジョブ特性】${esc(jobTraitInfo(h.job).name)}</b><span class="chip">${esc(jobTraitInfo(h.job).tag)}</span></div><p class="muted" style="margin:4px 0 0">${esc(jobTraitInfo(h.job).desc)}</p></div><div class="character-grid"><section class="character-section"><h3>状態</h3>${bars(h)}<p>${statusLabel(h)} · 経験値 ${h.xp} / ${xpNeeded(h)}</p><dl class="stat-grid">${Object.entries(DERIVED).map(([k, name]) => `<div><dt>${name}</dt><dd>${changeValue(comparison.before.stats[k], comparison.after.stats[k])}</dd></div>`).join('')}</dl></section><section class="character-section">${growthSection(h, comparison)}</section><section class="character-section character-equipment"><h3>装備</h3>${equipmentSection(h)}</section><section class="character-section"><h3>体得した技 <small>${learned.length}種</small></h3><div class="learned-skills">${learned.map(sk => `<article class="skill-line"><div class="row between"><b>${esc(sk.name)}</b><small>MANA ${sk.mp} / SP ${sk.sp || 0}</small></div><p>${esc(skillDescription(sk.desc) || '鍛錬によって体得した技。')}</p></article>`).join('') || '<p class="muted">まだ体得した戦闘技はありません。</p>'}${catSection}</div></section></div>${s.battle && h.hp > 0 && s.active.includes(h.id) ? btn('この仲間に指示する', 'actor-close', `data-id="${h.id}"`, 'primary wide') : ''}`;
   };
   function refreshDetail() {
     const dialog = $('character-dialog'), h = s.roster.find(a => a.id === s.selection);
@@ -552,8 +568,12 @@
       else if (action === 'character-store-bulk') globalThis.BRPGEquipment?.transferUnworn(id);
       else if (action === 'character-prev' || action === 'character-next') {
         closeEquipmentDialog();
-        const index = s.roster.findIndex(h => h.id === id), direction = action === 'character-next' ? 1 : -1;
-        cancelGrowth(); openCharacter(s.roster[(index + direction + s.roster.length) % s.roster.length].id);
+        const rosterOrder = orderedRoster();
+        const index = rosterOrder.findIndex(h => h.id === id), direction = action === 'character-next' ? 1 : -1;
+        cancelGrowth();
+        if (rosterOrder.length) {
+          openCharacter(rosterOrder[(index + direction + rosterOrder.length) % rosterOrder.length].id);
+        }
       } else if (action === 'character-growth') globalThis.adjustCharacterGrowth(id, b.dataset.stat, Number(b.dataset.step));
       else if (action === 'character-equip') {
         globalThis.BRPGEquipment?.equip(Number(b.dataset.gear), id, b.dataset.slot);

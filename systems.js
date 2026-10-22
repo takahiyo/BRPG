@@ -870,20 +870,27 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     const ELITE_BATTLE_CHANCE = 0.04;
     const eliteIndex = !boss && random() < ELITE_BATTLE_CHANCE ? Math.floor(random() * s.battle.enemies.length) : -1;
     s.battle.enemies.forEach((foe, index) => {
-      const baseMon = monList.length && !boss ? pick(monList) : null;
-      const monTitle = titleList.length && random() < (boss ? 0.85 : 0.45) ? pick(titleList) : null;
-      const isElite = index === eliteIndex;
+      const aliasId = globalThis.BRPGMonsterArt?.enemyAliases?.[foe.id];
+      if (aliasId) foe.catalogId = aliasId;
 
-      if (baseMon) {
-        foe.catalogId = baseMon.id;
-        foe.ecology = baseMon.ecology;
-        foe.craftHint = baseMon.craftHint;
-        e.discoveredMonsters[baseMon.id] = (e.discoveredMonsters[baseMon.id] || 0) + 1;
-        if (random() < 0.55) {
+      // When encountering a catalog-native monster, name and catalogId MUST be completely unified
+      const spawnCatalogMonster = !boss && monList.length && random() < 0.45;
+      if (spawnCatalogMonster) {
+        const baseMon = pick(monList);
+        if (baseMon) {
+          foe.catalogId = baseMon.id;
           foe.baseName = foe.name;
           foe.name = baseMon.name;
+          foe.ecology = baseMon.ecology;
+          foe.craftHint = baseMon.craftHint;
+          e.discoveredMonsters[baseMon.id] = (e.discoveredMonsters[baseMon.id] || 0) + 1;
         }
+      } else if (foe.catalogId) {
+        e.discoveredMonsters[foe.catalogId] = (e.discoveredMonsters[foe.catalogId] || 0) + 1;
       }
+
+      const monTitle = titleList.length && random() < (boss ? 0.85 : 0.45) ? pick(titleList) : null;
+      const isElite = index === eliteIndex;
       if (monTitle) {
         foe.titleId = monTitle.id;
         foe.name = `${monTitle.name}${foe.name}`;
