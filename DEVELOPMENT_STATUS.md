@@ -282,6 +282,34 @@
   - 実ブラウザテスト：`node test-browser.cjs` および `node test-browser.cjs --dist` により、1280px / 390px / 320px の全3幅でソース版・Pages配布版ともに完全合格。
 - 共有先：`origin/main` および `origin/dev` へ通常push。
 
+## マップ視認性・希少種バランス・BGMフォルダ整理（MAP_BGM_ELITE_01）
+
+- 改善内容：
+  1. **マップアート視認性・プロンプト指示調整**：
+     - 風切りの石道などで道と壁の判別がつかず2階への道が見つからない問題に対応。
+     - `docs/map-art/マップアセット共通プロンプト.md`, `docs/MAP_ART_SPEC.md`, `docs/MAP_ART_TABLES.md` を改定：
+       - 床・壁・角タイルは四辺透明余白を廃止し「全面不透明・シームレス連続」規則を定義。
+       - 視点を真上（トップダウン）に統一し、壁上面のテクスチャが隣タイルへ続くように指示。
+       - 明度差40%以上（床60〜75%、壁15〜30%）、色相差（暖色系床／寒色系壁）、コントラスト差を明文化。
+     - ゲーム側（`exploration-ui.js`）でも即時対策として、画像壁タイルへの減光処理（`rgba(3,7,9,0.58)`）、床への暖色オーバーレイ（`rgba(236,214,160,0.16)`）、通行可能マスに面する壁辺へのハイライト枠線描画（`#e9d79f`）を実装し、視覚的な道と壁の境界を明瞭化。
+  2. **希少種（★希少個体）出現率の適正化** (`systems.js`)：
+     - 遭遇敵ごとに15%で付与されていた判定を改修。
+     - 1戦闘ごとに4%（約25戦に1回）・最大1体のみが選ばれるように制限し、本来の希少価値を確立。
+  3. **BGMフォルダ整理・新曲反映** (`audio/bgm/`, `audio.js`, `scripts/build-pages.cjs`, `test-audio.cjs`, `README.md`, `docs/AUDIO.md`)：
+     - `audio/bgm/` ディレクトリを新設し、BGM音源（`Cath_Slan_na_n_Og.mp3`, `Sho_lah_Beneath_the_Moon.mp3`, `The_Wayfarer_s_Morning.mp3`, `Sli_na_Cloch.mp3`, `Solas_na_Sraide.mp3`）を一元配置。ルート直下の重複ファイルを整理。
+     - 街BGMに `audio/bgm/Solas_na_Sraide.mp3`、風切りの石道BGMに `audio/bgm/Sli_na_Cloch.mp3` を設定。
+     - `scripts/build-pages.cjs` の allowlist に `audio/bgm/` の実利用音源を登録。
+     - `test-browser.cjs` のテスト内HTTPサーバーがサブディレクトリ（`audio/bgm/`）を正常に配信できるようにパス解決を修正。
+  4. **キャッシュ強制更新** (`index.html`)：
+     - バージョンキーを `?v=20261022-features-v2` に更新。
+- 検証結果：
+  - Node.js テスト：`test-features.cjs`, `test-audio.cjs` を含む全テスト（44件）完全合格。
+  - Python テスト：全52件合格。
+  - Pages ビルド：`node scripts/build-pages.cjs` 成功。
+  - 実ブラウザテスト：`node test-browser.cjs` および `node test-browser.cjs --dist` により、1280px / 390px / 320px の全3幅で通常版・配布版ともに完全合格。
+- 共有先：`origin/main` および `origin/dev` へ通常push。
+
+
 
 
 

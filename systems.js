@@ -866,10 +866,13 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
     s.battle.allyTarget = wounded[0]?.id || s.battle.actor || party()[0]?.id || 1;
     s.battle.lastTurnDigest = [`⚠️ 遭遇：${s.battle.enemies.map(x => x.name).join('、')} が立ちふさがった！`];
 
-    s.battle.enemies.forEach(foe => {
+    // Rare individuals are rolled once per battle (not per enemy) and at most one appears (~1 in 25 battles).
+    const ELITE_BATTLE_CHANCE = 0.04;
+    const eliteIndex = !boss && random() < ELITE_BATTLE_CHANCE ? Math.floor(random() * s.battle.enemies.length) : -1;
+    s.battle.enemies.forEach((foe, index) => {
       const baseMon = monList.length && !boss ? pick(monList) : null;
       const monTitle = titleList.length && random() < (boss ? 0.85 : 0.45) ? pick(titleList) : null;
-      const isElite = !boss && random() < 0.15;
+      const isElite = index === eliteIndex;
 
       if (baseMon) {
         foe.catalogId = baseMon.id;

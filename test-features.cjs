@@ -138,3 +138,27 @@ test('Return scroll cost is rebalanced and fresh save starts with 1 scroll', () 
     if (freshSave.items.scroll !== 1) throw new Error('Fresh save scrolls: ' + freshSave.items.scroll);
   `, box);
 });
+
+test('Rare individuals (希少個体) are rolled once per battle, at most one, and stay rare', () => {
+  const { box } = harness();
+  const result = vm.runInContext(`
+    s = fresh(); render();
+    let battles = 0, eliteBattles = 0, maxPerBattle = 0;
+    for (let i = 0; i < 1500; i++) {
+      if (!s.dungeon) enterMap('rocky_path');
+      encounter();
+      if (!s.battle) continue;
+      battles++;
+      const elites = s.battle.enemies.filter(e => e.elite).length;
+      if (elites) eliteBattles++;
+      maxPerBattle = Math.max(maxPerBattle, elites);
+      for (const e of s.battle.enemies) if (e.elite !== true && e.name.includes('希少')) throw new Error('non-elite named rare: ' + e.name);
+      s.battle = null; stopAll();
+    }
+    ({ battles, eliteBattles, maxPerBattle });
+  `, box);
+  assert(result.battles >= 1000, 'enough battles simulated: ' + result.battles);
+  assert(result.maxPerBattle <= 1, 'at most one rare individual per battle');
+  const rate = result.eliteBattles / result.battles;
+  assert(rate > 0.005 && rate < 0.09, 'rare battle rate should be about 4%, got ' + rate);
+});

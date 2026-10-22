@@ -345,10 +345,20 @@
       const floorCol=(x*11+y*7)%4;
       const drawnFloor=art?.drawCell(c,biome,floorCol,0,px,py,z,z);
       if(!drawnFloor)rect(px,py,z,z,floorColors[floorCol]);
+      else if(t!=='#')rect(px,py,z,z,'rgba(236,214,160,0.16)');
 
       if(t==='#'){
         const wallCol=(x*3+y*5)%5;
         const drawnWall=art?.drawCell(c,biome,wallCol,1,px,py,z,z);
+        if(drawnWall){
+          // Art walls and floors share similar textures: darken walls and outline every wall face that borders a walkable tile.
+          rect(px,py,z,z,'rgba(3,7,9,0.58)');
+          const open=(nx,ny)=>d.map[ny]?.[nx]!==undefined&&d.map[ny][nx]!=='#'&&d.seen[ny]?.[nx];
+          if(open(x,y-1))line(px,py+1,px+z,py+1,'#e9d79f',2);
+          if(open(x,y+1))line(px,py+z-1,px+z,py+z-1,'#e9d79f',2);
+          if(open(x-1,y))line(px+1,py,px+1,py+z,'#e9d79f',2);
+          if(open(x+1,y))line(px+z-1,py,px+z-1,py+z,'#e9d79f',2);
+        }
         if(!drawnWall){
           rect(px,py+6,z,z-6,'#15272b');rect(px+1,py+1,z-2,z-10,'#46534e');rect(px+2,py+2,z-4,4,'#697063');
           rect(px+3,py+9,20,11,'#515d54');rect(px+25,py+9,16,11,'#424f49');rect(px+3,py+23,12,9,'#47584e');rect(px+17,py+23,24,9,'#566153');

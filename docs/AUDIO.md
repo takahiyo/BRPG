@@ -44,19 +44,22 @@
 
 ## 素材と楽曲の保存場所
 
-今後も楽曲が追加されるため、整理用ディレクトリ `audio/` を正本保存場所として用意している。下位互換性のためプロジェクトルートのファイル名解決も維持し、配布ビルド（Pages）では両方を自動配布する。
+BGMの正本保存場所は `audio/bgm/` のみ（2026-10-22 整理）。旧来のルート直下・`audio/` 直下の重複コピーは削除した。ファイル名はURL・配布ビルドで安全なASCII英数字とアンダースコアのみとする（受領時の `Solas_na_Sráide.mp3` は `Solas_na_Sraide.mp3` へ改名）。配布ビルド（Pages）は `audio.js` が参照する曲だけを allowlist で配布する。
 
-| 用途 | ファイル名 | 保存場所 | 制作元 | 容量 |
+| 用途 | `audio.js` キー | ファイル | 制作元 | 容量 |
 | --- | --- | --- | --- | --- |
-| 戦闘BGM | `Cath_Slan_na_n_Og.mp3` | `audio/` およびルート | Gemini（ユーザー申告） | 4,388,427 bytes |
-| 街／拠点BGM | `The_Wayfarer_s_Morning.mp3` | `audio/` およびルート | Gemini（ユーザー申告） | 4,290,624 bytes |
-| 灰灯の林縁（ダンジョン探索）BGM | `Sho_lah_Beneath_the_Moon.mp3` | `audio/` およびルート | ユーザー追加音源 | 4,265,549 bytes |
+| 街／拠点BGM | `town` | `audio/bgm/Solas_na_Sraide.mp3` | ユーザー追加音源 | 4,347,678 bytes |
+| 戦闘BGM | `battle` | `audio/bgm/Cath_Slan_na_n_Og.mp3` | Gemini（ユーザー申告） | 4,388,427 bytes |
+| 灰灯の林縁 探索BGM | `forest_edge` | `audio/bgm/Sho_lah_Beneath_the_Moon.mp3` | ユーザー追加音源 | 4,265,549 bytes |
+| 風切りの石道 探索BGM | `rocky_path` | `audio/bgm/Sli_na_Cloch.mp3` | ユーザー追加音源 | 4,322,600 bytes |
+| その他ダンジョン探索BGM | `dungeon_default` | `audio/bgm/Sho_lah_Beneath_the_Moon.mp3` | （林縁と共用） | — |
+| 予備（旧街BGM・未使用・非配布） | — | `audio/bgm/The_Wayfarer_s_Morning.mp3` | Gemini（ユーザー申告） | 4,290,624 bytes |
 
 ### 楽曲の追加手順
-1. 新規MP3ファイル（推奨：44.1kHz/48kHz、ステレオ、128〜192kbps、1曲2〜5MB以内・単一25MiB制限厳守）を `audio/` ディレクトリ（およびルート）へ配置。
-2. `audio.js` の `tracks` オブジェクトに対象マップIDまたは用途キー（例: `forest_edge: 'Sho_lah_Beneath_the_Moon.mp3'`）を追加。
-3. `scripts/build-pages.cjs` の allowlist にファイル名を追加。
-4. `test-audio.cjs` および `docs/AUDIO.md` に登録内容を記録。
+1. 新規MP3ファイル（推奨：44.1kHz/48kHz、ステレオ、128〜192kbps、1曲2〜5MB以内・単一25MiB制限厳守）をASCII名で `audio/bgm/` へ配置する。ルート直下には置かない。
+2. `audio.js` の `tracks` オブジェクトに対象マップIDまたは用途キー（例: `rocky_path: 'audio/bgm/Sli_na_Cloch.mp3'`）を追加。
+3. `scripts/build-pages.cjs` の allowlist に `audio/bgm/ファイル名` を追加。
+4. `test-audio.cjs` および `docs/AUDIO.md` に登録内容を記録（`test-audio.cjs` は全曲が `audio/bgm/` に実在することを検査する）。
 
 ## 検証と引き継ぎ
 

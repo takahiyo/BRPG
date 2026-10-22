@@ -58,7 +58,7 @@ test('waits for trusted gesture, loops metadata-only, and does not restart on re
   assert.equal(h.media.length, 0);
   h.emit('keydown', { key: 'Enter', isTrusted: true });
   const m = h.media[0];
-  assert.equal(m.src, 'The_Wayfarer_s_Morning.mp3');
+  assert.equal(m.src, 'audio/bgm/Solas_na_Sraide.mp3');
   assert.equal(m.preload, 'metadata');
   assert.equal(m.loop, true);
   assert.equal(m.volume, 0.5);
@@ -115,7 +115,7 @@ test('rapid context switches retire stale play completions and stale rejections'
   const town = h.media[0];
   h.box.s.battle = {}; h.box.render(); const battle = h.media[1];
   assert(town.paused);
-  assert.equal(battle.src, 'Cath_Slan_na_n_Og.mp3');
+  assert.equal(battle.src, 'audio/bgm/Cath_Slan_na_n_Og.mp3');
   h.box.s.battle = null; h.box.render(); const current = h.media[2];
   current.calls[0].resolve(); await flush();
   town.calls[0].resolve(); battle.calls[0].reject(Error('stale')); await flush();
@@ -135,7 +135,7 @@ test('hidden tab pauses; context changes while hidden resume only intended track
   h.document.hidden = true; h.emit('visibilitychange');
   h.box.s.battle = {}; h.box.render(); assert.equal(h.media.length, 1);
   h.document.hidden = false; h.emit('visibilitychange');
-  const battle = h.media[1]; assert.equal(battle.src, 'Cath_Slan_na_n_Og.mp3');
+  const battle = h.media[1]; assert.equal(battle.src, 'audio/bgm/Cath_Slan_na_n_Og.mp3');
   battle.calls[0].resolve(); await flush();
   h.audio.set('bgmMuted', true);
   h.document.hidden = true; h.emit('visibilitychange');
@@ -184,7 +184,7 @@ test('missing Audio, synchronous failure and media error are contained', async (
 
 test('restored battle starts the battle track only after gesture', () => {
   const h = setup(undefined, { battle: true }); assert.equal(h.media.length, 0);
-  h.emit('pointerdown'); assert.equal(h.media[0].src, 'Cath_Slan_na_n_Og.mp3');
+  h.emit('pointerdown'); assert.equal(h.media[0].src, 'audio/bgm/Cath_Slan_na_n_Og.mp3');
 });
 
 test('SE common gain updates active sounds and closure callers ignore old save gating', () => {
@@ -242,18 +242,41 @@ test('exploration in forest_edge plays Sho_lah_Beneath_the_Moon.mp3', async () =
   h.box.s.dungeon = { mapId: 'forest_edge' };
   h.box.render();
   h.emit('pointerdown');
-  assert.equal(h.media[0].src, 'Sho_lah_Beneath_the_Moon.mp3');
+  assert.equal(h.media[0].src, 'audio/bgm/Sho_lah_Beneath_the_Moon.mp3');
   // Transition to battle switches to battle track
   h.box.s.battle = { turn: 1 };
   h.box.render();
-  assert.equal(h.media[1].src, 'Cath_Slan_na_n_Og.mp3');
+  assert.equal(h.media[1].src, 'audio/bgm/Cath_Slan_na_n_Og.mp3');
   // Ending battle switches back to dungeon track
   h.box.s.battle = null;
   h.box.render();
-  assert.equal(h.media[2].src, 'Sho_lah_Beneath_the_Moon.mp3');
+  assert.equal(h.media[2].src, 'audio/bgm/Sho_lah_Beneath_the_Moon.mp3');
   // Returning to town switches to town track
   h.box.s.view = 'town';
   h.box.s.dungeon = null;
   h.box.render();
-  assert.equal(h.media[3].src, 'The_Wayfarer_s_Morning.mp3');
+  assert.equal(h.media[3].src, 'audio/bgm/Solas_na_Sraide.mp3');
+});
+
+test('exploration in rocky_path (風切りの石道) plays Sli_na_Cloch.mp3 and every track lives in audio/bgm', async () => {
+  const h = setup();
+  h.box.s.view = 'explore';
+  h.box.s.dungeon = { mapId: 'rocky_path' };
+  h.box.render();
+  h.emit('pointerdown');
+  assert.equal(h.media[0].src, 'audio/bgm/Sli_na_Cloch.mp3');
+  h.box.s.battle = { turn: 1 };
+  h.box.render();
+  assert.equal(h.media[1].src, 'audio/bgm/Cath_Slan_na_n_Og.mp3');
+  h.box.s.battle = null;
+  h.box.render();
+  assert.equal(h.media[2].src, 'audio/bgm/Sli_na_Cloch.mp3');
+  const fs = require('node:fs'), path = require('node:path');
+  const src = fs.readFileSync(path.join(__dirname, 'audio.js'), 'utf8');
+  const files = [...src.matchAll(/'([^']+\.mp3)'/g)].map(m => m[1]);
+  assert(files.length >= 5);
+  for (const f of files) {
+    assert.match(f, /^audio\/bgm\/[A-Za-z0-9_]+\.mp3$/);
+    assert(fs.statSync(path.join(__dirname, f)).isFile(), f);
+  }
 });

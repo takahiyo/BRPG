@@ -21,12 +21,13 @@ async function main() {
   let child, socket, sequence = 0, session;
   const server = http.createServer((req, res) => {
     const name = decodeURIComponent(new URL(req.url, 'http://localhost').pathname).slice(1) || 'index.html';
-    if (name.includes('/') || name.includes('\\') || name.startsWith('.')) { res.writeHead(404).end(); return; }
+    const filePath = path.resolve(root, name);
+    if (!filePath.startsWith(root) || name.startsWith('.')) { res.writeHead(404).end(); return; }
     try {
       const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.mp3': 'audio/mpeg' };
       const type = types[path.extname(name)];
       if (!type) { res.writeHead(404).end(); return; }
-      res.writeHead(200, { 'Content-Type': type }); res.end(readFileSync(path.join(root, name)));
+      res.writeHead(200, { 'Content-Type': type }); res.end(readFileSync(filePath));
     } catch { res.writeHead(404).end(); }
   });
   function send(method, params = {}, sessionId = session) {
@@ -121,7 +122,7 @@ async function main() {
     assert(await evaluate(`typeof BRPGFormation !== 'undefined'`), 'Game did not boot');
     assert.equal(await evaluate('__brpgMedia.length'), 0, 'BGM waits for the first real gesture');
     await click('#audio-controls summary');
-    await waitFor(`__brpgMedia.some(m=>m.src.endsWith('The_Wayfarer_s_Morning.mp3')&&!m.paused&&m.readyState>=2&&m.currentTime>0)`, 'native town BGM playback');
+    await waitFor(`__brpgMedia.some(m=>m.src.endsWith('Solas_na_Sraide.mp3')&&!m.paused&&m.readyState>=2&&m.currentTime>0)`, 'native town BGM playback');
     await evaluate(`document.querySelector('#audio-bgm-volume').value='31';document.querySelector('#audio-bgm-volume').dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#audio-se-volume').value='17';document.querySelector('#audio-se-volume').dispatchEvent(new Event('input',{bubbles:true}));`);
     assert.equal(await evaluate('__brpgMedia.at(-1).volume'), 0.31);
     await click('[data-audio-mute="bgm"]');
@@ -233,7 +234,7 @@ async function main() {
       await evaluate(`s.battle=null;render()`);
       await waitFor(`__brpgMedia.some(m=>m.src.endsWith('Sho_lah_Beneath_the_Moon.mp3')&&!m.paused&&m.readyState>=2)`, 'dungeon BGM restored after battle');
       await evaluate(`s.view='town';s.dungeon=null;render()`);
-      await waitFor(`__brpgMedia.some(m=>m.src.endsWith('The_Wayfarer_s_Morning.mp3')&&!m.paused&&m.readyState>=2)`, 'town BGM restored after return');
+      await waitFor(`__brpgMedia.some(m=>m.src.endsWith('Solas_na_Sraide.mp3')&&!m.paused&&m.readyState>=2)`, 'town BGM restored after return');
       console.log('PASS: Chromium ' + width + 'px audio playback/settings, artwork preview/crops, stable party, MAP/enemy switching, encounter SE, equipment/facilities/save and battle turn.');
     }
     assert.deepEqual(errors, [], 'Uncaught browser errors');

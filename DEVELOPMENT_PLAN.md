@@ -190,6 +190,20 @@ M_ART_01〜M_ART_03は `df47bf1` で共有完了。M_ART_04は `eb60952` で共�
 
 BALANCE_UX_01は実装・検証完了。全Node.jsテスト（14スイート42件）、Pythonテスト（52件）、Pagesビルド、Chromium実ブラウザテスト全3幅（通常＆--dist）に完全合格。
 
+## マップ視認性・希少種バランス・BGMフォルダ整理（MAP_BGM_ELITE_01）
+
+ユーザーからのフィードバック対応：
+1. **マップアート視認性・プロンプト調整**：道と壁の判別がつかず2階への道が見つからない問題に対し、共通プロンプト・仕様書・テーブルを改定（床・壁のシームレス化、トップダウン統一、明度差40%以上、暖色床／寒色壁、44px縮小検査）。さらにゲーム描画（`exploration-ui.js`）で画像壁の減光・床への暖色乗算・通路境界ハイライト枠線を追加し即時視認性を確保。
+2. **希少種出現バランス適正化**：敵ごとに15%判定されていた「★希少個体」を、1戦闘につき4%（約25戦に1回）・最大1体のみに調整し、真の希少価値を確立。
+3. **BGMフォルダ整理・新曲反映**：BGMファイルを `audio/bgm/` 配下へ一元化し、ルート直下の重複を整理。街BGMに `Solas_na_Sraide.mp3`、風切りの石道に `Sli_na_Cloch.mp3` を割り当て、Pages配布・テスト・READMEを同期。
+
+| ID | 目的・対象 | 依存 | 完了条件・検証 | チェックポイント |
+| --- | --- | --- | --- | --- |
+| MAP_BGM_ELITE_01 | マップ壁道視認性、希少種出現率抑制、BGM整理（docs/map-art/, docs/MAP_ART_*, exploration-ui.js, systems.js, audio.js, scripts/build-pages.cjs, test-audio.cjs, test-features.cjs, test-browser.cjs） | BALANCE_UX_01 | (1) プロンプト指示改定およびCanvas描画での壁道境界判別性強化、(2) 希少個体出現率の4%抑制・1戦闘最大1体化、(3) audio/bgm/ への楽曲整理と街・風切り石道BGM適用。Nodeテスト・Pythonテスト・Pagesビルド・Chromium全3幅(ソース/dist)通過後にmain/devへ通常push | コミット・両先端照合 |
+
+MAP_BGM_ELITE_01は実装・検証完了。全Node.jsテスト（44件）、Pythonテスト（52件）、Pagesビルド、Chromium実ブラウザテスト全3幅（通常＆--dist）に完全合格。
+
+
 
 
 

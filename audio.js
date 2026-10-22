@@ -4,10 +4,11 @@
   const STORAGE_KEY = 'brpg-audio-v1';
   const defaults = { bgmVolume: 0.5, seVolume: 0.7, bgmMuted: false, seMuted: false };
   const tracks = {
-    town: 'The_Wayfarer_s_Morning.mp3',
-    battle: 'Cath_Slan_na_n_Og.mp3',
-    forest_edge: 'Sho_lah_Beneath_the_Moon.mp3',
-    dungeon_default: 'Sho_lah_Beneath_the_Moon.mp3'
+    town: 'audio/bgm/Solas_na_Sraide.mp3',
+    battle: 'audio/bgm/Cath_Slan_na_n_Og.mp3',
+    forest_edge: 'audio/bgm/Sho_lah_Beneath_the_Moon.mp3',
+    rocky_path: 'audio/bgm/Sli_na_Cloch.mp3',
+    dungeon_default: 'audio/bgm/Sho_lah_Beneath_the_Moon.mp3'
   };
   const doc = globalThis.document;
   let settings = { ...defaults };
