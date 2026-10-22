@@ -2,7 +2,7 @@
 
 更新：2026-10-22 JST / 担当：統括エージェント。
 
-最新状態：画像制作表I0とサンプル対応プロンプトI1-I2はローカル検証済み、I3は共有待ち。基準HEAD `19d5918`、origin/main/dev一致を再確認。音声A0は親側統合待ち、探索GUI A1/A2と状態異常S0-S5は未完了。現在の復旧記録は末尾「サンプル対応I1-I3」を優先する。
+最新状態：画像制作表I0とサンプル対応プロンプトI1-I3は検証・共有済み。制作関連checkpoint `b74258d` をorigin/main/devへpushし両先端一致確認。音声A0は親側統合待ち、探索GUI A1/A2と状態異常S0-S5は未完了。現在の復旧記録は末尾「サンプル対応I1-I3」を優先する。
 
 ## 復旧点
 
@@ -103,4 +103,6 @@
 - I2完了：基準1145×1374/229px、四辺19px以上の透明余白へ変更。SKILL・正本仕様・両exportスクリプトと再生成文書・manifestのlayoutのみを同期し、470対象の対応は保持。画像を自動登録/配布しない。読み取り専用explore担当は解像度参照とruntime非依存を確認済み。
 - I3検証済み：`python scripts/export_monster_art_prompts.py` と `python scripts/export_monster_art_tables.py` 成功。`python -m unittest discover -s scripts -p "*_test_*.py" -v` 50件成功（PNGヘッダと正方形セル寸法、生成一致、470行/空白枠、旧大判指示の不在）。Pillowは一度の画像調査にのみ使用し、新規テストはPython標準ライブラリのみ。`node scripts/build-pages.cjs` と `git diff --check` 成功（改行警告のみ）。今回ゲームコードを変更していないためゲームNode/ブラウザ回帰は再実行していない。
 - 共有対象：制作仕様・索引・17制作表・manifest・共通スキルと持ち運び文書/14入力・export2本/専用テスト・参考PNG・計画/状態。ユーザーのアップ依頼に従いorigin/main/devへ通常commit/pushする。音声途中差分（systems.js/audio関連）・README・AGENTS/共通規則原本・MP3はstageしない。CI/公開成功とは区別。
-- 次：(1) 対象を限定してcommit/pushと到達確認 (2) 生成時は改修済み共通プロンプトと対象表1枚を使用し各セルを検品 (3) 音声/探索GUIの親側統合を再開。現在未コミット、push未実行。
+- I3共有完了：画像制作関連29ファイルを `b74258d136259b778417f9d9c6c2e2414081181f` にcommit。`git push origin HEAD:refs/heads/main HEAD:refs/heads/dev` 成功、`git ls-remote origin refs/heads/main refs/heads/dev` で両先端一致を確認。CI/Pages公開は未確認。ゲーム用画像登録・本番設定変更はしていない。この結果記録も通常commit/pushするが、自身のSHAを追記するだけの追加commitは作らない。
+- 残る未共有差分：AGENTS.md・README.md・systems.js、MP3×2、VIBE_STARTER_KIT_REVISED_v3.md、audio.js/css・docs/AUDIO.md・test-audio.cjs。いずれも保持、今回stage対象外。distはGit管理対象外。
+- 次：(1) 生成時は改修済み共通プロンプトと対象表1枚を使用し、各セルを検品 (2) 音声/探索GUIの親側統合を再開 (3) 対応実装後にPC/狭幅・ゲーム回帰・配布を検証。画像の新規生成は未実施、サンプルは未加工・未承認の参考資料。
