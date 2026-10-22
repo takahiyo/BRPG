@@ -164,7 +164,24 @@
   - Node.js テスト：`test-equipment.cjs`、`test.cjs`、`test-dungeon-improvements.cjs`、`test-overhaul.cjs`、`test-monster-art.cjs`、`test-audio.cjs`、`test-build-pages.cjs` 全て合格。
   - 実ブラウザテスト（`test-browser.cjs`）：Chrome 1280px / 390px / 320px の全3幅で、ソース版および配布ビルド版（`--dist`）ともに装備解除・再装備・長い名前・保存・施設操作すべて例外なく完全合格。
   - Python テスト：全52件合格。
-- 次の操作：関連ファイル（`characters.js`, `equipment.css`, `index.html`, `DEVELOPMENT_PLAN.md`, `DEVELOPMENT_STATUS.md`）をstage/commitし、`origin/main` および `origin/dev` へ通常push。保護対象（ユーザーAGENTS.md、VIBE_STARTER_KIT_REVISED_v3.md、旧参考PNG削除状態）はstageしない。
+- EQ_MODAL_01共有完了：`892e21b` でmain/devへ通常push、両先端一致確認。
+
+## ダンジョンマップアート描画エンジン適用（M_ART_05）
+
+- 課題と改修方針：受領・配置されたマップアセット（`map_sheet01_structures.png` 〜 `map_sheet04_dungeon.png`）がゲーム画面（Canvas `#map`）に適用されておらず幾何学描画のままだった問題を解消。専用描画エンジン（`map-art.js`）を新設し、`exploration-ui.js` の描画処理と接続。
+- 実装内容：
+  - `map-art.js`：`BRPGMapArt` モジュールを新設。4シート（`structures`, `hazards`, `forest`, `dungeon`）の事前ロード、セル切り出し描画（`drawCell`）、ダンジョン別バイオーム判定（`getBiome`）、ロード完了時のCanvas自動再描画を実装。未読み込み時や描画失敗時は安全に `false` を返し既存の幾何学描画へフォールバック。
+  - `exploration-ui.js`：Canvas `draw()` 関数内で `BRPGMapArt.drawCell()` を呼び出し、床（バイオーム別4種）、壁（バイオーム別5種）、出入口アーチ門（col 0, row 0）、階段（col 2, row 0）、宝箱（col 2, row 1）、鉱石/採集（col 2, row 2）、ボス祭壇（col 0, row 1）、水辺/崖/隠し扉/罠（Sheet 02）、未探索マス、探索パーティ現在地マーカー（向き別3種）を描画。
+  - `index.html`：`<script src="map-art.js?v=20261022-map-art"></script>` を `exploration-ui.js` の直前へ追加。
+  - `scripts/build-pages.cjs`：配布許可ファイル配列に `'map-art.js'` を追加。
+  - `test-browser.cjs`：エンカウント突入テスト時の notice 行数変動による垂直位置ブレを排除し、全3幅（1280px/390px/320px）でのブラウザ検証を安定化。
+- 検証結果：
+  - Node.js テスト：`test-exploration.cjs`、`test-dungeon-improvements.cjs`、`test-equipment.cjs`、`test-build-pages.cjs` 全て合格。
+  - Python テスト：全52件合格。
+  - Pages ビルド：`node scripts/build-pages.cjs` 成功。
+  - 実ブラウザテスト：`node test-browser.cjs` および `node test-browser.cjs --dist` により、1280px / 390px / 320px の全3幅でソース版・Pages配布版ともに完全合格。
+- 次の操作：関連ファイル（`map-art.js`, `exploration-ui.js`, `index.html`, `scripts/build-pages.cjs`, `test-browser.cjs`, `DEVELOPMENT_PLAN.md`, `DEVELOPMENT_STATUS.md`）をstage/commitし、`origin/main` および `origin/dev` へ通常push。保護対象（ユーザーAGENTS.md、VIBE_STARTER_KIT_REVISED_v3.md、旧参考PNG削除状態）はstageしない。
+
 
 
 

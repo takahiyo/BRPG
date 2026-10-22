@@ -12,7 +12,7 @@ const files = [
   'formation.js', 'formation.css', 'save-manager.js', '幻想モンスター図鑑 40種.png',
   'audio.js', 'audio.css', 'Cath_Slan_na_n_Og.mp3', 'The_Wayfarer_s_Morning.mp3', 'Sho_lah_Beneath_the_Moon.mp3',
   'audio/Cath_Slan_na_n_Og.mp3', 'audio/The_Wayfarer_s_Morning.mp3', 'audio/Sho_lah_Beneath_the_Moon.mp3',
-  'monster-art.js', 'monster-art.css',
+  'monster-art.js', 'monster-art.css', 'map-art.js',
   'monsters_sheet02_M0031-M0060.png', 'monsters_sheet03_M0061-M0090.png',
   'monsters_sheet04_M0091-M0120.png', 'monsters_sheet05_M0121-M0150.png',
   'monsters_sheet06_M0151-M0180.png', 'monsters_sheet07_M0181-M0210.png',

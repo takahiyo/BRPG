@@ -202,10 +202,10 @@ async function main() {
       await layout(width + ' crafted equipment');
       await click('#save-settings'); await layout(width + ' save settings');
       await click('#save-close');
-      await evaluate(`stopAll();s=fresh();enterMap('forest_edge');stopAll();render();scrollTo(0,0)`);
+      await evaluate(`stopAll();s=fresh();enterMap('forest_edge');stopAll();notice='';render();scrollTo(0,0)`);
       const beforeEncounter = await evaluate(`({party:document.querySelector('.exp-workspace>.exp-party').getBoundingClientRect().top+scrollY,oscillators:__brpgOscillators})`);
       assert(await evaluate(`document.querySelector('.exp-workspace>.exp-party').getBoundingClientRect().height < ${width < 760 ? 360 : 220}`), 'Compact party leaves room for the encounter');
-      await evaluate(`(() => {encounter();stopAll();
+      await evaluate(`(() => {encounter();stopAll();notice='';
         const sample=s.battle.enemies[0];s.battle.enemies=[{...sample,key:0,row:'front',hp:500,maxhp:500},{...sample,key:1,row:'back',hp:500,maxhp:500}];render();})()`);
       assert.equal(await evaluate(`document.querySelector('.exp-workspace>.exp-party').getBoundingClientRect().top+scrollY`), beforeEncounter.party, 'Party position is unchanged on encounter');
       assert.equal(await evaluate('__brpgOscillators'), beforeEncounter.oscillators + 2, 'Encounter SE fires once');
