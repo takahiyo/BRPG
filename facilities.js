@@ -606,7 +606,32 @@
     const discoveredBehaviors=Object.values(catalog.behaviors||{}).filter(b=>behaviorStatus(b.id).discovered);
     return title('LIBRARY OF DISCOVERIES','行動書庫','旅で見つけた行動書の情報を頼りに、判断を学ぶ。')+
       `<section class="panel"><h2>現在の探索方針・補助職の連携（補助役割 ${supRoles}種）</h2><p>${explorer?'🧭 探索者・案内人が同行中：初期の連続探索とSP3の即時帰還を利用できます。':canAutomate()?'連続探索の手引書を習得しています。':'手動で探索できます。探索者・案内人の同行、または連続探索の手引書で自動探索を学べます。'}<br>${tactician?'♟️ 軍師・参謀が同行中：行動書の購入前でも、自動戦闘で負傷者の回復・解毒・弱点狙いの戦術指揮が働きます。':'戦闘職のみの編成では、行動書を買い揃えるまで自動戦闘は先頭への通常攻撃のみとなります。'}</p><label class="field">歩行規則<select data-change="walkRule"><option value="right">右手法</option>${knownRules.filter(b=>b.type==='walk').map(b=>`<option value="${b.id}" ${s.walkRule===b.id?'selected':''} ${!unlocked(b.id)?'disabled':''}>${esc(b.name)}</option>`).join('')}</select></label><div class="actions">${knownRules.filter(b=>b.type==='battle').map(b=>btn((s.battleRules.includes(b.id)?'✓ ':'')+esc(b.name),'battle-rule',`data-id="${b.id}" ${!unlocked(b.id)?'disabled':''}`,s.battleRules.includes(b.id)?'selected':'')).join('')}</div><p class="muted">初期パーティーには探索者（自動探索・帰還支援）と軍師（自動戦闘支援）が編成されています。戦闘職6人だけで挑む編成は、補助職の恩恵を捨てる上級者向けの縛り・やり込み編成です。</p></section><div class="grid three section-space">${books.map(b=>{const owned=s.books.includes(b.id)||e.facilityRules.owned.includes(b.id);return `<article class="card"><span class="chip">平均Lv.${b.level}</span><h2>${esc(b.name)}</h2><p>${esc(b.desc)}</p>${btn(owned?'習得済み':'購入 / '+bookPrice(b)+' G','book',`data-id="${b.id}" ${owned||partyLevel()<b.level||s.gold<bookPrice(b)?'disabled':''}`)}</article>`;}).join('')||'<p class="empty">購入できる行動書の情報は、まだ見つかっていません。</p>'}</div>`+
-      (unlocked('reserve')?reserveHTML():'')+
+  function activeTacticsHTML() {
+    const tactics = typeof activePartyTactics === 'function' ? activePartyTactics() : [];
+    if (!tactics.length) return '';
+    return `<section class="panel section-space">
+      <h2>♟️ 部隊戦術・リソース残量指定スキル（発動中 ${tactics.length}件）</h2>
+      <p class="muted">軍師や専門職が部隊に同行することで発動する戦術規律です。自動探索や自動戦闘でのSP枯渇・疲弊（能力半減）やマナ切れを未然に防ぎます。</p>
+      <div class="grid three">
+        ${tactics.map(t => {
+          const res = t.reserve;
+          const scopeLabel = res.scope === 'party' ? '部隊全体' : '使用者本人';
+          const typeLabel = res.type === 'sp' ? 'SP' : 'MANA';
+          const valLabel = res.mode === 'percent' ? `${res.value}%` : `${res.value}`;
+          return `<article class="card">
+            <div class="row between">
+              <h3>${esc(t.skill.name)}</h3>
+              <span class="chip">${scopeLabel}</span>
+            </div>
+            <p><strong>${esc(t.hero.name)}</strong>（${DATA.jobs[t.hero.job]?.name || ''}）が指揮・発動中。<br>${esc(t.skill.desc)}</p>
+            <div class="row between"><small class="muted">指定残量閾値</small><strong>${typeLabel} ${valLabel} 以上を温存</strong></div>
+          </article>`;
+        }).join('')}
+      </div>
+    </section>`;
+  }
+      activeTacticsHTML()+
+      ((unlocked('reserve') || (typeof activePartyTactics === 'function' && activePartyTactics().length > 0)) ? reserveHTML() : '')+
       `<section class="panel section-space"><div class="row between"><h2>探索行動方針（最大6枠優先設定）</h2><span class="chip">発見済み ${discoveredBehaviors.length}種 · 設定中 ${(e.activeBehaviors||['B01']).length}/6枠</span></div><p class="muted">入手した探索手引書（平均Lv条件）または同行中の専門職が体得した技能によって利用できます。専門職だけに頼る行動は、本人が戦闘不能になると停止します。</p><div class="grid three">${discoveredBehaviors.map(b=>{const st=behaviorStatus(b.id),active=(e.activeBehaviors||['B01']).includes(b.id);return `<article class="card ${st.usable?'':'locked'}"><div class="row between"><h3>${esc(b.name)}</h3><span class="chip">${esc(st.reason)}</span></div><p>${esc(b.action)}</p>${b.id==='B01'?'<span class="chip">基本行動（常時有効）</span>':btn(active?'✓ 優先設定中':st.usable?'行動枠に設定':'条件未達','toggle-behavior',`data-id="${b.id}" ${!st.usable&&!active?'disabled':''}`,active?'selected':'')}</article>`;}).join('')}</div></section>`;
   };
   function reserveHTML() {

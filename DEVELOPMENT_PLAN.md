@@ -319,18 +319,42 @@ DUNGEON_MAP_GIMMICKS_01は実装・検証完了。全Node.jsテスト、Python�
 | BATTLE_DQ_COMMANDS_01 | ドラクエ風コマンドバトル方式（順次入力/対象即決/戻る機能）およびパーティ全体逃走実装（game.js, exploration-ui.js, exploration-ui.css, index.html, test-features.cjs） | DUNGEON_MAP_GIMMICKS_01 | (1) 隊列順の順次コマンド入力・戻る・全員完了でターン開始、(2) パーティ全体の逃走判定とボス戦逃走不可・失敗時回り込まれ、(3) 既存E2Eブラウザテストとの完全両立。全Nodeテスト(13件)・Pythonテスト(52件)・Pagesビルド・Chromium全3幅(通常/dist)通過後にmain/devへ通常push | コミット・両先端照合 |
 
 BATTLE_DQ_COMMANDS_01は実装・検証完了。全Node.jsテスト、Pythonテスト（52件）、Pagesビルド、Chromium実ブラウザテスト全3幅（通常＆--dist）に完全合格。
+## 軍師・専門職のリソース残量指定スキル＆自動探索安全停止（TACTICS_RESOURCE_RESERVE_01）
 
+ユーザーからのフィードバック対応：
+- **課題**：
+  1. 自動探索＋自動戦闘にした際、SPやMANAを使い切って疲弊（SP0で能力半減・移動速度半減）やマナ枯渇に陥ってしまう。
+  2. 軍師や各専門職に、SPやMANAを使い切らないように指定・温存してくれるスキルを用意したい（0にならない底打ち防止、絶対値5や8残し、1割や2割残し、全体陣形/個別パッシブ、消費あり/なし等のバリエーション）。
+- **対応内容**：
+  1. **職業ごとの残量指定スキル群（`world-data.js`）**：
+     - **軍師（tactician）**：
+       - `tactics_sp_bottom`（兵站管理・底打ち防止 Lv.1）：部隊全体のSP最低1残し（SP0疲弊を未然に防止）。
+       - `tactics_sp_fixed`（行軍規律・絶対値温存 Lv.4）：部隊全体のSP最低5残し。
+       - `tactics_sp_ratio`（持久戦術・二割温存 Lv.8）：部隊全体のSP20%残し。
+       - `tactics_mp_ratio`（魔導統制・マナ節制 Lv.6）：部隊全体のMANA15%残し。
+     - **探索者（explorer）**：
+       - `trail_ration`（探索者の配給術 Lv.2）：部隊全体のSP10%残し。
+     - **魔法系・専門職**：
+       - `mana_conserve`（魔力保全 / 魔法使い Lv.2）：自己MANA最低1残し（気絶・完全沈黙防止）。
+       - `astral_reserve`（星辰の蓄え / 星詠み Lv.6）：自己MANA最低10残し。
+       - `sage_wisdom`（大賢者の配剤 / 賢者 Lv.5）：部隊全体のMANA25%残し。
+       - `ki_conserve`（気功温存 / 修道拳士 Lv.3）：自己SP30%残し。
+       - `zanshin`（残心の構え / 侍 Lv.4）：自己SP最低8残し。
+  2. **戦術統合リソース計算基盤（`heroResourceLimits` / `belowReserve`）**：
+     - 行動書「残量判断の書」の購入有無に関わらず、同行中の軍師・探索者・賢者の陣形スキルおよび各員のパッシブスキルを合算評価し、各員の最低保持閾値を自動算出。
+  3. **自動戦闘（`autoPlans`）＆通常攻撃の温存連携（`game.js`, `formation.js`）**：
+     - 自動戦闘時、スキル消費後に温存閾値を下回る場合はスキルを自粛し、通常攻撃や防御に切り替え。
+     - 通常攻撃時も、SPが温存閾値以下のときはSPを消費せず「慎重な一撃」を行い、SPが0になって疲弊することを確実に防止。
+  4. **自動探索（`walkTick`）での過労・全滅防止安全停止**：
+     - 連続探索歩行中、仲間の誰かのSPが温存ラインに達した際、過労による全滅を防ぐため自動探索を即時安全停止し、メッセージで警告。
+  5. **UI表示（`facilities.js`, `exploration-ui.js`）**：
+     - 作戦画面（行動書庫）に「部隊戦術・リソース残量指定スキル」一覧パネルを新設。
+     - 戦闘画面トップバーに「発動戦術バッジ」および仲間カードに温存ライン表示を追加。
+  6. **自動テストの拡充（`test-features.cjs`）**：
+     - 軍師のSP底打ち防止（SP1保持・通常攻撃でのSP0防止）、絶対値5残し、割合20%残し、MANA15%残し、魔法使いのMANA1残し、修道拳士のSP30%残し、侍のSP8残し、自動戦闘でのスキル自粛、自動探索の安全停止を検証。
 
+| ID | 目的・対象 | 依存 | 完了条件・検証 | チェックポイント |
+| --- | --- | --- | --- | --- |
+| TACTICS_RESOURCE_RESERVE_01 | 軍師・各職のリソース残量指定スキル・自動戦闘温存・自動探索安全停止実装（world-data.js, systems.js, game.js, formation.js, facilities.js, exploration-ui.js, index.html, test-features.cjs, test.cjs） | BATTLE_DQ_COMMANDS_01 | (1) 軍師/探索者/魔法使い/修道拳士/侍/星詠み/賢者の残量指定スキル、(2) heroResourceLimits/belowReserve基盤、(3) 通常攻撃でのSP0疲弊防止、(4) 自動戦闘でのスキル自粛、(5) 自動探索での安全停止、(6) 作戦画面・戦闘コンソール表示。全Nodeテスト(14件)・回帰テスト・Pythonテスト(52件)・Pagesビルド・Chromium全3幅(通常/dist)通過後にmain/devへ通常push | コミット・両先端照合 |
 
-
-
-
-
-
-
-
-
-
-
-
-
+TACTICS_RESOURCE_RESERVE_01は実装・検証完了。全Node.jsテスト（14件）、回帰テスト、Pythonテスト（52件）、Pagesビルド、Chromium実ブラウザテスト全3幅（通常＆--dist）に完全合格。

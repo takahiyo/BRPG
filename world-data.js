@@ -2,8 +2,18 @@
  * Names, prices and growth thresholds are provisional game content, not canon.
  * This file mutates DATA's properties; DATA remains a classic-script const. */
 (() => {
-  const skill = (name, level, mp, power, kind, element, target, desc) => ({ name, level, mp, power, kind, element, target, desc });
+  const skill = (name, level, mp, power, kind, element, target, desc, extra = {}) => ({ name, level, mp, power, kind, element, target, desc, ...extra });
   DATA.skills = {
+    tactics_sp_bottom: skill('兵站管理・底打ち防止', 1, 0, 0, 'tactics', 'physical', 'allAllies', '【軍師陣形】部隊全体のSPが0になるのを防ぐ（最低1残す）。自動探索・自動戦闘でSP枯渇と疲弊を防止。', { reserve: { type: 'sp', mode: 'absolute', value: 1, scope: 'party' } }),
+    tactics_sp_fixed: skill('行軍規律・絶対値温存', 4, 0, 0, 'tactics', 'physical', 'allAllies', '【軍師陣形】部隊全体のSPを最低5残す。自動探索中にSP5以下で安全停止、自動戦闘でもスキルを温存。', { reserve: { type: 'sp', mode: 'absolute', value: 5, scope: 'party' } }),
+    tactics_sp_ratio: skill('持久戦術・二割温存', 8, 0, 0, 'tactics', 'physical', 'allAllies', '【軍師陣形】部隊全体のSPを最大値の20%常に残す。長丁場の探索や連戦でも疲弊を未然に防止。', { reserve: { type: 'sp', mode: 'percent', value: 20, scope: 'party' } }),
+    tactics_mp_ratio: skill('魔導統制・マナ節制', 6, 0, 0, 'tactics', 'light', 'allAllies', '【軍師陣形】部隊全体のMANAを最大値の15%残す。自動戦闘での魔法乱用を抑え、回復用のMPを確保。', { reserve: { type: 'mana', mode: 'percent', value: 15, scope: 'party' } }),
+    trail_ration: skill('探索者の配給術', 2, 0, 0, 'tactics', 'physical', 'allAllies', '【探索者陣形】部隊全体のSPを最大値の10%残す。野外での糧食管理によりSP切れを防ぐ。', { reserve: { type: 'sp', mode: 'percent', value: 10, scope: 'party' } }),
+    mana_conserve: skill('魔力保全', 2, 0, 0, 'passive', 'light', 'self', '【自己パッシブ】自身のMANAが0になるのを防ぐ（最低1残す）。自動戦闘での完全魔力枯渇を防止。', { reserve: { type: 'mana', mode: 'absolute', value: 1, scope: 'self' } }),
+    astral_reserve: skill('星辰の蓄え', 6, 0, 0, 'passive', 'light', 'self', '【自己パッシブ】自身のMANAを最低10残す。星の導きにより緊急時の魔力を常時確保。', { reserve: { type: 'mana', mode: 'absolute', value: 10, scope: 'self' } }),
+    sage_wisdom: skill('大賢者の配剤', 5, 0, 0, 'tactics', 'light', 'allAllies', '【賢者陣形】部隊全体のMANAを最大値の25%残す。賢者の知恵により、パーティ全体の魔力枯渇を防ぐ。', { reserve: { type: 'mana', mode: 'percent', value: 25, scope: 'party' } }),
+    ki_conserve: skill('気功温存', 3, 0, 0, 'passive', 'physical', 'self', '【自己パッシブ】自身のSPを最大値の30%残す。気の巡りを保ち、決して疲弊しない。', { reserve: { type: 'sp', mode: 'percent', value: 30, scope: 'self' } }),
+    zanshin: skill('残心の構え', 4, 0, 0, 'passive', 'physical', 'self', '【自己パッシブ】自身のSPを最低8残す。必殺の太刀筋のための余力を常に残す。', { reserve: { type: 'sp', mode: 'absolute', value: 8, scope: 'self' } }),
     power: skill('強撃', 1, 3, 1.5, 'attack', 'physical', 'enemy', 'MP3。敵1体に攻撃力×1.5の物理攻撃。'),
     sweep: skill('横薙ぎ', 3, 6, .85, 'attack', 'physical', 'allEnemies', 'MP6。敵全体に攻撃力×0.85の物理攻撃。'),
     breaker: skill('破城撃', 8, 8, 2.2, 'attack', 'physical', 'enemy', 'MP8。敵1体に攻撃力×2.2の物理攻撃。'),
@@ -142,20 +152,20 @@
   DATA.jobs = {
     warrior: job('戦士', '⚔️', 65, 15, 12, 6, 3, 7, 1, ['power', 'swordbasics', 'sweep', 'breaker']),
     knight: job('騎士', '🛡️', 70, 19, 10, 7, 5, 5, 2, ['guard', 'shieldbash', 'sanctuary']),
-    mage: job('魔法使い', '🔥', 45, 30, 8, 3, 14, 7, 1, ['fire', 'arcaneprobe', 'frostbolt', 'firestorm']),
+    mage: job('魔法使い', '🔥', 45, 30, 8, 3, 14, 7, 1, ['fire', 'mana_conserve', 'arcaneprobe', 'frostbolt', 'firestorm']),
     priest: job('僧侶', '✨', 50, 28, 8, 4, 12, 6, 1, ['heal', 'blessing', 'cleanse', 'sunray']),
     scout: job('盗賊', '🗡️', 48, 20, 10, 3, 5, 12, 1, ['venom', 'feint', 'backstab', 'knives']),
     ranger: job('狩人', '🏹', 54, 22, 11, 4, 6, 11, 2, ['volley', 'aimedshot', 'frostshot']),
     alchemist: job('錬金術師', '⚗️', 48, 28, 8, 4, 12, 8, 3, ['bomb', 'tincture', 'acidflask']),
-    tactician: job('軍師', '📜', 54, 25, 9, 5, 10, 9, 4, ['rally', 'tacticalstrike', 'formation']),
-    monk: job('修道拳士', '👊', 62, 19, 12, 4, 8, 10, 3, ['palm', 'innerbreath', 'hundredfists']),
+    tactician: job('軍師', '📜', 54, 25, 9, 5, 10, 9, 4, ['rally', 'tactics_sp_bottom', 'tacticalstrike', 'tactics_sp_fixed', 'tactics_mp_ratio', 'formation', 'tactics_sp_ratio']),
+    monk: job('修道拳士', '👊', 62, 19, 12, 4, 8, 10, 3, ['palm', 'ki_conserve', 'innerbreath', 'hundredfists']),
     bard: job('吟遊詩人', '🎵', 49, 28, 8, 3, 11, 10, 4, ['hymn', 'waranthem', 'discord']),
     druid: job('森の導師', '🌿', 53, 29, 8, 4, 13, 6, 5, ['leafblade', 'spring', 'spores']),
     elementalist: job('精霊術師', '⚡', 45, 34, 8, 3, 15, 8, 6, ['shock', 'chainlightning', 'blizzard']),
     paladin: job('聖騎士', '☀️', 68, 24, 11, 7, 10, 5, 8, ['smite', 'layhands', 'holywall']),
     warlock: job('影術師', '🌘', 47, 33, 8, 3, 15, 8, 8, ['darkbolt', 'lifedrain', 'nightfall']),
     lancer: job('槍騎兵', '🔱', 63, 21, 12, 5, 6, 9, 6, ['chargespear', 'thunderlance', 'broadlance']),
-    explorer: job('探索者', '🧭', 56, 24, 10, 4, 9, 10, 1, ['surveystrike', 'fieldguard', 'fieldcure', 'expedition']),
+    explorer: job('探索者', '🧭', 56, 24, 10, 4, 9, 10, 1, ['surveystrike', 'trail_ration', 'fieldguard', 'fieldcure', 'expedition']),
     swordsman: job('剣士', '🗡️', 61, 19, 12, 5, 4, 10, 2, ['swordarc', 'swordrain', 'ironstance', 'swordfinish']),
     pyromancer: job('炎術士', '🔥', 46, 32, 8, 3, 15, 7, 2, ['ember', 'flamefan', 'furnace', 'inferno']),
     cryomancer: job('氷術士', '❄️', 47, 32, 8, 4, 14, 7, 3, ['iceneedle', 'sleet', 'icepillar', 'whiteout']),
@@ -171,11 +181,11 @@
     whipmaster: job('操鞭士', '🪢', 59, 22, 12, 5, 6, 11, 3, ['whipsnap', 'bindlash', 'serpentsweep', 'grandlash']),
     queen: job('女王様', '👑', 50, 34, 9, 4, 15, 10, 6, ['heelsmite', 'royalorder', 'thornslash', 'queendom']),
     merchant: job('豪商', '⚖️', 56, 26, 10, 5, 10, 10, 3, ['abacusstrike', 'bribeveil', 'goldrush', 'audit']),
-    samurai: job('侍', '⚔️', 64, 21, 14, 6, 6, 11, 6, ['iaislash', 'sakurafall', 'mindsword', 'amaterasu']),
+    samurai: job('侍', '⚔️', 64, 21, 14, 6, 6, 11, 6, ['iaislash', 'zanshin', 'sakurafall', 'mindsword', 'amaterasu']),
     ninja: job('忍び', '🥷', 50, 26, 12, 4, 11, 14, 7, ['shuriken', 'firescroll', 'utsusemi', 'shadowassault']),
     necromancer: job('死霊術師', '💀', 46, 35, 7, 4, 16, 8, 9, ['soularrow', 'rotcloud', 'bonewall', 'soulharvest']),
-    astrologer: job('星詠み', '🔭', 48, 36, 7, 4, 16, 9, 8, ['starray', 'starlight', 'meteorfall', 'cosmos']),
-    sage: job('賢者', '📖', 52, 40, 8, 5, 17, 9, 10, ['Logos', 'panacea', 'elementalwave', 'philosopher'])
+    astrologer: job('星詠み', '🔭', 48, 36, 7, 4, 16, 9, 8, ['starray', 'starlight', 'astral_reserve', 'meteorfall', 'cosmos']),
+    sage: job('賢者', '📖', 52, 40, 8, 5, 17, 9, 10, ['Logos', 'panacea', 'sage_wisdom', 'elementalwave', 'philosopher'])
   };
 
   // Promotion depends on learned skills and job history, never an unimplemented weapon slot.

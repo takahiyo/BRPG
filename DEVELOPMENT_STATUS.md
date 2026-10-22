@@ -436,3 +436,39 @@
   - Pages ビルド：`node scripts/build-pages.cjs` 成功。
   - 実ブラウザテスト：`node test-browser.cjs` および `node test-browser.cjs --dist` により、1280px / 390px / 320px の全3幅で通常版・配布版ともに完全合格。
 - 共有先：`origin/main` および `origin/dev` へ通常push。
+## 軍師・専門職のリソース残量指定スキル＆自動探索安全停止（TACTICS_RESOURCE_RESERVE_01）
+
+- 改善内容：
+  1. **職業ごとの残量指定スキル群の実装** (`world-data.js`)：
+     - **軍師（tactician）**：
+       - `tactics_sp_bottom`（兵站管理・底打ち防止 Lv.1）：部隊全体のSP最低1残し（SP0疲弊を未然に防止）。
+       - `tactics_sp_fixed`（行軍規律・絶対値温存 Lv.4）：部隊全体のSP最低5残し。
+       - `tactics_sp_ratio`（持久戦術・二割温存 Lv.8）：部隊全体のSP20%残し。
+       - `tactics_mp_ratio`（魔導統制・マナ節制 Lv.6）：部隊全体のMANA15%残し。
+     - **探索者（explorer）**：
+       - `trail_ration`（探索者の配給術 Lv.2）：部隊全体のSP10%残し。
+     - **魔法系・専門職**：
+       - `mana_conserve`（魔力保全 / 魔法使い Lv.2）：自己MANA最低1残し（気絶・完全沈黙防止）。
+       - `astral_reserve`（星辰の蓄え / 星詠み Lv.6）：自己MANA最低10残し。
+       - `sage_wisdom`（大賢者の配剤 / 賢者 Lv.5）：部隊全体のMANA25%残し。
+       - `ki_conserve`（気功温存 / 修道拳士 Lv.3）：自己SP30%残し。
+       - `zanshin`（残心の構え / 侍 Lv.4）：自己SP最低8残し。
+  2. **戦術統合リソース計算基盤** (`systems.js`)：
+     - 行動書「残量判断の書」の購入有無に関わらず、同行中の軍師・探索者・賢者の陣形スキルおよび各員のパッシブスキルを合算評価し、各員の最低保持閾値を自動算出（`heroResourceLimits` / `belowReserve`）。
+  3. **自動戦闘（`autoPlans`）＆通常攻撃の温存連携** (`game.js`, `formation.js`)：
+     - 自動戦闘時、スキル消費後に温存閾値を下回る場合はスキルを自粛し、通常攻撃や防御に切り替え。
+     - 通常攻撃時も、SPが温存閾値以下のときはSPを消費せず「慎重な一撃」を行い、SPが0になって疲弊することを確実に防止。
+  4. **自動探索（`walkTick`）での過労・全滅防止安全停止** (`game.js`)：
+     - 連続探索歩行中、仲間の誰かのSPが温存ラインに達した際、過労による全滅を防ぐため自動探索を即時安全停止し、メッセージで警告。
+  5. **UI表示** (`facilities.js`, `exploration-ui.js`, `index.html`)：
+     - 作戦画面（行動書庫）に「部隊戦術・リソース残量指定スキル」一覧パネルを新設。
+     - 戦闘画面トップバーに「発動戦術バッジ」および仲間カードに温存ライン表示を追加。
+     - `index.html` のキャッシュキーを `?v=20261023-tactics-reserve-v1` に更新。
+  6. **自動テストの整備** (`test-features.cjs`, `test.cjs`):
+     - 軍師のSP底打ち防止（SP1保持・通常攻撃でのSP0防止）、絶対値5残し、割合20%残し、MANA15%残し、魔法使いのMANA1残し、修道拳士のSP30%残し、侍のSP8残し、自動戦闘でのスキル自粛、自動探索の安全停止をテスト検証。
+- 検証結果：
+  - Node.js テスト：`test-features.cjs` (14件), `test.cjs`, `test-regression.cjs` 含む全テストスイート完全合格。
+  - Python テスト：全52件合格。
+  - Pages ビルド：`node scripts/build-pages.cjs` 成功。
+  - 実ブラウザテスト：`node test-browser.cjs` および `node test-browser.cjs --dist` により、1280px / 390px / 320px の全3幅で通常版・配布版ともに完全合格。
+- 共有先：`origin/main` および `origin/dev` へ通常push。

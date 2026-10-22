@@ -145,6 +145,11 @@
     const foes = formation ? formation.targets(actor) : enemyAlive();
 
     // 1. トップバー（パーティ全体逃走・おまかせ・自動戦闘）
+    const activeTactics = typeof activePartyTactics === 'function' ? activePartyTactics() : [];
+    const tacticsBar = activeTactics.length ? `<div class="exp-dq-tactics-bar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 8px;background:rgba(0,0,0,0.3);border-radius:4px;margin-bottom:8px;font-size:11px;">
+      <span style="color:#d4af37;font-weight:bold;">♟️ 発動戦術:</span>
+      ${activeTactics.map(t => `<span class="chip" style="font-size:10px;padding:2px 6px;" title="${esc(t.skill.desc)}">${esc(t.skill.name)}</span>`).join('')}
+    </div>` : '';
     const topBar = `<div class="exp-dq-party-bar">
       <div class="exp-dq-turn-label"><span class="chip">TURN ${b.turn}</span><small>作戦全体指示</small></div>
       <div class="exp-dq-party-actions">
@@ -152,7 +157,7 @@
         <button type="button" class="btn exp-template" data-action="template">⚡ おまかせ</button>
         <button type="button" class="btn ${battleTimer ? 'selected' : ''}" data-action="auto-battle">${battleTimer ? '⏹ 自動停止' : '🤖 自動戦闘'}</button>
       </div>
-    </div>`;
+    </div>` + tacticsBar;
 
     // 2. 仲間のコマンド予約状況カード一覧（ドラクエ風）
     const partyCards = `<div class="exp-dq-heroes-row" role="group" aria-label="仲間の行動予約状況">
@@ -174,7 +179,7 @@
           <div class="hero-bars">
             <span class="hp-num">HP ${h.hp}</span>
             <span class="mp-num">MP ${h.mp}</span>
-            <span class="sp-num">SP ${h.sp ?? 0}</span>
+            <span class="sp-num">SP ${h.sp ?? 0}${(typeof heroResourceLimits === 'function' && heroResourceLimits(h).spThreshold > 0) ? ' <small style="color:#ffbc5b">保' + heroResourceLimits(h).spThreshold + '</small>' : ''}</span>
           </div>
           <div class="hero-plan-badge ${p ? 'has-plan' : 'pending'}">
             <span>${planIcon} ${esc(planLabel)}</span>

@@ -495,4 +495,96 @@ test('Dragon Quest style command battle flow and party-wide escape', async () =>
   `, box);
 });
 
+test('Tactician and multi-class resource reservation skills (SP/MANA bottom-out guard, fixed value, ratio, battle auto conservation, and auto expedition safe-stop)', () => {
+  const { box } = harness();
+  vm.runInContext(`
+    boot();
+    // Fresh party has [warrior, priest, explorer, tactician]
+    const tactician = party().find(h => h.job === 'tactician');
+    const explorer = party().find(h => h.job === 'explorer');
+    const warrior = party().find(h => h.job === 'warrior');
+    assert(tactician, 'Party has tactician');
+    assert(explorer, 'Party has explorer');
+
+    // 1. Tactician Lv.1: tactics_sp_bottom ensures SP >= 1 (no exhaustion / 0 SP)
+    const lim1 = heroResourceLimits(warrior);
+    assert.equal(lim1.spThreshold >= 1, true, 'Tactician Lv.1 grants at least SP 1 threshold for all party members');
+
+    // Test attack SP consumption bottom-out: when SP == 1, heroAttack should NOT reduce SP to 0
+    warrior.sp = 1;
+    const dummyEnemy = { id: 'slime', name: 'スライム', hp: 50, def: 0, level: 1 };
+    heroAttack(warrior, dummyEnemy, 1, 'physical', true);
+    assert.equal(warrior.sp, 1, 'Hero attack leaves SP at 1, preventing SP 0 fatigue exhaustion');
+
+    // 2. Tactician Lv.4: tactics_sp_fixed ensures SP >= 5
+    tactician.lv = 4;
+    syncHero(tactician);
+    const lim4 = heroResourceLimits(warrior);
+    assert.equal(lim4.spThreshold >= 5, true, 'Tactician Lv.4 grants SP 5 fixed threshold');
+
+    // 3. Tactician Lv.8: tactics_sp_ratio ensures SP >= 20%
+    tactician.lv = 8;
+    syncHero(tactician);
+    const lim8 = heroResourceLimits(warrior);
+    const expected20 = Math.ceil(maxSP(warrior) * 0.20);
+    assert.equal(lim8.spThreshold >= expected20, true, 'Tactician Lv.8 grants SP 20% ratio threshold');
+
+    // 4. Tactician Lv.6: tactics_mp_ratio ensures MANA >= 15%
+    tactician.lv = 6;
+    syncHero(tactician);
+    const priest = party().find(h => h.job === 'priest');
+    const mpLim6 = heroResourceLimits(priest);
+    const expectedMp15 = Math.ceil(stats(priest).mp * 0.15);
+    assert.equal(mpLim6.mpThreshold >= expectedMp15, true, 'Tactician Lv.6 grants MP 15% ratio threshold');
+
+    // 5. Mage Lv.2: mana_conserve ensures self MANA >= 1 (never hits 0)
+    const mageHero = makeHero(99, 'テスト魔法使い', 'mage');
+    mageHero.lv = 2;
+    syncHero(mageHero);
+    const mageLim = heroResourceLimits(mageHero);
+    assert.equal(mageLim.mpThreshold >= 1, true, 'Mage Lv.2 self mana_conserve ensures MP >= 1');
+
+    // 6. Monk Lv.3: ki_conserve ensures self SP >= 30%
+    const monkHero = makeHero(98, 'テスト修道拳士', 'monk');
+    monkHero.lv = 3;
+    syncHero(monkHero);
+    const monkLim = heroResourceLimits(monkHero);
+    assert.equal(monkLim.spThreshold >= Math.ceil(maxSP(monkHero) * 0.30), true, 'Monk Lv.3 self ki_conserve ensures SP >= 30%');
+
+    // 7. Samurai Lv.4: zanshin ensures self SP >= 8
+    const samuraiHero = makeHero(97, 'テスト侍', 'samurai');
+    samuraiHero.lv = 4;
+    syncHero(samuraiHero);
+    const samuraiLim = heroResourceLimits(samuraiHero);
+    assert.equal(samuraiLim.spThreshold >= 8, true, 'Samurai Lv.4 self zanshin ensures SP >= 8');
+
+    // 8. Auto-battle (autoPlans) conservation:
+    // When warrior has SP equal to or below threshold, autoPlans should switch from SP-consuming skill to attack/defend
+    s.battle = {
+      enemies: [{ key: 0, id: 'rat', name: '大ネズミ', hp: 30, atk: 5, def: 2, mag: 2, speed: 5, poison: 0 }],
+      turn: 1,
+      plans: {},
+      actor: warrior.id,
+      target: 0
+    };
+    warrior.sp = 5; // equals threshold of 5
+    autoPlans();
+    const planned = s.battle.plans[warrior.id];
+    assert(planned, 'Warrior has a planned command');
+    if (planned.command === 'skill') {
+      const sk = DATA.skills[planned.skill];
+      assert(!sk || !sk.sp || sk.sp === 0, 'Auto battle does not plan SP-consuming skill when SP <= threshold');
+    }
+
+    // 9. Auto-expedition safe stop:
+    // When party SP drops to threshold during walkTick, auto expedition stops safely
+    s.battle = null;
+    s.view = 'explore';
+    enterMap('forest_edge');
+    s.autoExpedition = true;
+    warrior.sp = lim4.spThreshold; // at threshold
+    walkTick();
+    assert.equal(s.autoExpedition, false, 'Auto-expedition is safely stopped when hero reaches SP conservation threshold');
+  `, box);
+});
 

@@ -28,9 +28,113 @@ const originalCharacter=characterScreen;
 const oldSkillText=uiSkillText;
 uiSkillText=function(sk){return `消費 MANA ${sk.mp} / SP ${sk.sp||0} · 対象：${({enemy:'敵単体',enemies:'敵全体',allEnemies:'敵全体',allAllies:'味方全員',ally:'味方1人',allies:'味方全員',self:'自分'}[sk.target])||sk.target}`;};
 function reserveSettings(){s.reserve??={mode:'percent',life:25,mana:20,sp:15};return s.reserve;}
-function belowReserve(h,key){const r=reserveSettings(),value=key==='life'?h.hp:key==='mana'?h.mp:h.sp,max=key==='life'?stats(h).hp:key==='mana'?stats(h).mp:maxSP(h);return value<=(r.mode==='absolute'&&unlocked('precise')?r[key]:max*r[key]/100);}
+function heroResourceLimits(h) {
+  if (!h) return { spThreshold: 0, mpThreshold: 0, minSp: 0, minSpRatio: 0, minMp: 0, minMpRatio: 0, sources: [] };
+  let minSp = 0, minSpRatio = 0, minMp = 0, minMpRatio = 0;
+  const sources = [];
+  const allParty = typeof party === 'function' ? party() : (typeof s !== 'undefined' ? s.roster || [] : []);
+  for (const m of allParty) {
+    if (m.hp <= 0) continue;
+    const skills = typeof heroSkills === 'function' ? heroSkills(m) : [];
+    for (const sk of skills) {
+      if (m.lv >= sk.level && sk.reserve && sk.reserve.scope === 'party') {
+        const res = sk.reserve;
+        if (res.type === 'sp') {
+          if (res.mode === 'absolute') minSp = Math.max(minSp, res.value);
+          else if (res.mode === 'percent') minSpRatio = Math.max(minSpRatio, res.value / 100);
+          sources.push({ hero: m.name, skill: sk.name, type: 'sp', mode: res.mode, value: res.value });
+        } else if (res.type === 'mana') {
+          if (res.mode === 'absolute') minMp = Math.max(minMp, res.value);
+          else if (res.mode === 'percent') minMpRatio = Math.max(minMpRatio, res.value / 100);
+          sources.push({ hero: m.name, skill: sk.name, type: 'mana', mode: res.mode, value: res.value });
+        }
+      }
+    }
+  }
+  const mySkills = typeof heroSkills === 'function' ? heroSkills(h) : [];
+  for (const sk of mySkills) {
+    if (h.lv >= sk.level && sk.reserve && sk.reserve.scope === 'self') {
+      const res = sk.reserve;
+      if (res.type === 'sp') {
+        if (res.mode === 'absolute') minSp = Math.max(minSp, res.value);
+        else if (res.mode === 'percent') minSpRatio = Math.max(minSpRatio, res.value / 100);
+        sources.push({ hero: h.name, skill: sk.name, type: 'sp', mode: res.mode, value: res.value, self: true });
+      } else if (res.type === 'mana') {
+        if (res.mode === 'absolute') minMp = Math.max(minMp, res.value);
+        else if (res.mode === 'percent') minMpRatio = Math.max(minMpRatio, res.value / 100);
+        sources.push({ hero: h.name, skill: sk.name, type: 'mana', mode: res.mode, value: res.value, self: true });
+      }
+    }
+  }
+  if (typeof s !== 'undefined' && s.battleRules?.includes('reserve') && (typeof unlocked === 'function' ? unlocked('reserve') : false)) {
+    const r = reserveSettings();
+    if (r.mode === 'percent') {
+      minSpRatio = Math.max(minSpRatio, (r.sp || 0) / 100);
+      minMpRatio = Math.max(minMpRatio, (r.mana || 0) / 100);
+    } else if (r.mode === 'absolute' && (typeof unlocked === 'function' && unlocked('precise'))) {
+      minSp = Math.max(minSp, r.sp || 0);
+      minMp = Math.max(minMp, r.mana || 0);
+    }
+  }
+  const maxSpVal = typeof maxSP === 'function' ? maxSP(h) : (h.sp || 30);
+  const maxMpVal = typeof stats === 'function' ? stats(h).mp : (h.mp || 30);
+  const spThreshold = Math.max(minSp, Math.ceil(maxSpVal * minSpRatio));
+  const mpThreshold = Math.max(minMp, Math.ceil(maxMpVal * minMpRatio));
+  return { spThreshold, mpThreshold, minSp, minSpRatio, minMp, minMpRatio, sources };
+}
+function activePartyTactics() {
+  const tactics = [];
+  const p = typeof party === 'function' ? party() : [];
+  for (const h of p) {
+    if (h.hp <= 0) continue;
+    const skills = typeof heroSkills === 'function' ? heroSkills(h) : [];
+    for (const sk of skills) {
+      if (h.lv >= sk.level && sk.reserve) {
+        tactics.push({ hero: h, skill: sk, reserve: sk.reserve });
+      }
+    }
+  }
+  return tactics;
+}
+function belowReserve(h,key){
+  if (!h) return false;
+  if(key==='life'){
+    if (typeof s !== 'undefined' && s.battleRules?.includes('reserve') && (typeof unlocked === 'function' ? unlocked('reserve') : false)) {
+      const r=reserveSettings(),val=h.hp,max=typeof stats==='function'?stats(h).hp:100;
+      return val<=(r.mode==='absolute'&&(typeof unlocked==='function'&&unlocked('precise'))?r.life:max*r.life/100);
+    }
+    return false;
+  }
+  const lim = heroResourceLimits(h);
+  if(key==='sp'){
+    const spVal = h.sp ?? (typeof maxSP === 'function' ? maxSP(h) : 30);
+    return lim.spThreshold > 0 && spVal <= lim.spThreshold;
+  }
+  if(key==='mana'){
+    return lim.mpThreshold > 0 && h.mp <= lim.mpThreshold;
+  }
+  return false;
+}
 const oldAutoPlans=autoPlans;
-autoPlans=function(){oldAutoPlans();if(!s.battle||!s.battleRules.includes('reserve')||!unlocked('reserve'))return;for(const h of alive()){const p=s.battle.plans[h.id];if(belowReserve(h,'life'))s.battle.plans[h.id]={command:'escape',target:0};else if(p.command==='skill'&&(belowReserve(h,'mana')||belowReserve(h,'sp')))s.battle.plans[h.id]={command:'attack',target:enemyAlive()[0].key};}};
+autoPlans=function(){
+  oldAutoPlans();
+  if(!s.battle)return;
+  for(const h of alive()){
+    const p=s.battle.plans[h.id];
+    if(!p)continue;
+    if(belowReserve(h,'life')){
+      s.battle.plans[h.id]={command:'escape',target:0};
+    } else if(p.command==='skill'){
+      const sk = typeof heroSkills === 'function' ? heroSkills(h).find(k => k.id === p.skill) : null;
+      const lim = heroResourceLimits(h);
+      const spAfter = (h.sp ?? (typeof maxSP === 'function' ? maxSP(h) : 30)) - (sk?.sp || 0);
+      const mpAfter = h.mp - (sk?.mp || 0);
+      if(belowReserve(h,'mana') || belowReserve(h,'sp') || (sk && (spAfter < lim.spThreshold || mpAfter < lim.mpThreshold))){
+        s.battle.plans[h.id]={command:'attack',target:enemyAlive()[0]?.key || 0};
+      }
+    }
+  }
+};
 const oldRulesScreen=rulesScreen;
 // rulesScreen is defined in facilities.js.
 const initialBoot=boot;

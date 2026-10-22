@@ -101,9 +101,12 @@
       let p = s.battle.plans[h.id];
       if (!p || !['attack', 'skill'].includes(p.command)) continue;
       let skill = p.command === 'skill' ? skillDef(h, p.skill) : null;
-      const conserving = s.battleRules.includes('reserve') && unlocked('reserve') && (belowReserve(h, 'mana') || belowReserve(h, 'sp'));
+      const lim = typeof heroResourceLimits === 'function' ? heroResourceLimits(h) : { spThreshold: 0, mpThreshold: 0 };
+      const ruleReserve = s.battleRules.includes('reserve') && unlocked('reserve');
+      const conserving = (ruleReserve && (belowReserve(h, 'mana') || belowReserve(h, 'sp'))) || (lim.spThreshold > 0 && belowReserve(h, 'sp')) || (lim.mpThreshold > 0 && belowReserve(h, 'mana'));
+      const wouldDropBelow = skill && (((h.sp - (skill.sp || 0)) < lim.spThreshold) || ((h.mp - skill.mp) < lim.mpThreshold));
       // Apply the same resource policy after tactical support and range fallback.
-      if (skill && (skill.mp >= h.mp || (skill.sp || 0) > h.sp || conserving)) {
+      if (skill && (skill.mp >= h.mp || (skill.sp || 0) > h.sp || conserving || wouldDropBelow)) {
         p = s.battle.plans[h.id] = { command: 'attack', target: p.target }; skill = null;
       }
       if (skill && !offensive(skill)) continue;
