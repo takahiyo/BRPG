@@ -2,7 +2,7 @@
 
 更新：2026-10-22 JST / 担当：統括エージェント。
 
-最新状態：メディア統合P0-P3を作業中。音楽/SE/画像と探索GUIを統合して既存main/devへpushする明示依頼あり。基準HEAD/両remote `dec2022`。I4-I6の整理済み原本14枚も今回共有対象、01欠番は維持。現在の復旧記録は末尾「メディア統合P0-P3」を優先する。状態異常S0-S5は未実装。
+最新状態：メディア統合P0-P3は `b257e53` でmain/devへ共有完了（詳細は末尾）。以下は作業時の記録。音楽/SE/画像と探索GUIを統合して既存main/devへpushする明示依頼あり。基準HEAD/両remote `dec2022`。I4-I6の整理済み原本14枚も今回共有対象、01欠番は維持。現在の復旧記録は末尾「メディア統合P0-P3」を優先する。状態異常S0-S5は未実装。
 
 ## 復旧点
 
@@ -127,4 +127,5 @@
 - 自動回帰：`node --test test.cjs test-regression.cjs test-overhaul.cjs test-equipment.cjs test-exploration.cjs test-save-manager.cjs test-quest-travel.cjs test-build-pages.cjs test-formation.cjs test-combat-balance.cjs test-audio.cjs test-monster-art.cjs` 全32件成功（900戦再現を含む）。Python51件成功。配布最終確認・文書再生成・限定Git共有はこれから実施する。
 - P3検証完了（再開セッション）：両exportを再実行し差分なし（生成一致）。Node12スイート33件・Python51件・`node scripts/build-pages.cjs`・`git diff --check` 成功。`node test-browser.cjs --dist` はサンドボックス内でChromium起動不可（終了コード4294930433）のため隔離外で再実行し、1280/390/320pxで音声/画像/仲間固定/MAP敵切替/遭遇SE/既存操作すべて成功。
 - 共有対象：AGENTS.md・VIBE_STARTER_KIT_REVISED_v3.md（ユーザー規則）と旧参考PNG `docs/30体の…アトラス.png` の削除（ユーザー操作、未stage保持）を除く全差分。サンドボックス内のgit ls-remoteはプロキシ接続不可のため、push/照合は隔離外で行う。
-- 次：(1) push後にremote先端一致を確認 (2) 実検聴・残り379種/遭遇70種の検品・01受領 (3) CI/Pages公開確認とS0着手。実検聴・全画像承認・CI/公開成功は未確認。
+- P3共有完了：関連差分を `b257e5326085c838ebbfd41e39b9289e15f5f33d` にcommitし、`git push origin HEAD:refs/heads/main HEAD:refs/heads/dev` 成功、`git ls-remote` で両先端一致を確認。CI/Pages公開は未確認。残る未共有差分はAGENTS.md・VIBE_STARTER_KIT_REVISED_v3.md・旧参考PNG削除のみ。
+- 次：(1) 実検聴・残り379種/遭遇70種の検品・01受領 (3) CI/Pages公開確認とS0着手。実検聴・全画像承認・CI/公開成功は未確認。
