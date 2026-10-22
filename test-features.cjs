@@ -430,4 +430,69 @@ test('Dungeon map dynamic scaling, Wizardry-style vertical floor stairs alignmen
   `, box);
 });
 
+test('Dragon Quest style command battle flow and party-wide escape', async () => {
+  const { box } = harness();
+  vm.runInContext(`
+    enterMap('forest_edge');
+    encounter();
+    assert(s.battle, 'Encounter started');
+    const heroes = getOrderedHeroes();
+    assert(heroes.length >= 4, 'Heroes in battle');
+
+    // 1. UI renders DQ-style commands and party overview
+    const panelHTML = uiBattlePanel();
+    assert(panelHTML.includes('exp-dq-console'), 'Renders DQ-style battle console');
+    assert(panelHTML.includes('🏃 にげる (全体)'), 'Contains party-wide escape button');
+    assert(panelHTML.includes('たたかう (攻撃)'), 'Contains attack command');
+    assert(panelHTML.includes('ぼうぎょ (防御)'), 'Contains defend command');
+    assert(panelHTML.includes('は どうする？'), 'Prompts current hero in DQ style');
+
+    // 2. Click "Defend" on hero 1 -> automatically advances to hero 2
+    const h1 = heroes[0], h2 = heroes[1];
+    assert.equal(s.battle.actor, h1.id, 'First actor is hero 1');
+    const clickEv = action => ({
+      target: {
+        closest: selector => selector === '[data-action]' ? { dataset: { action }, disabled: false } : null
+      }
+    });
+
+    handleAction(clickEv('dq-cmd-defend'));
+    assert(s.battle.plans[h1.id], 'Hero 1 command is planned');
+    assert.equal(s.battle.plans[h1.id].command, 'defend');
+    assert.equal(s.battle.actor, h2.id, 'Automatically advanced to hero 2');
+
+    // 3. Click "Back" -> reverts hero 1 and returns to hero 1
+    handleAction(clickEv('dq-back-hero'));
+    assert(!s.battle.plans[h1.id], 'Hero 1 plan is cleared by back action');
+    assert.equal(s.battle.actor, h1.id, 'Returned to hero 1');
+
+    // 4. Click "Attack" on single enemy -> automatically targets and advances to next hero
+    s.battle.enemies = [s.battle.enemies[0]]; // force 1 enemy
+    handleAction(clickEv('dq-cmd-attack'));
+    assert(s.battle.plans[h1.id], 'Hero 1 planned attack');
+    assert.equal(s.battle.plans[h1.id].command, 'attack');
+    assert.equal(s.battle.actor, h2.id, 'Advanced to hero 2 after 1-tap attack');
+
+    // 5. Party-wide escape test
+    // Test boss escape block
+    s.battle.boss = true;
+    const escapedBoss = partyEscape();
+    assert.equal(escapedBoss, false, 'Party escape fails on boss');
+    assert(s.battle, 'Still in battle against boss');
+
+    // Test regular party-wide escape
+    s.battle.boss = false;
+    const origRandom = random;
+    random = () => 0.01; // ensure escape success
+    try {
+      const escaped = partyEscape();
+      assert.equal(escaped, true, 'Party escape succeeded');
+      assert.equal(s.battle, null, 'Battle ended immediately upon party escape');
+      assert.equal(s.view, 'explore', 'Returned to exploration view');
+    } finally {
+      random = origRandom;
+    }
+  `, box);
+});
+
 

@@ -524,6 +524,72 @@ function useItem(key,heroId,inBattle=false,enemyId=null,user=null){const def=DAT
 function enemyTurn(e,guards){if(e.hp<=0||!alive().length)return;const targets=alive(),weighted=targets.flatMap(h=>Array(h.row==='front'?3:1).fill(h)),target=pick(weighted),magic=e.ai==='hex',hit=e.ai==='cleave'&&s.battle.turn%2===0?targets:[target];if(e.ai==='armor'&&s.battle.turn%3===0){e.def+=2;note(e.name+'が装甲を固めた。');return;}for(const h of hit){const n=allyDamage(h,magic?e.mag+6:e.atk*(hit.length>1?.85:1),magic,guards.has(h.id));note(e.name+' → '+h.name+'：'+n+' ダメージ。');if(e.ai==='poison'&&h.hp>0&&random()<.6){h.poison=3;note(h.name+'が毒を受けた。');}if(e.ai==='drain')e.hp=Math.min(e.maxhp,e.hp+Math.floor(n*.6));if(!h.hp)note(h.name+'が倒れた。');}}
 function defeat(){const d=s.dungeon;stopAll();const ids=new Set([...party().flatMap(h=>HERO_SLOTS.map(slot=>h[slot])).filter(Boolean),...s.gear.filter(g=>s.active.includes(g.ownerId)).map(g=>g.id)]),gear=s.gear.filter(g=>ids.has(g.id)),links=party().map(h=>Object.fromEntries([['id',h.id],...HERO_SLOTS.map(slot=>[slot,h[slot]??null])]));s.corpses.push({id:Date.now()+'-'+s.nextGear,floor:structuredClone(d),gear,links,until:Date.now()+Math.min(1800000,Math.max(10000,(Date.now()-d.started)*5))});s.gear=s.gear.filter(g=>!ids.has(g.id));party().forEach(h=>{HERO_SLOTS.forEach(slot=>h[slot]=null);h.hp=1;h.mp=0;h.sp=0;h.poison=0;});s.gold=Math.floor(s.gold*.8);s.battle=null;s.dungeon=null;s.view='town';tell('全滅。装備と金貨20%を失い、HP1・MP0で街へ搬送された。有料休息が必要。');}
 function victory(){const b=s.battle;stopBattle();let xp=0,gold=0;for(const e of b.enemies){xp+=e.xp;gold+=e.gold;if(e.drop&&DATA.materials[e.drop])addMaterial(e.drop,1,s.dungeon.quality);}earnGold(gold);for(const h of party()){h.xp+=Math.round(xp*.5);while(h.lv<300&&h.xp>=xpNeeded(h)){h.xp-=xpNeeded(h);h.lv++;note(h.name+'がLv.'+h.lv+'に成長。能力上昇、HP/MPは回復しない。');}}if(b.boss){s.won=true;s.dungeon.map[s.dungeon.y][s.dungeon.x]='.';earnGold(worldMap(s.dungeon.mapId).level*80+100);note('地域の主を討伐。ギルドの討伐報酬を獲得した。');}s.battle=null;s.view='explore';tell('勝利。各員 EXP +'+Math.round(xp*.5)+(gold?' / '+gold+' G':'')+'。');resumeExpedition();}
+function enemyTurnAfterEscapeFail(b){
+  const guards=new Set();
+  for(const e of enemyAlive()){
+    if(!alive().length)break;
+    enemyTurn(e,guards);
+  }
+  if(s.battle){
+    for(const h of alive()){
+      if(h.poison){
+        const n=5+Math.floor(s.dungeon.level*.3);
+        h.hp=Math.max(0,h.hp-n);
+        h.poison--;
+        note(h.name+'に毒 '+n+'。');
+      }
+    }
+    for(const e of enemyAlive()){
+      if(e.poison){
+        damageEnemy(e,6+s.dungeon.level,'dark');
+        e.poison--;
+      }
+    }
+    if(!alive().length)defeat();
+    else{
+      b.turn++;
+      b.plans={};
+      b.actor=alive()[0].id;
+      b.cover=false;
+      b.coverPower=1;
+      b.rally=Math.max(0,b.rally-1);
+    }
+  }
+  render();
+}
+function partyEscape(){
+  const b=s.battle;
+  if(!b||s.view!=='explore')return false;
+  stopAll();
+  if(b.boss){
+    tell('しかし回り込まれてしまった！この強敵からは逃げられない！');
+    enemyTurnAfterEscapeFail(b);
+    return false;
+  }
+  const chance=Math.min(.9,Math.max(.20,.50+(partyLevel()-s.dungeon.level)*.02+partyCharm()*.004));
+  if(random()<chance){
+    playSE?.('escape');
+    stopBattle();
+    s.battle=null;
+    s.view='explore';
+    s.dungeon.sinceBattle=0;
+    tell('💨 パーティー全員で戦闘から離脱した！');
+    if(s.autoExpedition&&s.battleRules.includes('retreat')&&unlocked('retreat')){
+      s.autoExpedition=false;
+      returnTown();
+    }else{
+      resumeExpedition();
+    }
+    render();
+    return true;
+  }else{
+    playSE?.('defeat');
+    tell('💨 逃走を試みたが、回り込まれてしまった！');
+    enemyTurnAfterEscapeFail(b);
+    return false;
+  }
+}
+globalThis.partyEscape=partyEscape;
 function executeTurn(){const b=s.battle;if(!b)return;if(alive().some(h=>!b.plans[h.id])){tell('全員のコマンドを選んでください。');return render();}const guards=new Set(alive().filter(h=>b.plans[h.id].command==='defend').map(h=>h.id));b.cover=false;b.personalGuards={};const guardHeroes=[];for(const h of alive()){const p=b.plans[h.id],k=DATA.skills[p.skill];if(p.command==='skill'&&k?.kind==='guard'&&h.lv>=k.level&&h.mp>=k.mp&&h.sp>=(k.sp||0)&&heroSkills(h).some(sk=>sk.id===p.skill)){h.mp-=k.mp;h.sp-=k.sp||0;if(k.target==='self')b.personalGuards[h.id]=k.power;else if(k.target==='ally')b.personalGuards[p.target]=k.power;else{b.cover=true;b.coverPower=Math.min(b.coverPower||1,k.power);}guardHeroes.push(h.id);note(h.name+'が守護の構え。');}}let escapeTried=false;const order=[...alive().map(h=>({kind:'hero',id:h.id,speed:stats(h).speed+random()*3})),...enemyAlive().map(e=>({kind:'enemy',id:e.key,speed:e.speed+random()*3}))].sort((a,c)=>c.speed-a.speed);for(const action of order){if(!s.battle||!alive().length||!enemyAlive().length)break;if(action.kind==='hero'){const h=alive().find(h=>h.id===action.id);if(!h)continue;const p=b.plans[h.id],e=enemyAlive().find(e=>e.key===p.target)||enemyAlive()[0];if(p.command==='attack')heroAttack(h,e);if(p.command==='skill'&&!guardHeroes.includes(h.id))cast(h,p.target,p.skill);if(p.command==='item')useItem(p.item,p.target,true,p.target,h);if(p.command==='escape'&&!escapeTried){escapeTried=true;const chance=b.boss?.18:Math.min(.9,Math.max(.15,.45+(partyLevel()-s.dungeon.level)*.015+partyCharm()*.003));if(random()<chance){stopBattle();s.battle=null;s.view='explore';s.dungeon.sinceBattle=0;note('戦闘から離脱した。');if(s.autoExpedition&&s.battleRules.includes('retreat')&&unlocked('retreat')){s.autoExpedition=false;returnTown();}else resumeExpedition();break;}note('逃走は阻まれた。逃走判定はパーティーで1ターン1回。');}}else{const e=enemyAlive().find(e=>e.key===action.id);if(e)enemyTurn(e,guards);}}
  if(s.battle){for(const h of alive())if(h.poison){const n=5+Math.floor(s.dungeon.level*.3);h.hp=Math.max(0,h.hp-n);h.poison--;note(h.name+'に毒 '+n+'。');}for(const e of enemyAlive())if(e.poison){damageEnemy(e,6+s.dungeon.level,'dark');e.poison--;}if(!alive().length)defeat();else if(!enemyAlive().length)victory();else{b.turn++;b.plans={};b.actor=alive()[0].id;b.cover=false;b.coverPower=1;b.rally=Math.max(0,b.rally-1);}}render();}
 function autoPlans(){const b=s.battle;if(!b)return;b.plans={};const wounded=alive().slice().sort((a,c)=>a.hp/stats(a).hp-c.hp/stats(c).hp),low=wounded[0];let healerUsed=false;for(const h of alive()){let p={command:'attack',target:enemyAlive()[0].key};const available=heroSkills(h).filter(k=>k.level<=h.lv&&k.mp<h.mp&&(k.sp||0)<=h.sp);if(s.battleRules.includes('retreat')&&unlocked('retreat')&&(alive().length<=party().length/2||alive().every(a=>a.hp/stats(a).hp<.25)))p={command:'escape',target:0};else if(s.battleRules.includes('heal')&&unlocked('heal')&&low.hp/stats(low).hp<.45&&!healerUsed){const heal=available.find(k=>k.kind==='heal');if(heal){p={command:'skill',skill:heal.id,target:low.id};healerUsed=true;}else if(s.items.potion>0){p={command:'item',item:'potion',target:low.id};healerUsed=true;}}
@@ -605,7 +671,7 @@ function render(){
   $('notice').textContent=notice;$('app').innerHTML=(screens[s.view]||townScreen)();draw();save();$('save-status').textContent=storageOK?'保存済み':'保存できません。ブラウザの保存設定を確認してください。';
 }
 function handleAction(event){const button=event.target.closest('[data-action]');if(!button||button.disabled)return;const d=button.dataset,id=Number(d.id),a=d.action;notice='';
- const calls={view:()=>moveView(d.view),character:()=>openCharacter(id),actor:()=>{if(s.battle){s.battle.actor=id;render();}},'actor-close':()=>{$('character-dialog').close();if(s.battle)s.battle.actor=id;render();},target:()=>{if(s.battle){s.battle.target=id;render();}},command:()=>{const k=DATA.skills[d.skill],it=DATA.items[d.item],ally=k&&['ally','self','allAllies'].includes(k.target)||it&&['heal','mp','sp','revive','cleanse'].includes(it.kind);planCommand(d.command,Number($(ally?'ally-target':'enemy-target')?.value||0),d.skill,d.item);},template:()=>{autoPlans();render();},execute:executeTurn,'auto-battle':toggleAutoBattle,expedition:toggleExpedition,walk:toggleWalk,member:()=>toggleMember(id),row:()=>{if(townOnly()){const h=s.roster.find(h=>h.id===id);h.row=h.row==='front'?'back':'front';render();}},recruit:()=>recruit($('recruit-job').value),craft:()=>craft(s.craftMaterial||'iron',s.craftSlot||'weapon',s.craftMethod||'physical'),equip:()=>equip(id,Number($('equip-'+id).value)),enchant:()=>applyEnchant(id,$('enchant-'+id).value),repair:()=>repair(id),upgrade:()=>upgrade(id),book:()=>buyBook(d.id),'battle-rule':()=>{if(unlocked(d.id)){s.battleRules=s.battleRules.includes(d.id)?s.battleRules.filter(v=>v!==d.id):[...s.battleRules,d.id];render();}},descend,boss:bossChallenge,return:returnTown,step:()=>step(Number(d.dx),Number(d.dy)),rest:()=>rest(), 'rest-credit':()=>rest(true),recover:()=>enterMap('',d.id),'discover-address':()=>discoverAddress($('address').value),'travel-town':()=>travelTown(d.id),'settle-town':()=>settleTown(d.id),'home-town':()=>travelTown(s.homeTownId),'enter-map':()=>enterMap(d.id),'accept-quest':()=>acceptQuest(d.id),'deliver-quest':()=>deliverQuest(d.id),'abandon-map-quest':()=>{const qs=s.quests[d.id];if(qs?.accepted){qs.accepted=false;tell('納品依頼を破棄しました。');render();}},'buy-item':()=>buyItem(d.id),'use-item':()=>{useItem(d.id,Number($('field-target').value));render();},'sell-material':()=>sellMaterial(d.id),'toggle-log-expand':()=>{s.ext??={};s.ext.logExpanded=!s.ext.logExpanded;render();}};
+ const calls={view:()=>moveView(d.view),character:()=>openCharacter(id),actor:()=>{if(s.battle){s.battle.actor=id;render();}},'actor-close':()=>{$('character-dialog').close();if(s.battle)s.battle.actor=id;render();},target:()=>{if(s.battle){s.battle.target=id;render();}},command:()=>{const k=DATA.skills[d.skill],it=DATA.items[d.item],ally=k&&['ally','self','allAllies'].includes(k.target)||it&&['heal','mp','sp','revive','cleanse'].includes(it.kind);planCommand(d.command,Number($(ally?'ally-target':'enemy-target')?.value||0),d.skill,d.item);},template:()=>{autoPlans();render();},execute:executeTurn,'party-escape':()=>partyEscape(),'auto-battle':toggleAutoBattle,expedition:toggleExpedition,walk:toggleWalk,member:()=>toggleMember(id),row:()=>{if(townOnly()){const h=s.roster.find(h=>h.id===id);h.row=h.row==='front'?'back':'front';render();}},recruit:()=>recruit($('recruit-job').value),craft:()=>craft(s.craftMaterial||'iron',s.craftSlot||'weapon',s.craftMethod||'physical'),equip:()=>equip(id,Number($('equip-'+id).value)),enchant:()=>applyEnchant(id,$('enchant-'+id).value),repair:()=>repair(id),upgrade:()=>upgrade(id),book:()=>buyBook(d.id),'battle-rule':()=>{if(unlocked(d.id)){s.battleRules=s.battleRules.includes(d.id)?s.battleRules.filter(v=>v!==d.id):[...s.battleRules,d.id];render();}},descend,boss:bossChallenge,return:returnTown,step:()=>step(Number(d.dx),Number(d.dy)),rest:()=>rest(), 'rest-credit':()=>rest(true),recover:()=>enterMap('',d.id),'discover-address':()=>discoverAddress($('address').value),'travel-town':()=>travelTown(d.id),'settle-town':()=>settleTown(d.id),'home-town':()=>travelTown(s.homeTownId),'enter-map':()=>enterMap(d.id),'accept-quest':()=>acceptQuest(d.id),'deliver-quest':()=>deliverQuest(d.id),'abandon-map-quest':()=>{const qs=s.quests[d.id];if(qs?.accepted){qs.accepted=false;tell('納品依頼を破棄しました。');render();}},'buy-item':()=>buyItem(d.id),'use-item':()=>{useItem(d.id,Number($('field-target').value));render();},'sell-material':()=>sellMaterial(d.id),'toggle-log-expand':()=>{s.ext??={};s.ext.logExpanded=!s.ext.logExpanded;render();}};
  if(calls[a])calls[a]();
 }
 function boot(){document.addEventListener('click',handleAction);document.addEventListener('change',e=>{const d=e.target.dataset;if(d.change==='job')return changeJob(Number(d.id),e.target.value);if(['craftMaterial','craftSlot','craftMethod','craftQuality','walkRule'].includes(d.change)){s[d.change]=d.change==='craftQuality'?Number(e.target.value):e.target.value;render();}});document.addEventListener('keydown',e=>{if(['INPUT','SELECT','TEXTAREA','BUTTON'].includes(e.target.tagName)||$('guide').open||$('character-dialog').open)return;const dir={ArrowUp:[0,-1],w:[0,-1],ArrowRight:[1,0],d:[1,0],ArrowDown:[0,1],s:[0,1],ArrowLeft:[-1,0],a:[-1,0]}[e.key];if(dir&&s.dungeon&&!s.battle){e.preventDefault();step(...dir);}});$('help').onclick=()=>{stopAll();render();$('guide').showModal();};$('close-help').onclick=()=>$('guide').close();$('character-close').onclick=()=>$('character-dialog').close();$('reset').onclick=()=>{if(confirm('新版の冒険を初期化しますか？旧版の保存記録は残ります。')){stopAll();s=fresh();notice='新たな冒険を開始した。';render();}};render();}

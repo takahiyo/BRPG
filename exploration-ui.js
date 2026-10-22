@@ -78,11 +78,33 @@
     return `<section class="panel exp-automation" aria-label="自動操作"><div class="exp-auto-title"><span>${icon('compass')}<b>自動操作</b></span><span class="exp-run-state ${running ? 'running' : ''}" role="status">${status}</span></div><div class="exp-auto-options" role="group" aria-label="自動操作の範囲">${[['continuous','compass','歩行＋戦闘'],['walk','walk','歩行のみ'],['battle','sword','戦闘のみ']].map(([id,ico,label]) => `<button type="button" data-action="exp-auto-mode" data-mode="${id}" aria-pressed="${mode === id}" ${id === 'walk' && battle || id === 'battle' && !battle ? 'disabled' : ''} class="${mode === id ? 'selected' : ''}">${icon(ico)}${label}</button>`).join('')}</div><div class="exp-auto-bottom"><p>${resumeWait !== null ? '戦利品を確認できます。停止・手動操作で再開を中止。' : mode === 'walk' ? '遭遇・階段・封印で停止します。' : mode === 'battle' ? 'この戦闘だけ自動で戦います。' : '歩行と戦闘を続け、階段・封印で停止します。'}</p>${btn(running ? icon('stop') + 'すべて停止' : icon('play') + '開始','exp-auto-toggle','',running ? 'exp-stop' : 'primary')}</div>${resumeWait !== null ? '<div class="exp-resume-track"><i></i></div>' : ''}</section>`;
   }
 
+  let battleMenuState = { mode: 'main', skill: null, item: null };
+
+  function getOrderedHeroes() {
+    const heroes = alive();
+    const front = heroes.filter(h => h.row === 'front');
+    const back = heroes.filter(h => h.row !== 'front');
+    return [...front, ...back];
+  }
+  globalThis.getOrderedHeroes = getOrderedHeroes;
+
+  function advanceToNextHero() {
+    commandDraft = null;
+    battleMenuState = { mode: 'main', skill: null, item: null };
+    const b = s.battle;
+    if (!b) return render();
+    const heroes = getOrderedHeroes();
+    const next = heroes.find(h => !b.plans[h.id]);
+    if (next) b.actor = next.id;
+    render();
+  }
+
   function draftFor(actor) {
     if (commandDraft && (commandDraft.battle !== s.battle || commandDraft.turn !== s.battle.turn || commandDraft.actor !== actor.id)) commandDraft = null;
     return commandDraft;
   }
   function commandTarget(draft) {
+    if (!draft) return 'self';
     if (draft.command === 'defend' || draft.command === 'escape') return 'self';
     if (draft.command === 'skill') {
       const actor = alive().find(h => h.id === s.battle?.actor);
@@ -95,30 +117,190 @@
     const kind = commandTarget(draft);
     if (kind === 'enemy' || kind === 'allEnemies') {
       const formation = globalThis.BRPGFormation, actor = alive().find(h => h.id === s.battle?.actor);
-      const skill = draft.command === 'skill' && actor ? formation?.skillDef(actor, draft.skill) : null;
+      const skill = draft?.command === 'skill' && actor ? formation?.skillDef(actor, draft.skill) : null;
       const foes = formation && actor ? formation.targets(actor, skill) : enemyAlive();
       return foes.map(e => ({id:e.key,name:e.name,detail:(e.row === 'back' ? '後衛' : '前衛')+' · '+(observed()?'LIFE '+e.hp:'状態未観測')}));
     }
-    if (kind === 'ally') return party().filter(h => draft.command !== 'item' || (DATA.items[draft.item]?.kind === 'revive' ? h.hp <= 0 : h.hp > 0)).map(h => ({id:h.id,name:h.name,detail:'LIFE '+h.hp+' / MANA '+h.mp+' / SP '+(h.sp??0)}));
+    if (kind === 'ally') return party().filter(h => draft?.command !== 'item' || (DATA.items[draft?.item]?.kind === 'revive' ? h.hp <= 0 : h.hp > 0)).map(h => ({id:h.id,name:h.name,detail:'LIFE '+h.hp+' / MANA '+h.mp+' / SP '+(h.sp??0)}));
     return [];
   }
-  function draftControls(actor) {
-    const draft = draftFor(actor);
-    if (!draft) return '<div class="exp-target-step"><h3>2. 対象を選ぶ</h3><p>先に行動を選ぶと、必要な対象が表示されます。</p></div>';
-    const kind = commandTarget(draft), options = targetOptions(draft), name = uiPlanName({...draft,target:draft.target},actor).split(' → ')[0];
-    const fixed = kind === 'self' ? actor.name : kind === 'allAllies' ? '味方全員' : kind === 'allEnemies' ? (options.length ? (globalThis.BRPGFormation ? '届く敵全員：'+options.map(o=>o.name).join('、') : '敵全員') : null) : null;
-    const chosen = fixed || options.find(o => o.id === draft.target)?.name;
-    return `<div class="exp-target-step"><h3>2. ${esc(name)}の対象を選ぶ</h3>${fixed ? `<p class="exp-fixed-target">対象：${esc(fixed)}</p>` : `<div class="exp-target-picker" role="group" aria-label="行動の対象">${options.map(o => btn(`<b>${esc(o.name)}</b><small>${esc(o.detail)}</small>`,'exp-command-target',`data-id="${o.id}" aria-pressed="${draft.target === o.id}"`,draft.target===o.id?'selected':'')).join('')}</div>${!options.length?'<p>届く対象がいません。防御または別の行動を選んでください。</p>':''}`}<p>${chosen ? `${esc(name)} → ${esc(chosen)}` : '対象を選んでください。'}</p>${btn('この指示を確定','exp-command-confirm',chosen?'':'disabled','primary wide')}</div>`;
-  }
+
   uiBattlePanel = function() {
-    const b = s.battle, heroes = alive(), actor = heroes.find(h => h.id === b.actor) || heroes[0];
-    if (!actor) return '<section class="panel">行動できる仲間がいません。</section>';
-    b.actor = actor.id;
-    const draft = draftFor(actor), skills = uiSkillList(actor).filter(sk => sk.level <= actor.lv), items = Object.entries(DATA.items).filter(([id,it]) => uiCount(id) && it.kind !== 'escape');
-    const count = heroes.filter(h => b.plans[h.id]).length, plan = b.plans[actor.id];
-    const chosen = (command, id) => draft?.command === command && (!id || draft.skill === id || draft.item === id) ? ' selected' : '';
-    return `<section class="panel battle-console exp-command-console"><div class="exp-console-head"><div><p class="eyebrow">PARTY COMMAND</p><h2>仲間に指示を出す</h2></div><span class="chip">${count} / ${heroes.length}人</span></div><ol class="exp-command-flow"><li class="active">行動を選ぶ</li><li class="${draft?'active':''}">対象を選ぶ</li><li>全員で実行</li></ol><div class="exp-actor-picker" role="group" aria-label="指示する仲間">${heroes.map((h,i)=>`<button type="button" data-action="actor" data-id="${h.id}" class="${h.id===actor.id?'selected':''}" aria-pressed="${h.id===actor.id}"><span class="exp-actor-number">${b.plans[h.id]?'✓':i+1}</span><span><b>${esc(h.name)}</b><small>${b.plans[h.id]?esc(uiPlanName(b.plans[h.id],h)):'行動を選択'}</small></span></button>`).join('')}</div><div class="exp-current-actor">${typeof jobCrestSVG==='function'?jobCrestSVG(actor.job):icon('shield')}<div><b>${esc(actor.name)}</b><small>${esc(DATA.jobs[actor.job].name)} · ${plan?'変更できます':'行動を決めてください'}</small></div></div><h3 class="exp-step-label">1. 行動を選ぶ</h3><div class="exp-basic-commands">${btn(icon('sword')+'通常攻撃'+(globalThis.BRPGFormation?' · '+BRPGFormation.labels[BRPGFormation.range(actor)]:''),'command','data-command="attack"','primary'+chosen('attack'))}${btn(icon('shield')+'防御','command','data-command="defend"',chosen('defend'))}${btn(icon('walk')+'逃走','command','data-command="escape"',chosen('escape'))}</div>${skills.length?`<div class="exp-skill-section"><h3>技・魔法</h3><div class="skill-buttons">${skills.map(sk=>btn(`<b>${esc(sk.name)}</b><small>MANA ${sk.mp} / SP ${sk.sp||0}${globalThis.BRPGFormation?' · '+esc(BRPGFormation.rangeText(actor,sk)):''}</small>`,'command',`data-command="skill" data-skill="${sk.id}" title="${esc(sk.desc||'')}" ${actor.mp<sk.mp||actor.sp<(sk.sp||0)?'disabled':''}`,chosen('skill',sk.id))).join('')}</div></div>`:''}${items.length?`<details class="battle-items" ${draft?.command==='item'?'open':''}><summary>道具を使う <small>所持 ${items.length}種類</small></summary><div class="supply-buttons">${items.map(([id,it])=>btn(`${esc(it.name)} ×${uiCount(id)}`,'command',`data-command="item" data-item="${id}" title="${esc(it.desc)}"`,chosen('item',id))).join('')}</div></details>`:''}${draftControls(actor)}<div class="exp-turn-submit"><p>${draft?'選択中の指示を確定してください。':count===heroes.length?'全員の準備ができました。':`残り${heroes.length-count}人の行動を選択してください。`}</p>${btn('全員の行動を実行 →','execute',draft||count!==heroes.length||battleTimer?'disabled':'','primary wide')}${btn('全員おまかせ入力','template',battleTimer?'disabled':'','exp-template')}</div></section>`;
+    const b = s.battle, heroes = getOrderedHeroes();
+    if (!heroes.length) return '<section class="panel">行動できる仲間がいません。</section>';
+    let actor = heroes.find(h => h.id === b.actor);
+    if (!actor) {
+      actor = heroes.find(h => !b.plans[h.id]) || heroes[0];
+      b.actor = actor.id;
+    }
+    const actorIndex = heroes.findIndex(h => h.id === actor.id);
+    const count = heroes.filter(h => b.plans[h.id]).length;
+    const isAllReady = count === heroes.length;
+    const plan = b.plans[actor.id];
+    const prevHero = actorIndex > 0 ? heroes[actorIndex - 1] : null;
+    const isBoss = !!b.boss;
+    const formation = globalThis.BRPGFormation;
+    const skills = uiSkillList(actor).filter(sk => sk.level <= actor.lv);
+    const items = Object.entries(DATA.items).filter(([id, it]) => uiCount(id) && it.kind !== 'escape');
+    const foes = formation ? formation.targets(actor) : enemyAlive();
+
+    // 1. トップバー（パーティ全体逃走・おまかせ・自動戦闘）
+    const topBar = `<div class="exp-dq-party-bar">
+      <div class="exp-dq-turn-label"><span class="chip">TURN ${b.turn}</span><small>作戦全体指示</small></div>
+      <div class="exp-dq-party-actions">
+        <button type="button" class="btn danger dq-escape-btn" data-action="party-escape" ${isBoss ? 'title="強敵との戦闘からは逃走できません" disabled' : ''}>🏃 にげる (全体)</button>
+        <button type="button" class="btn exp-template" data-action="template">⚡ おまかせ</button>
+        <button type="button" class="btn ${battleTimer ? 'selected' : ''}" data-action="auto-battle">${battleTimer ? '⏹ 自動停止' : '🤖 自動戦闘'}</button>
+      </div>
+    </div>`;
+
+    // 2. 仲間のコマンド予約状況カード一覧（ドラクエ風）
+    const partyCards = `<div class="exp-dq-heroes-row" role="group" aria-label="仲間の行動予約状況">
+      ${heroes.map((h, i) => {
+        const p = b.plans[h.id];
+        const isCur = h.id === actor.id;
+        let planLabel = '未決定';
+        let planIcon = '⏳';
+        if (p) {
+          planLabel = uiPlanName(p, h);
+          planIcon = p.command === 'attack' ? '⚔️' : p.command === 'defend' ? '🛡️' : p.command === 'skill' ? '🪄' : '🎒';
+        }
+        return `<button type="button" class="exp-dq-hero-card ${isCur ? 'active' : ''} ${p ? 'ready' : ''}" data-action="actor" data-id="${h.id}">
+          <div class="hero-top">
+            <span class="order-badge">${i + 1}</span>
+            <b>${esc(h.name)}</b>
+            <small>${h.row === 'front' ? '前衛' : '後衛'} · ${esc(DATA.jobs[h.job]?.name || '')}</small>
+          </div>
+          <div class="hero-bars">
+            <span class="hp-num">HP ${h.hp}</span>
+            <span class="mp-num">MP ${h.mp}</span>
+            <span class="sp-num">SP ${h.sp ?? 0}</span>
+          </div>
+          <div class="hero-plan-badge ${p ? 'has-plan' : 'pending'}">
+            <span>${planIcon} ${esc(planLabel)}</span>
+          </div>
+        </button>`;
+      }).join('')}
+    </div>`;
+
+    // 3. 現在の仲間（actor）へのコマンド入力ウィンドウ（ドラクエ風）
+    let actionContent = '';
+    const draft = draftFor(actor);
+
+    if (draft && draft.command) {
+      // 対象選択画面
+      const targetList = targetOptions(draft);
+      const actName = draft.command === 'attack' ? 'たたかう' : draft.command === 'skill' ? (DATA.skills[draft.skill]?.name || '特技') : (DATA.items[draft.item]?.name || '道具');
+      const kind = commandTarget(draft);
+      const fixed = kind === 'self' ? actor.name : kind === 'allAllies' ? '味方全員' : kind === 'allEnemies' ? (targetList.length ? (formation ? '届く敵全員：' + targetList.map(o => o.name).join('、') : '敵全員') : null) : null;
+      const chosen = fixed || targetList.find(o => o.id === draft.target)?.name;
+
+      actionContent = `<div class="exp-dq-subwindow">
+        <div class="sub-head">
+          <span>🎯 <b>${esc(actName)} の対象を選ぶ</b></span>
+          <button type="button" class="btn chip" data-action="dq-menu-main">◀ コマンド選択へもどる</button>
+        </div>
+        ${fixed ? `<p class="exp-fixed-target">対象：${esc(fixed)}</p>` : `
+          <div class="exp-dq-target-list">
+            ${targetList.map(t => `
+              <button type="button" class="dq-target-btn btn ${draft.target === t.id ? 'selected' : ''}" data-action="exp-command-target" data-id="${t.id}" aria-pressed="${draft.target === t.id}">
+                <b>${esc(t.name)}</b>
+                <small>${esc(t.detail)}</small>
+              </button>
+            `).join('')}
+            ${!targetList.length ? '<p class="muted">攻撃・効果の届く対象がいません。防御または他の行動を選んでください。</p>' : ''}
+          </div>
+        `}
+        <div class="exp-target-confirm-row">
+          <p class="target-summary">${chosen ? `${esc(actName)} → <b>${esc(chosen)}</b>` : '対象を選んでください。'}</p>
+          <button type="button" class="btn primary wide" data-action="exp-command-confirm" ${chosen ? '' : 'disabled'}>この指示を確定（次へ） →</button>
+        </div>
+      </div>`;
+    } else if (battleMenuState.mode === 'skills') {
+      actionContent = `<div class="exp-dq-subwindow">
+        <div class="sub-head">
+          <span>🪄 <b>じゅもん・特技を選ぶ</b></span>
+          <button type="button" class="btn chip" data-action="dq-menu-main">◀ コマンド選択へもどる</button>
+        </div>
+        <div class="exp-dq-skill-list">
+          ${skills.map(sk => {
+            const costOk = actor.mp >= sk.mp && actor.sp >= (sk.sp || 0);
+            const rangeInfo = formation ? formation.rangeText(actor, sk) : '';
+            return `<button type="button" class="dq-skill-btn btn" data-action="command" data-command="skill" data-skill="${sk.id}" ${costOk ? '' : 'disabled'}>
+              <div class="sk-name"><b>${esc(sk.name)}</b>${rangeInfo ? `<span class="sk-range chip">${esc(rangeInfo)}</span>` : ''}</div>
+              <div class="sk-cost"><small class="gold">MANA ${sk.mp}</small> <small>SP ${sk.sp || 0}</small></div>
+              <div class="sk-desc"><small>${esc(sk.desc || '')}</small></div>
+            </button>`;
+          }).join('')}
+        </div>
+      </div>`;
+    } else if (battleMenuState.mode === 'items') {
+      actionContent = `<div class="exp-dq-subwindow">
+        <div class="sub-head">
+          <span>🎒 <b>どうぐを選ぶ</b></span>
+          <button type="button" class="btn chip" data-action="dq-menu-main">◀ コマンド選択へもどる</button>
+        </div>
+        <div class="exp-dq-item-list">
+          ${items.map(([id, it]) => `
+            <button type="button" class="dq-item-btn btn" data-action="command" data-command="item" data-item="${id}">
+              <b>${esc(it.name)} <small class="gold">×${uiCount(id)}</small></b>
+              <small>${esc(it.desc || '')}</small>
+            </button>
+          `).join('')}
+        </div>
+      </div>`;
+    } else {
+      // メインメニュー（ドラクエ風4大コマンド）
+      actionContent = `<div class="exp-dq-commands">
+        <button type="button" class="btn primary dq-cmd-btn" data-action="command" data-command="attack">
+          <span class="cmd-icon">⚔️</span>
+          <span class="cmd-text"><b>たたかう (攻撃)</b><small>${foes.length ? '届く敵 ' + foes.length + '体' : '届く敵なし'}</small></span>
+        </button>
+        <button type="button" class="btn dq-cmd-btn" data-action="dq-cmd-skills" ${!skills.length ? 'disabled' : ''}>
+          <span class="cmd-icon">🪄</span>
+          <span class="cmd-text"><b>じゅもん・特技</b><small>${skills.length}種類の技</small></span>
+        </button>
+        <button type="button" class="btn dq-cmd-btn" data-action="command" data-command="defend">
+          <span class="cmd-icon">🛡️</span>
+          <span class="cmd-text"><b>ぼうぎょ (防御)</b><small>受けるダメージ軽減</small></span>
+        </button>
+        <button type="button" class="btn dq-cmd-btn" data-action="dq-cmd-items" ${!items.length ? 'disabled' : ''}>
+          <span class="cmd-icon">🎒</span>
+          <span class="cmd-text"><b>どうぐ (道具)</b><small>所持 ${items.length}種類</small></span>
+        </button>
+      </div>
+      ${prevHero ? `<div class="exp-dq-back-row"><button type="button" class="btn secondary" data-action="dq-back-hero">◀ 前の仲間（${esc(prevHero.name)}）の指示をやり直す</button></div>` : ''}`;
+    }
+
+    // 4. ターン開始エリア
+    const executeArea = `<div class="exp-dq-turn-execute">
+      ${isAllReady ? `
+        <div class="all-ready-msg">✨ 全員の指示が完了しました！</div>
+        <button type="button" class="btn primary wide dq-execute-pulse" data-action="execute">⚔️ 全員の行動を実行（ターン開始） →</button>
+      ` : `
+        <div class="ready-progress">指示完了：${count} / ${heroes.length} 人</div>
+        <button type="button" class="btn wide secondary" data-action="execute" ${count === 0 || battleTimer ? 'disabled' : ''}>現在の指示でターン実行（未指示は防御）</button>
+      `}
+    </div>`;
+
+    return `<section class="panel battle-console exp-command-console exp-dq-console">
+      ${topBar}
+      ${partyCards}
+      <div class="exp-dq-current-actor-head">
+        ${typeof jobCrestSVG === 'function' ? jobCrestSVG(actor.job) : icon('shield')}
+        <div>
+          <span class="actor-step">第 ${actorIndex + 1} 人目 / ${heroes.length} 人</span>
+          <h2>${esc(actor.name)} は どうする？</h2>
+          <small>${esc(DATA.jobs[actor.job]?.name || '')} · ${actor.row === 'front' ? '前衛' : '後衛'} · ${plan ? '指示変更可能' : '指示を選択'}</small>
+        </div>
+      </div>
+      <div class="exp-dq-action-panel">
+        ${actionContent}
+      </div>
+      ${executeArea}
+    </section>`;
   };
+
   exploreScreen = function() {
     const d=s.dungeon;if(!d)return townScreen();
     const battle=!!s.battle, map=worldMap(d.mapId), atSurfaceExit=d.depth===1&&d.x===1&&d.y===1, atStairsUp=d.depth>1&&d.x===1&&d.y===1, atEntrance=atSurfaceExit||atStairsUp, tile=d.map[d.y][d.x];
@@ -157,11 +339,128 @@
       stageView=button.dataset.view;render();
       $('exp-view-'+stageView)?.focus?.({preventScroll:true});return;
     }
+
+    // パーティー全体の逃走
+    if(action==='party-escape') {
+      globalThis.partyEscape?.();
+      return;
+    }
+
+    // ドラクエ式コマンド入力
+    if(action==='dq-cmd-attack') {
+      if(!s.battle)return;
+      stopAll();
+      const heroes=getOrderedHeroes(), actor=heroes.find(h=>h.id===s.battle.actor)||heroes[0];
+      const formation=globalThis.BRPGFormation, foes=formation?formation.targets(actor):enemyAlive();
+      if(!foes.length){tell('届く敵がいません。別の技や防御を選んでください。');render();return;}
+      if(foes.length===1){
+        planCommand('attack', foes[0].key);
+        advanceToNextHero();
+        return;
+      }
+      commandDraft={battle:s.battle,turn:s.battle.turn,actor:actor.id,command:'attack',target:null};
+      battleMenuState={mode:'target'};
+      render();
+      return;
+    }
+    if(action==='dq-cmd-defend') {
+      if(!s.battle)return;
+      stopAll();
+      const heroes=getOrderedHeroes(), actor=heroes.find(h=>h.id===s.battle.actor)||heroes[0];
+      planCommand('defend', actor.id);
+      advanceToNextHero();
+      return;
+    }
+    if(action==='dq-cmd-skills') {
+      if(!s.battle)return;
+      stopAll();
+      battleMenuState={mode:'skills'};
+      render();
+      return;
+    }
+    if(action==='dq-cmd-items') {
+      if(!s.battle)return;
+      stopAll();
+      battleMenuState={mode:'items'};
+      render();
+      return;
+    }
+    if(action==='dq-select-skill') {
+      if(!s.battle)return;
+      stopAll();
+      const heroes=getOrderedHeroes(), actor=heroes.find(h=>h.id===s.battle.actor)||heroes[0];
+      const skillId=button.dataset.skill;
+      const formation=globalThis.BRPGFormation, skillDef=formation?formation.skillDef(actor,skillId):DATA.skills[skillId];
+      if(!skillDef)return;
+      const targetKind=skillDef.target||'enemy';
+      if(targetKind==='self'||targetKind==='allAllies'||targetKind==='allEnemies'){
+        planCommand('skill', null, skillId);
+        advanceToNextHero();
+        return;
+      }
+      commandDraft={battle:s.battle,turn:s.battle.turn,actor:actor.id,command:'skill',skill:skillId,target:null};
+      const foes=formation?formation.targets(actor,skillDef):enemyAlive();
+      if(targetKind==='enemy'&&foes.length===1){
+        planCommand('skill', foes[0].key, skillId);
+        advanceToNextHero();
+        return;
+      }
+      battleMenuState={mode:'target'};
+      render();
+      return;
+    }
+    if(action==='dq-select-item') {
+      if(!s.battle)return;
+      stopAll();
+      const heroes=getOrderedHeroes(), actor=heroes.find(h=>h.id===s.battle.actor)||heroes[0];
+      const itemId=button.dataset.item;
+      commandDraft={battle:s.battle,turn:s.battle.turn,actor:actor.id,command:'item',item:itemId,target:null};
+      battleMenuState={mode:'target'};
+      render();
+      return;
+    }
+    if(action==='dq-choose-target') {
+      if(!s.battle||!commandDraft)return;
+      stopAll();
+      const targetId=Number(button.dataset.id);
+      planCommand(commandDraft.command, targetId, commandDraft.skill, commandDraft.item);
+      advanceToNextHero();
+      return;
+    }
+    if(action==='dq-menu-main') {
+      battleMenuState={mode:'main',skill:null,item:null};
+      commandDraft=null;
+      render();
+      return;
+    }
+    if(action==='dq-back-hero') {
+      if(!s.battle)return;
+      stopAll();
+      const heroes=getOrderedHeroes(), actor=heroes.find(h=>h.id===s.battle.actor)||heroes[0];
+      const idx=heroes.findIndex(h=>h.id===actor.id);
+      if(idx>0){
+        const prev=heroes[idx-1];
+        delete s.battle.plans[prev.id];
+        s.battle.actor=prev.id;
+      }
+      battleMenuState={mode:'main',skill:null,item:null};
+      commandDraft=null;
+      render();
+      return;
+    }
+
+    // 従来のアクション互換
     if(action==='command') {
       if(!s.battle)return;
       stopAll();
       const actor=alive().find(h=>h.id===s.battle.actor);if(!actor)return;
+      if(button.dataset.command==='defend'){
+        planCommand('defend', actor.id);
+        advanceToNextHero();
+        return;
+      }
       commandDraft={battle:s.battle,turn:s.battle.turn,actor:actor.id,command:button.dataset.command,skill:button.dataset.skill,item:button.dataset.item,target:null};
+      battleMenuState={mode:button.dataset.command==='skill'?'skills':button.dataset.command==='item'?'items':'target'};
       render();return;
     }
     if(action==='target'&&s.battle) {
@@ -182,9 +481,14 @@
       }
       const target=kind==='self'||kind==='allAllies'?actor.id:kind==='allEnemies'?options[0]?.id:draft.target;
       if(target==null||options.length&&!options.some(o=>o.id===target)||['ally','enemy'].includes(kind)&&!options.length)return;
-      commandDraft=null;planCommand(draft.command,target,draft.skill,draft.item);return;
+      planCommand(draft.command,target,draft.skill,draft.item);
+      advanceToNextHero();
+      return;
     }
-    if(['actor','execute','template'].includes(action))commandDraft=null;
+    if(['actor','execute','template'].includes(action)){
+      commandDraft=null;
+      battleMenuState={mode:'main',skill:null,item:null};
+    }
     if(action==='exp-auto-mode') { stopAll();selectedMode=button.dataset.mode;render();return; }
     if(action==='exp-auto-toggle') {
       if(automaticRunning()){stopAll();tell('自動操作を停止しました。');render();return;}
