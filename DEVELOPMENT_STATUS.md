@@ -2,7 +2,7 @@
 
 更新：2026-10-22 JST / 担当：統括エージェント。
 
-最新状態：画像制作表I0とサンプル対応プロンプトI1-I3は検証・共有済み。制作関連checkpoint `b74258d` をorigin/main/devへpushし両先端一致確認。音声A0は親側統合待ち、探索GUI A1/A2と状態異常S0-S5は未完了。現在の復旧記録は末尾「サンプル対応I1-I3」を優先する。
+最新状態：メディア統合P0-P3を作業中。音楽/SE/画像と探索GUIを統合して既存main/devへpushする明示依頼あり。基準HEAD/両remote `dec2022`。I4-I6の整理済み原本14枚も今回共有対象、01欠番は維持。現在の復旧記録は末尾「メディア統合P0-P3」を優先する。状態異常S0-S5は未実装。
 
 ## 復旧点
 
@@ -106,3 +106,25 @@
 - I3共有完了：画像制作関連29ファイルを `b74258d136259b778417f9d9c6c2e2414081181f` にcommit。`git push origin HEAD:refs/heads/main HEAD:refs/heads/dev` 成功、`git ls-remote origin refs/heads/main refs/heads/dev` で両先端一致を確認。CI/Pages公開は未確認。ゲーム用画像登録・本番設定変更はしていない。この結果記録も通常commit/pushするが、自身のSHAを追記するだけの追加commitは作らない。
 - 残る未共有差分：AGENTS.md・README.md・systems.js、MP3×2、VIBE_STARTER_KIT_REVISED_v3.md、audio.js/css・docs/AUDIO.md・test-audio.cjs。いずれも保持、今回stage対象外。distはGit管理対象外。
 - 次：(1) 生成時は改修済み共通プロンプトと対象表1枚を使用し、各セルを検品 (2) 音声/探索GUIの親側統合を再開 (3) 対応実装後にPC/狭幅・ゲーム回帰・配布を検証。画像の新規生成は未実施、サンプルは未加工・未承認の参考資料。
+
+## 受領シートI4-I6
+
+- 元ファイルの末尾番号はID範囲ではない。主担当が元1/2/12/13/14、読み取り専用exploreが元3〜11の先頭行を制作表と照合。元1〜12→catalog-02〜13、元13はcatalog-14別案、元14はcatalog-14通常版。全セルの適合確認ではない。
+- 旧参考PNGは開始時から削除済み。ユーザーに確認し「現存14枚だけ整理」を選択。復元・複製・推測で01を補わない。元6/9（移動後07/10）は1145×1373px、元13（14別案）は1875×839px。他11枚は1145×1374px、全件RGBA。
+- 初回専用テスト6件のうち5件成功、旧参考PNG削除によるFileNotFoundErrorが1件。参照とテストを現存02へ切り替える。画像は再圧縮/拡大/切出しせず移動し、前後SHA-256を照合する。runtime/配布リスト/verifiedは変更しない。
+- I5完了：PowerShell Move-Itemでdocsからルートへ移動。monsters_sheet02_M0031-M0060.png〜monsters_sheet14_M0391-M0400.pngの通常版13枚とmonsters_sheet14_M0391-M0400_alt.pngの別案1枚。全ソース/移動先を事前検査し上書きなし、14件すべてSHA-256一致。docs/monster-art/RECEIVED_SHEETS.mdに元名/先名/実寸/ハッシュと01欠番・配置問題を記録。
+- I6完了：SKILL・正本仕様・export2本と生成文書（共通プロンプト/索引）・専用テストを、削除済み旧サンプルではなく現存02へ切替え。`python scripts/export_monster_art_prompts.py` / `python scripts/export_monster_art_tables.py` 成功、`python -m unittest discover -s scripts -p "*_test_*.py" -v` 51件成功、`node scripts/build-pages.cjs` と `git diff --check` 成功（改行警告のみ）。追加テストは14枚のID範囲/名前/PNG寸法/保全SHA/元名不存在/01欠番を検証。全セルverifiedとruntime、配布リストは未変更、ゲームNode/ブラウザ回帰は対象外で再実行なし。
+- 未コミット差分：上記14画像・受領記録・仕様/SKILL/export/生成文書/専用テスト/計画状態。旧参考PNGのユーザー削除はそのまま保持。開始時のAGENTS/README/systemsと音声関連・MP3・共通規則原本は保護。今回commit/pushは行っていない。
+- 次：(1) 01を別途受領し、07/10と14の寸法/配置を検品・補正方針確定 (2) 個別セルを名称/余白/透明背景で検品してからゲーム登録/配布へ接続 (3) 音声/探索GUIの親側統合を再開。現在の画像は未加工・未承認。
+
+## メディア統合P0-P3
+
+- P0完了：origin/main/devはdec2022と一致。戦闘BGM4,388,427bytes、街BGM4,290,624bytes（25MiB未満）。ユーザーの音楽/SE/画像をpushまでの依頼で過去no_gitを解除しcheckpoint_autoを再確認。AGENTSと共通規則原本は未stageで保護する。
+- 分担：general画像担当がsystemsの画像関数だけを明示矩形対応にし、monster-art.js/css・専用Nodeテスト・統合文書を作成。21体を確認済み、残りは未登録。14原本の選択プレビューを追加。別generalがexploration-ui.js/css・test-exploration.cjsで仲間固定/MAP敵切替/単発遭遇SEを実装。双方Git書き込みなし。親担当はindex・配布・音声・ブラウザQA・文書を統括。
+- P1/P2統合中：indexに音声UIとaudio.js/css、monster-art.js/cssを接続。14PNGと2MP3を明示配布許可し、25MiB超過を旧dist削除前に拒否する。SEは合成音の共通Gain、効果音ラボ素材は未取得/未使用。原本画像に破壊的処理なし、01は復元しない。
+- P1/P2ローカル完了：常設音声UI/2曲/合成SE、仲間の固定配置とコンパクト化/MAP敵切替を接続。個別21体は明示矩形・SVG縦横比保持、14原本は未検品警告付きで選択式表示。原本07/10/14を均等229pxとして扱わず、01欠番・遭遇70種の別IDを保護。画像プレビューの手動閉状態も再描画で維持する。
+- 親側ソース検証：Chrome1280/390/320pxでネイティブMP3取得/デコード/再生進行、BGM街→戦闘→街/単一曲、別音量/消音/再読込、SEの単発生成・消音、仲間位置不変と高さ上限、MAP敵切替、PNG実デコード/図鑑SVG表示、装備/商店/工房/保存/戦闘の既存操作が成功。最初のテストで幅ループ間の原本選択状態を固定値と誤認し待機失敗したため、各幅で02へ明示選択するテストに修正。実装の画像欠落ではない。画面PNGも目視確認。
+- 自動回帰：`node --test test.cjs test-regression.cjs test-overhaul.cjs test-equipment.cjs test-exploration.cjs test-save-manager.cjs test-quest-travel.cjs test-build-pages.cjs test-formation.cjs test-combat-balance.cjs test-audio.cjs test-monster-art.cjs` 全32件成功（900戦再現を含む）。Python51件成功。配布最終確認・文書再生成・限定Git共有はこれから実施する。
+- P3検証完了（再開セッション）：両exportを再実行し差分なし（生成一致）。Node12スイート33件・Python51件・`node scripts/build-pages.cjs`・`git diff --check` 成功。`node test-browser.cjs --dist` はサンドボックス内でChromium起動不可（終了コード4294930433）のため隔離外で再実行し、1280/390/320pxで音声/画像/仲間固定/MAP敵切替/遭遇SE/既存操作すべて成功。
+- 共有対象：AGENTS.md・VIBE_STARTER_KIT_REVISED_v3.md（ユーザー規則）と旧参考PNG `docs/30体の…アトラス.png` の削除（ユーザー操作、未stage保持）を除く全差分。サンドボックス内のgit ls-remoteはプロキシ接続不可のため、push/照合は隔離外で行う。
+- 次：(1) push後にremote先端一致を確認 (2) 実検聴・残り379種/遭遇70種の検品・01受領 (3) CI/Pages公開確認とS0着手。実検聴・全画像承認・CI/公開成功は未確認。

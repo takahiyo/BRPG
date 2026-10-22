@@ -1,4 +1,5 @@
 import json
+import hashlib
 import struct
 import unittest
 
@@ -41,7 +42,7 @@ class MonsterArtTableTests(unittest.TestCase):
         self.assertIn("encounter-01", self.outputs[ROOT / "docs/MONSTER_ART_TABLES.md"])
 
     def test_sample_dimensions_match_square_cell_contract(self):
-        with (ROOT / "docs/30体のモンスター透過スプライトアトラス.png").open("rb") as sample:
+        with (ROOT / "monsters_sheet02_M0031-M0060.png").open("rb") as sample:
             header = sample.read(33)
         self.assertEqual(header[:8], b"\x89PNG\r\n\x1a\n")
         self.assertEqual(header[12:16], b"IHDR")
@@ -62,6 +63,33 @@ class MonsterArtTableTests(unittest.TestCase):
         targets = outputs[ROOT / "docs/monsters/モンスター画像生成リスト_30枠.md"]
         self.assertEqual(targets.count("基準サイズ："), 14)
         self.assertEqual(targets.count("空白（何も描かない・透明）"), 20)
+
+    def test_received_images_match_move_receipt(self):
+        receipt = (ART / "RECEIVED_SHEETS.md").read_text(encoding="utf-8")
+        rows = [[cell.strip().strip("`") for cell in line.strip("|").split("|")]
+                for line in receipt.splitlines() if line.startswith("| catalog-")]
+        self.assertEqual(len(rows), 14)
+        sheets, files = set(), set()
+        for sheet, ids, old, new, size, digest in rows:
+            self.assertNotIn(sheet, sheets)
+            self.assertNotIn(new, files)
+            sheets.add(sheet)
+            files.add(new)
+            number = int(sheet.split("-")[1])
+            start, end = f"M{(number - 1) * 30 + 1:04}", f"M{min(number * 30, 400):04}"
+            suffix = "_alt" if sheet.endswith("-alt") else ""
+            self.assertEqual(new, f"monsters_sheet{number:02}_{start}-{end}{suffix}.png")
+            self.assertEqual(ids, f"{start}〜{end}")
+            self.assertFalse((ROOT / old).exists(), old)
+            data = (ROOT / new).read_bytes()
+            self.assertEqual(hashlib.sha256(data).hexdigest().upper(), digest, new)
+            self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
+            width, height, depth, color = struct.unpack(">IIBB", data[16:26])
+            self.assertEqual(size, f"{width}×{height}", new)
+            self.assertEqual((depth, color), (8, 6), new)
+        self.assertEqual(sheets, {f"catalog-{n:02}" for n in range(2, 15)} | {"catalog-14-alt"})
+        self.assertIn("01（M0001〜M0030）は欠番", receipt)
+        self.assertFalse((ROOT / "monsters_sheet01_M0001-M0030.png").exists())
 
     def test_every_production_sheet_has_the_sample_size_and_margin(self):
         for file, content in self.outputs.items():

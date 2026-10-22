@@ -23,7 +23,7 @@ async function main() {
     const name = decodeURIComponent(new URL(req.url, 'http://localhost').pathname).slice(1) || 'index.html';
     if (name.includes('/') || name.includes('\\') || name.startsWith('.')) { res.writeHead(404).end(); return; }
     try {
-      const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png' };
+      const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.mp3': 'audio/mpeg' };
       const type = types[path.extname(name)];
       if (!type) { res.writeHead(404).end(); return; }
       res.writeHead(200, { 'Content-Type': type }); res.end(readFileSync(path.join(root, name)));
@@ -41,6 +41,13 @@ async function main() {
     const result = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
     assert(!result.exceptionDetails, result.exceptionDetails?.exception?.description || 'Browser evaluation failed');
     return result.result.value;
+  }
+  async function waitFor(expression, label) {
+    for (let attempt = 0; attempt < 100; attempt++) {
+      if (await evaluate(expression)) return;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    throw Error('Timed out: ' + label + '; media=' + JSON.stringify(await evaluate(`__brpgMedia.map(m=>({src:m.src,paused:m.paused,ready:m.readyState,error:m.error?.code}))`)));
   }
   async function click(selector) {
     const point = await evaluate(`(() => {
@@ -97,18 +104,67 @@ async function main() {
     const { targetId } = await send('Target.createTarget', { url: 'about:blank' });
     session = (await send('Target.attachToTarget', { targetId, flatten: true })).sessionId;
     await send('Runtime.enable'); await send('Page.enable');
+    // Observe native media elements, not mocks, so fetch/decode/play failures remain visible.
+    await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+      window.__brpgMedia=[];window.__brpgOscillators=0;
+      const NativeAudio=window.Audio;
+      window.Audio=function(...args){const media=new NativeAudio(...args);__brpgMedia.push(media);return media;};
+      window.Audio.prototype=NativeAudio.prototype;
+      const context=window.AudioContext||window.webkitAudioContext;
+      if(context){const create=context.prototype.createOscillator;context.prototype.createOscillator=function(...args){__brpgOscillators++;return create.apply(this,args);};}
+    ` });
     await send('Page.navigate', { url });
     for (let attempt = 0; attempt < 100; attempt++) {
       if (await evaluate(`typeof BRPGFormation !== 'undefined' && document.getElementById('app').children.length > 0`)) break;
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     assert(await evaluate(`typeof BRPGFormation !== 'undefined'`), 'Game did not boot');
+    assert.equal(await evaluate('__brpgMedia.length'), 0, 'BGM waits for the first real gesture');
+    await click('#audio-controls summary');
+    await waitFor(`__brpgMedia.some(m=>m.src.endsWith('The_Wayfarer_s_Morning.mp3')&&!m.paused&&m.readyState>=2&&m.currentTime>0)`, 'native town BGM playback');
+    await evaluate(`document.querySelector('#audio-bgm-volume').value='31';document.querySelector('#audio-bgm-volume').dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#audio-se-volume').value='17';document.querySelector('#audio-se-volume').dispatchEvent(new Event('input',{bubbles:true}));`);
+    assert.equal(await evaluate('__brpgMedia.at(-1).volume'), 0.31);
+    await click('[data-audio-mute="bgm"]');
+    assert(await evaluate('__brpgMedia.every(m=>m.paused)'));
+    await click('[data-audio-mute="se"]');
+    assert(await evaluate('BRPGAudio.settings.seMuted'));
+    const silentCount = await evaluate('__brpgOscillators');
+    await evaluate(`playSE('encounter')`);
+    assert.equal(await evaluate('__brpgOscillators'), silentCount, 'Muted SE produces no oscillators');
+    await click('[data-audio-mute="se"]');
+    await click('[data-audio-mute="bgm"]');
+    await waitFor(`__brpgMedia.some(m=>!m.paused&&m.readyState>=2)`, 'unmuted native BGM');
+    await send('Page.reload');
+    await waitFor(`typeof BRPGAudio!=='undefined'&&document.querySelector('#app').children.length>0`, 'reload with persisted audio preferences');
+    assert.equal(await evaluate('__brpgMedia.length'), 0);
+    assert.equal(await evaluate('BRPGAudio.settings.bgmVolume'), 0.31);
+    assert.equal(await evaluate('BRPGAudio.settings.seVolume'), 0.17);
+    await click('#audio-controls summary');
+    await waitFor(`__brpgMedia.some(m=>!m.paused&&m.readyState>=2)`, 'native BGM after reload gesture');
     for (const width of [1280, 390, 320]) {
       await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 600 });
       await evaluate(`stopAll(); s=fresh(); notice=''; render();`);
+      await layout(width + ' audio controls');
+      assert.equal(await evaluate('document.querySelectorAll("#audio-controls").length'), 1);
+      await evaluate(`document.querySelector('#audio-controls').open=false`);
       for (const view of ['town', 'guild', 'party', 'tavern', 'supplies', 'forge', 'atlas', 'journal']) {
         await evaluate(`moveView(${JSON.stringify(view)})`); await layout(width + ' ' + view);
       }
+      await evaluate(`(() => {const select=document.querySelector('#monster-sheet-select');select.value='catalog-02';select.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+      await waitFor(`document.querySelector('#monster-sheet-preview').complete&&document.querySelector('#monster-sheet-preview').naturalWidth===1145`, 'native original-sheet image decode');
+      await evaluate(`(() => {const select=document.querySelector('#monster-sheet-select');select.value='catalog-14-alt';select.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+      await waitFor(`document.querySelector('#monster-sheet-preview').complete&&document.querySelector('#monster-sheet-preview').naturalWidth===1875`, 'irregular alternate original preview');
+      assert(await evaluate(`document.querySelector('#monster-sheet-warning').textContent.includes('横長')`));
+      await layout(width + ' original artwork preview');
+      await click('#monster-sheet-details summary');
+      await layout(width + ' closed artwork preview');
+      await evaluate('render()');
+      assert.equal(await evaluate(`document.querySelector('#monster-sheet-details').open`), false, 'Closing preview survives rerender');
+      await evaluate(`catalogScreen();s.ext.catalogTab='cat_mon';s.ext.discoveredMonsters={M0031:1,M0061:2,M0001:1};moveView('catalog')`);
+      assert.equal(await evaluate(`document.querySelectorAll('#app .monster-thumb').length`), 2);
+      await waitFor(`performance.getEntriesByType('resource').some(r=>r.name.endsWith('monsters_sheet02_M0031-M0060.png'))`, 'SVG sprite source fetched');
+      await layout(width + ' reviewed sprite crops');
+      await screenshot(width + '-catalog-art');
       await evaluate(`moveView('party')`);
       await click('[data-action="save-preset"][data-slot="1"]');
       await evaluate('s.active=[1];render()');
@@ -146,11 +202,24 @@ async function main() {
       await layout(width + ' crafted equipment');
       await click('#save-settings'); await layout(width + ' save settings');
       await click('#save-close');
-      await evaluate(`(() => {stopAll();s=fresh();enterMap('forest_edge');encounter();stopAll();
+      await evaluate(`stopAll();s=fresh();enterMap('forest_edge');stopAll();render();scrollTo(0,0)`);
+      const beforeEncounter = await evaluate(`({party:document.querySelector('.exp-workspace>.exp-party').getBoundingClientRect().top+scrollY,oscillators:__brpgOscillators})`);
+      assert(await evaluate(`document.querySelector('.exp-workspace>.exp-party').getBoundingClientRect().height < ${width < 760 ? 360 : 220}`), 'Compact party leaves room for the encounter');
+      await evaluate(`(() => {encounter();stopAll();
         const sample=s.battle.enemies[0];s.battle.enemies=[{...sample,key:0,row:'front',hp:500,maxhp:500},{...sample,key:1,row:'back',hp:500,maxhp:500}];render();})()`);
+      assert.equal(await evaluate(`document.querySelector('.exp-workspace>.exp-party').getBoundingClientRect().top+scrollY`), beforeEncounter.party, 'Party position is unchanged on encounter');
+      assert.equal(await evaluate('__brpgOscillators'), beforeEncounter.oscillators + 2, 'Encounter SE fires once');
+      await waitFor(`__brpgMedia.some(m=>m.src.endsWith('Cath_Slan_na_n_Og.mp3')&&!m.paused&&m.readyState>=2)`, 'native battle BGM playback');
+      assert.equal(await evaluate('__brpgMedia.filter(m=>!m.paused).length'), 1, 'Only one BGM plays');
+      assert(await evaluate(`document.querySelector('#exp-map-view').hidden&&!document.querySelector('#exp-enemy-view').hidden`));
+      await click('#exp-view-map');
+      assert(await evaluate(`!document.querySelector('#exp-map-view').hidden&&document.querySelector('#exp-enemy-view').hidden`));
+      await click('#exp-view-enemies');
+      assert.equal(await evaluate('__brpgOscillators'), beforeEncounter.oscillators + 2, 'Display switching does not replay encounter SE');
       await layout(width + ' battle');
       await screenshot(width + '-battle');
       await click('[data-action="command"][data-command="attack"]');
+      assert(await evaluate(`document.querySelector('.exp-workspace>.exp-party').getBoundingClientRect().top>=-1`), 'Party remains visible while scrolling battle controls');
       assert.equal(await evaluate(`document.querySelectorAll('[data-action="exp-command-target"]').length`), 1);
       await click('[data-action="exp-command-target"][data-id="0"]');
       await click('[data-action="exp-command-confirm"]');
@@ -160,7 +229,9 @@ async function main() {
       await click('[data-action="execute"]');
       assert.equal(await evaluate('s.battle.turn'), turn + 1, 'Confirmed commands advance a real browser turn');
       assert(await evaluate('validSave(s)'));
-      console.log('PASS: Chromium ' + width + 'px views, dialogs, equipment, presets, job preview/confirm, merchant purchase, crafting, save settings and battle turn.');
+      await evaluate(`s.battle=null;render()`);
+      await waitFor(`__brpgMedia.some(m=>m.src.endsWith('The_Wayfarer_s_Morning.mp3')&&!m.paused&&m.readyState>=2)`, 'town BGM restored after battle');
+      console.log('PASS: Chromium ' + width + 'px audio playback/settings, artwork preview/crops, stable party, MAP/enemy switching, encounter SE, equipment/facilities/save and battle turn.');
     }
     assert.deepEqual(errors, [], 'Uncaught browser errors');
   } finally {

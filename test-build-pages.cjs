@@ -2,11 +2,12 @@
 // Exercise build failure ordering without deleting or copying any real files.
 const fs = require('node:fs'), vm = require('node:vm'), path = require('node:path'), assert = require('node:assert/strict');
 const source = fs.readFileSync(path.join(__dirname, 'scripts/build-pages.cjs'), 'utf8');
-function build({missing, reference} = {}) {
+function build({missing, reference, oversized} = {}) {
   const calls = [];
   const fakeFs = {
     statSync(file) {
       if (path.basename(file) === missing) throw Error('Missing asset: ' + missing);
+      if (path.basename(file) === oversized) return {isFile: () => true, size: 25 * 1024 * 1024 + 1};
       return fs.statSync(file);
     },
     readFileSync(file, encoding) {
@@ -26,10 +27,14 @@ function build({missing, reference} = {}) {
 let result = build();
 assert.ifError(result.error);
 const copies = result.calls.filter(c => c[0] === 'copy').map(c => path.basename(c[1]));
-for (const file of ['equipment.js', 'equipment.css', 'exploration-ui.js', 'exploration-ui.css', 'save-manager.js']) assert(copies.includes(file));
+for (const file of ['equipment.js', 'equipment.css', 'exploration-ui.js', 'exploration-ui.css', 'save-manager.js', 'audio.js', 'audio.css', 'Cath_Slan_na_n_Og.mp3', 'The_Wayfarer_s_Morning.mp3', 'monster-art.js', 'monster-art.css']) assert(copies.includes(file));
+assert.equal(copies.filter(file => /^monsters_sheet/.test(file)).length, 14);
 for (const file of ['worker.js', 'wrangler.toml', 'AGENTS.md', '.env', 'test.cjs']) assert(!copies.includes(file));
 for (const options of [
   {missing: 'equipment.js'},
+  {missing: 'Cath_Slan_na_n_Og.mp3'},
+  {missing: 'monsters_sheet14_M0391-M0400_alt.png'},
+  {oversized: 'The_Wayfarer_s_Morning.mp3'},
   {reference: '<script src="new-feature.js?v=1"></script>'},
   {reference: '<a href="worker.js">private source</a>'}
 ]) {

@@ -83,11 +83,11 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
   function monsterThumbHTML(enemyId, catalogId) {
     const entry = monsterArt.cells[enemyId] || monsterArt.cells[catalogId];
     const sheet = entry && monsterArt.sheets[entry.sheet];
-    if (!entry?.verified || !sheet || !Number.isInteger(entry.cell) || entry.cell < 1 || entry.cell > sheet.columns * sheet.rows) return '';
-    const col = (entry.cell - 1) % sheet.columns, row = Math.floor((entry.cell - 1) / sheet.columns);
-    const x = sheet.columns > 1 ? col / (sheet.columns - 1) * 100 : 0;
-    const y = sheet.rows > 1 ? row / (sheet.rows - 1) * 100 : 0;
-    return `<div class="monster-thumb" role="img" aria-label="${esc(entry.name)}" style="background-image:url('${esc(sheet.src)}');background-size:${sheet.columns * 100}% ${sheet.rows * 100}%;background-position:${x}% ${y}%"></div>`;
+    const rect = entry?.rect;
+    if (entry?.verified !== true || !sheet || !rect || !/^[A-Za-z0-9_-]+\.png$/.test(sheet.src)) return '';
+    if (![sheet.width, sheet.height, rect.width, rect.height].every(n => Number.isSafeInteger(n) && n > 0) || ![rect.x, rect.y].every(n => Number.isSafeInteger(n) && n >= 0) || rect.x + rect.width > sheet.width || rect.y + rect.height > sheet.height) return '';
+    // The inner viewport clips neighbours; the outer viewport contains the crop without stretching.
+    return `<div class="monster-thumb" role="img" aria-label="${esc(entry.name)}"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 ${rect.width} ${rect.height}" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false" style="display:block;overflow:hidden"><svg width="${rect.width}" height="${rect.height}" viewBox="${rect.x} ${rect.y} ${rect.width} ${rect.height}" overflow="hidden"><image href="${esc(sheet.src)}" width="${sheet.width}" height="${sheet.height}"/></svg></svg></div>`;
   }
   globalThis.monsterThumbHTML = monsterThumbHTML;
 
@@ -358,13 +358,20 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
 
   // === 1. Web Audio API Sound Synthesizer & Visual FX ===
   let audioCtx = null;
+  let seOutput = null;
   function playSE(type) {
     try {
-      if (!ext().soundOn) return;
+      const audio = globalThis.BRPGAudio;
+      if (audio ? audio.settings.seMuted || audio.settings.seVolume === 0 : !ext().soundOn) return;
       const AC = globalThis.AudioContext || globalThis.webkitAudioContext;
       if (!AC) return;
       if (!audioCtx) audioCtx = new AC();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
+      if (!seOutput) {
+        seOutput = audioCtx.createGain();
+        seOutput.connect(audioCtx.destination);
+      }
+      audio?.registerSEOutput(audioCtx, seOutput);
+      if (audioCtx.state === 'suspended') audioCtx.resume()?.catch(() => {});
       const now = audioCtx.currentTime;
       const tone = (freq, endFreq, dur, wave = 'triangle', vol = 0.14, delay = 0) => {
         const osc = audioCtx.createOscillator();
@@ -375,11 +382,15 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
         gain.gain.setValueAtTime(vol, now + delay);
         gain.gain.exponentialRampToValueAtTime(0.001, now + delay + dur);
         osc.connect(gain);
-        gain.connect(audioCtx.destination);
+        gain.connect(seOutput);
+        osc.onended = () => { osc.disconnect(); gain.disconnect(); };
         osc.start(now + delay);
         osc.stop(now + delay + dur);
       };
-      if (type === 'attack' || type === 'slash') {
+      if (type === 'encounter') {
+        tone(196, 98, 0.18, 'sawtooth', 0.12, 0);
+        tone(293.66, 146.83, 0.22, 'triangle', 0.12, 0.08);
+      } else if (type === 'attack' || type === 'slash') {
         tone(340, 110, 0.11, 'sawtooth', 0.13, 0);
         tone(190, 75, 0.09, 'square', 0.10, 0.04);
       } else if (type === 'fire') {
@@ -2022,8 +2033,13 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
       const e = ext();
 
       if (act === 'toggle-se') {
-        e.soundOn = !e.soundOn;
-        if (e.soundOn) playSE('heal');
+        if (globalThis.BRPGAudio) {
+          BRPGAudio.set('seMuted', !BRPGAudio.settings.seMuted);
+          if (!BRPGAudio.settings.seMuted) playSE('heal');
+        } else {
+          e.soundOn = !e.soundOn;
+          if (e.soundOn) playSE('heal');
+        }
         render();
       } else if (act === 'ally-target-pick') {
         if (s.battle) {

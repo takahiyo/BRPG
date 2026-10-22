@@ -1,0 +1,27 @@
+header { flex-wrap: wrap; }
+.audio-controls {
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--line, #514838);
+  border-radius: 8px;
+  background: var(--panel, #211e19);
+  color: var(--text, #eee3cc);
+  min-width: 0;
+  max-width: 100%;
+}
+.audio-controls[open] { width: 330px; }
+.audio-controls summary { cursor: pointer; font-weight: 600; }
+.audio-controls__rows { display: grid; gap: 0.55rem; margin-top: 0.65rem; }
+.audio-controls__row { display: grid; grid-template-columns: 3rem minmax(4rem, 1fr) auto; align-items: center; gap: 0.6rem; }
+.audio-controls input[type="range"] { width: 100%; min-width: 0; accent-color: #ddbf78; }
+.audio-controls button { min-height: 44px; padding: 0.35rem 0.65rem; }
+.audio-controls button[aria-pressed="true"] { background: #60422e; border-color: #ddbf78; color: #fff0cf; }
+.audio-controls :focus-visible { outline: 2px solid #ddbf78; outline-offset: 3px; }
+.audio-controls__status { margin: 0.5rem 0 0; font-size: 0.8rem; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .audio-controls[open] { flex-basis: 100%; width: auto; }
+}
+@media (max-width: 360px) {
+  .audio-controls { padding: 0.5rem; }
+  .audio-controls__row { gap: 0.35rem; grid-template-columns: 2.3rem minmax(3rem, 1fr) auto; }
+}

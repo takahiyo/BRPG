@@ -136,6 +136,107 @@ h.run(`
   stopAll();
 `);
 
+// Party markup stays outside the changing battle layout; only the stage switches.
+const mediaCalls = [], animations = [];
+h.box.playSE = type => mediaCalls.push(type);
+h.box.reduceMotion = false;
+h.box.matchMedia = () => ({ matches: h.box.reduceMotion });
+h.box.document.getElementById('exp-enemy-view').animate = (...args) => animations.push(args);
+h.run(`
+  function partyMarkup() {
+    const html=exploreScreen(), start=html.indexOf('<section class="exp-party"');
+    assert(start>=0&&start<html.indexOf('<div class="expedition-layout'));
+    assert.equal((html.match(/class="exp-party"/g)||[]).length,1);
+    assert(start<html.indexOf('class="exp-map-stage"'));
+    assert(start<html.indexOf('class="sectionhead expedition-head"'));
+    return html.slice(start,html.indexOf('<div class="sectionhead expedition-head"'));
+  }
+  resetExploration();
+  const fieldParty=partyMarkup();
+  assert(!exploreScreen().includes('data-action="exp-stage-view"'));
+  click('exp-stage-view',{view:'enemies'});
+  assert(!exploreScreen().includes('id="exp-enemy-view"'));
+  encounter();
+  assert.equal(partyMarkup(),fieldParty,'Identical party markup before and during battle');
+  assert(/id="exp-map-view" hidden/.test(exploreScreen()));
+  assert(/id="exp-view-enemies"[^>]*aria-pressed="true"/.test(exploreScreen()));
+  assert(!/id="exp-enemy-view"[^>]*hidden/.test(exploreScreen()));
+  assert(exploreScreen().includes('aria-controls="exp-map-view"'));
+  assert(exploreScreen().includes('aria-controls="exp-enemy-view"'));
+  assert.equal((exploreScreen().match(/id="map"/g)||[]).length,1);
+  render();render();exploreScreen();
+`);
+assert.deepEqual(mediaCalls, ['encounter'], 'Rendering never plays encounter SE');
+assert.equal(animations.length, 1, 'Only the encounter event animates the overlay');
+assert.equal(animations[0][1].duration, 260);
+assert.equal(timers.size, 0, 'Presentation creates no timers');
+h.run(`
+  click('command',{command:'attack'});
+  const plannedActor=s.battle.actor, unchangedBattle=JSON.stringify(s.battle);
+  encounter();
+  assert.equal(JSON.stringify(s.battle),unchangedBattle,'No-op encounter cannot reroll enemies or plans');
+  assert(uiBattlePanel().includes('data-action="exp-command-target"'),'No-op encounter preserves draft');
+  click('exp-stage-view',{view:'map'});
+  assert(!/id="exp-map-view" hidden/.test(exploreScreen()));
+  assert(/id="exp-enemy-view"[^>]*hidden/.test(exploreScreen()));
+  assert(uiBattlePanel().includes('data-action="exp-command-target"'),'MAP does not clear commands');
+  const unchangedSave=JSON.stringify(s);
+  click('exp-stage-view',{view:'enemies'});click('exp-stage-view',{view:'map'});
+  assert.equal(JSON.stringify(s),unchangedSave,'Stage choice is not saved');
+  click('exp-command-target',{id:String(BRPGFormation.targets(alive().find(a=>a.id===s.battle.actor))[0].key)});
+  click('exp-command-confirm');assert(s.battle.plans[plannedActor],'Commands work with MAP visible');
+  click('template');assert.equal(Object.keys(s.battle.plans).length,alive().length);
+  click('exp-auto-mode',{mode:'battle'});click('exp-auto-toggle');
+`);
+const battleIntervals = [...timers.entries()];
+h.run(`
+  const noOpState=JSON.stringify(s);
+  encounter();click('exp-stage-view',{view:'enemies'});click('exp-stage-view',{view:'map'});
+  assert.equal(JSON.stringify(s),noOpState);assert(battleTimer);
+`);
+assert.deepEqual([...timers.entries()], battleIntervals, 'MAP toggles and no-op encounters preserve battle timing');
+assert.deepEqual(mediaCalls, ['encounter']);
+assert.equal(animations.length, 1, 'Toggling back never replays the entrance animation');
+
+// Loading an ongoing battle defaults to enemies silently, including state replacement.
+const battleSave = h.run(`stopAll();save();JSON.stringify(s);`);
+const restored = harness({'ashen-atlas-v3':battleSave});
+const restoredSounds = [];
+restored.box.playSE = type => restoredSounds.push(type);
+restored.box.document.getElementById('exp-enemy-view').animate = () => assert.fail('Loading must not animate');
+restored.run(`
+  boot();assert(s.battle);assert(validSave(s));
+  assert(/id="exp-map-view" hidden/.test(exploreScreen()));
+  handleAction({target:{closest:()=>({dataset:{action:'exp-stage-view',view:'map'}})}});
+  assert(/id="exp-enemy-view"[^>]*hidden/.test(exploreScreen()));
+  const restoredState=structuredClone(s);s=restoredState;render();
+  assert(/id="exp-map-view" hidden/.test(exploreScreen()));
+  encounter();render();stopAll();
+`);
+assert.deepEqual(restoredSounds, []);
+assert.equal(restored.timers.size, 0);
+
+h.run(`
+  s.battle.enemies.forEach(e=>damageEnemy(e,10000,'physical'));victory();render();
+  assert(!exploreScreen().includes('data-action="exp-stage-view"'));
+  const afterVictory=JSON.stringify(s);click('exp-stage-view',{view:'enemies'});
+  assert.equal(JSON.stringify(s),afterVictory);
+  assert(partyMarkup());
+  encounter();assert(/id="exp-map-view" hidden/.test(exploreScreen()));stopAll();
+`);
+assert.deepEqual(mediaCalls, ['encounter', 'encounter'], 'A genuinely new battle plays exactly once');
+assert.equal(animations.length, 2);
+h.box.reduceMotion = true;
+h.run('resetExploration();encounter();render();stopAll();');
+assert.equal(animations.length, 2, 'Reduced motion suppresses the encounter animation');
+assert.equal(mediaCalls.length, 3, 'Reduced motion does not change audio policy');
+h.box.playSE = () => { throw Error('Audio unavailable'); };
+h.run('resetExploration();encounter();assert(s.battle);stopAll();');
+delete h.box.playSE;
+h.run('resetExploration();encounter();assert(s.battle);stopAll();s=fresh();encounter();assert(!s.battle);');
+assert.equal(animations.length, 2);
+assert.equal(timers.size, 0);
+
 // Entrance is always painted with a named exit, including while occupied.
 const paintText = [];
 const canvasContext = new Proxy({
@@ -148,4 +249,4 @@ assert(paintText.includes('EXIT'));
 assert(!paintText.some(text => ['#', 'o', 'c', '>', '!'].includes(text)), 'Map objects use painted geometry');
 h.run('stopAll();');
 assert.equal(timers.size, 0);
-console.log('PASS: command → target → confirm → turn, click listener integration, painted exit, 3-second wait, stale/cancelled timers, manual intervention, walking-only and battle-only scopes.');
+console.log('PASS: stable party order, battle-only MAP/enemy switch, encounter SE/animation once, silent restoration, reduced motion/audio failure safety, command → target → confirm → turn, painted exit, 3-second wait, stale/cancelled timers and automation scopes.');

@@ -1,0 +1,9 @@
+.monster-sheet-browser{margin-top:20px;padding:16px;border:1px solid var(--line,#485448);border-radius:8px;min-width:0;overflow-wrap:anywhere}
+.monster-sheet-browser summary{cursor:pointer;font-weight:700}
+.monster-sheet-browser label{display:block;margin:12px 0 6px}
+.monster-sheet-browser select{display:block;width:100%;max-width:100%;min-width:0;font:inherit}
+.monster-sheet-browser figure{margin:16px 0 0;min-width:0}
+.monster-sheet-browser img{display:block;width:100%;max-width:100%;height:auto;object-fit:contain;background:#252b30;border-radius:6px}
+.monster-sheet-browser figcaption{margin-top:8px;overflow-wrap:anywhere}
+.monster-sheet-browser #monster-sheet-warning{font-weight:600}
+@media(max-width:480px){.monster-sheet-browser{padding:12px}.monster-sheet-browser select{font-size:14px}}
