@@ -145,11 +145,17 @@
   };
   function rowHTML(members, row, renderCard, empty = true) {
     const list = members.filter(h => h.row === row);
-    return `<section class="formation-row formation-${row}" aria-label="${row === 'front' ? '前衛' : '後衛'}"><div class="formation-label"><b>${row === 'front' ? '前衛' : '後衛'}</b><small>${list.length} / 3</small></div><div class="formation-slots">${list.map(renderCard).join('')}${empty ? Array.from({ length: Math.max(0, 3 - list.length) }, () => '<div class="formation-empty" aria-label="空き枠">空き枠</div>').join('') : ''}</div></section>`;
+    return `<section class="formation-row formation-${row}" data-drop-row="${row}" aria-label="${row === 'front' ? '前衛' : '後衛'}"><div class="formation-label"><b>${row === 'front' ? '前衛' : '後衛'}</b><small>${list.length} / 3 · ドラッグで移動</small></div><div class="formation-slots" data-drop-row="${row}">${list.map(renderCard).join('')}${empty ? Array.from({ length: Math.max(0, 3 - list.length) }, () => `<div class="formation-empty" data-drop-row="${row}" aria-label="空き枠">空き枠（D&Dで配置）</div>`).join('') : ''}</div></section>`;
   }
   strip = function(battle = false) { normalize(); return `<div class="formation-party">${['front', 'back'].map(row => rowHTML(party(), row, h => mini(h, battle))).join('')}</div>`; };
   const previousMini = mini;
-  mini = function(h, ...args) { return previousMini(h, ...args).replace('</article>', `<p class="formation-range">${esc(rangeText(h))}</p></article>`); };
+  mini = function(h, ...args) {
+    const battle = args[0] === true;
+    const dragAttr = battle ? '' : ` draggable="true" data-drag-hero="${h.id}" title="ドラッグ＆ドロップで隊列を入れ替え可能"`;
+    return previousMini(h, ...args)
+      .replace('<article class="mini ', `<article class="mini formation-draggable "${dragAttr} `)
+      .replace('</article>', `<p class="formation-range">${esc(rangeText(h))}</p></article>`);
+  };
   const previousParty = partyScreen;
   partyScreen = function() { normalize(); return `<section class="panel formation-overview"><h2>探索隊列 · 各列3枠</h2><p class="muted">近距離は前衛から。槍・鞭は後衛から前衛に届き、弓・杖・攻撃魔法は敵後衛も狙えます。前衛が倒れると後衛が接敵します。</p>${strip()}</section>` + previousParty(); };
   const previousUiEnemies = uiEnemies;
@@ -188,6 +194,96 @@
     const slot = g && globalThis.BRPGEquipment?.slotOf(g), reach = g && LABELS[g.range] ? g.range : ['bow', 'staff'].includes(g?.type) ? 'long' : ['spear', 'whip'].includes(g?.type) ? 'medium' : 'near';
     return previousRequirements(g) + (slot === 'weapon' ? ' / ' + LABELS[reach] : '') + (g && (slot === 'shield' || DATA.materials[g.material]?.category === 'metal') ? ' / 魔法職は金属装備・盾を装備不可' : '');
   };
+  // HTML5 Drag and Drop for Party Formation
+  let draggedHeroId = null;
+  if (typeof document !== 'undefined') {
+    document.addEventListener('dragstart', event => {
+      const card = event.target.closest('[data-drag-hero]');
+      if (!card) return;
+      draggedHeroId = Number(card.dataset.dragHero);
+      if (event.dataTransfer) {
+        event.dataTransfer.setData('text/plain', String(draggedHeroId));
+        event.dataTransfer.effectAllowed = 'move';
+      }
+      card.classList.add('is-dragging');
+    });
+
+    document.addEventListener('dragend', event => {
+      const card = event.target.closest('[data-drag-hero]');
+      if (card) card.classList.remove('is-dragging');
+      document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+      draggedHeroId = null;
+    });
+
+    document.addEventListener('dragover', event => {
+      const dropTarget = event.target.closest('[data-drop-row], [data-drag-hero]');
+      if (dropTarget && draggedHeroId) {
+        event.preventDefault();
+        if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+      }
+    });
+
+    document.addEventListener('dragenter', event => {
+      const dropTarget = event.target.closest('[data-drop-row], [data-drag-hero]');
+      if (dropTarget && draggedHeroId) {
+        dropTarget.classList.add('drag-over');
+      }
+    });
+
+    document.addEventListener('dragleave', event => {
+      const dropTarget = event.target.closest('[data-drop-row], [data-drag-hero]');
+      if (dropTarget) {
+        dropTarget.classList.remove('drag-over');
+      }
+    });
+
+    document.addEventListener('drop', event => {
+      const dropRowEl = event.target.closest('[data-drop-row]');
+      const dropHeroEl = event.target.closest('[data-drag-hero]');
+      document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+      
+      if (!draggedHeroId) return;
+      const hero = s.roster.find(h => h.id === draggedHeroId);
+      if (!hero) return;
+
+      event.preventDefault();
+
+      if (dropHeroEl && Number(dropHeroEl.dataset.dragHero) !== draggedHeroId) {
+        const targetHero = s.roster.find(h => h.id === Number(dropHeroEl.dataset.dragHero));
+        if (targetHero) {
+          const tempRow = hero.row;
+          hero.row = targetHero.row;
+          targetHero.row = tempRow;
+          tell(`${hero.name} と ${targetHero.name} の隊列を入れ替えました。`);
+          normalize();
+          render();
+          return;
+        }
+      }
+
+      if (dropRowEl) {
+        const destRow = dropRowEl.dataset.dropRow;
+        if (destRow && ['front', 'back'].includes(destRow) && hero.row !== destRow) {
+          const destCount = party().filter(h => h.id !== hero.id && h.row === destRow).length;
+          if (destCount >= 3) {
+            const destHero = party().find(h => h.row === destRow);
+            if (destHero) {
+              destHero.row = hero.row;
+              hero.row = destRow;
+              tell(`${hero.name} を${destRow === 'front' ? '前衛' : '後衛'}に移し、${destHero.name} と交代しました。`);
+            } else {
+              tell(`${destRow === 'front' ? '前衛' : '後衛'}は3人までです。`);
+            }
+          } else {
+            hero.row = destRow;
+            tell(`${hero.name} を${destRow === 'front' ? '前衛' : '後衛'}に移動しました。`);
+          }
+          normalize();
+          render();
+        }
+      }
+    });
+  }
   globalThis.BRPGFormation = { normalize, assignEnemies, range, rangeText, targets, reachable, skillDef, restriction, enemyRange, labels: LABELS };
   normalize();
 })();

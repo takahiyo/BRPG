@@ -255,6 +255,34 @@
   - 実ブラウザテスト：`node test-browser.cjs` および `node test-browser.cjs --dist` により、1280px / 390px / 320px の全3幅でソース版・Pages配布版ともに完全合格。
 - 次の操作：関連ファイルをstage/commitし、`origin/main` および `origin/dev` へ通常push。保護対象（ユーザーAGENTS.md、VIBE_STARTER_KIT_REVISED_v3.md、旧参考PNG削除状態）はstageしない。
 
+## ゲームプレイ・UI・バランス総合改善（BALANCE_UX_01）
+
+- 改善内容：
+  1. **ステータス直接育成** (`characters.js`, `game.js`)：
+     - LIFE/MANA/SPの直接強化（LIFE +8/pt, MANA +4/pt, SP +2/pt）を定義。
+     - 成長画面（`growthSection`）に生命・精神力（直接強化）セクションを追加。
+     - セーブデータ整合性検証（`validSave`）で `hp`, `mp`, `sp` キーの配分を正当に許容。
+  2. **装備品射程フィルタ** (`characters.js`)：
+     - 装備品モーダルに射程絞り込みボタン群（すべて / 近距離 / 中距離 / 遠距離）を新設。
+     - 武器選択時、即座に該当射程の装備候補に絞り込み可能。
+  3. **工房請負時の完成性能事前表示** (`systems.js`)：
+     - 未識別素材であっても、街工房の職人による見立てとして、完成品の攻撃・防御・耐久・品質の予測値を事前表示。
+  4. **隊列変更のD&D操作対応** (`formation.js`, `formation.css`)：
+     - 隊列ミニカードに `draggable="true"` を設定し、HTML5 Drag and Drop イベント群を実装。
+     - カード間のドラッグ＆ドロップでキャラクター位置のスワップ、列行へのドロップで前衛/後衛の変更に対応。
+  5. **帰還符バランス調整** (`world-data.js`, `game.js`)：
+     - 帰還符（`scroll`）の価格を `35 G` から `280 G` へ大幅改定。
+     - 初期所持数を `2` から `1` に調整し、探索者スキルの優位性を確立。
+  6. **キャッシュ強制更新** (`index.html`)：
+     - バージョンキーを `?v=20261022-features-v1` に更新。
+- 検証結果：
+  - Node.js テスト：新設 `test-features.cjs` を含む全14スイート（42件）完全合格。
+  - Python テスト：全52件合格。
+  - Pages ビルド：`node scripts/build-pages.cjs` 成功。
+  - 実ブラウザテスト：`node test-browser.cjs` および `node test-browser.cjs --dist` により、1280px / 390px / 320px の全3幅でソース版・Pages配布版ともに完全合格。
+- 共有先：`origin/main` および `origin/dev` へ通常push。
+
+
 
 
 

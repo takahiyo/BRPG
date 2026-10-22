@@ -1,6 +1,13 @@
 /* Character records, staged growth, and the town tavern. Classic script: no dependencies. */
 (() => {
   const KEYS = Object.keys(ATTRIBUTE_NAMES);
+  const RESOURCE_GROWTH = {
+    hp: { name: 'LIFE', label: '最大LIFE', rate: 8 },
+    mp: { name: 'MANA', label: '最大MANA', rate: 4 },
+    sp: { name: 'SP', label: '最大SP', rate: 2 }
+  };
+  const RESOURCE_KEYS = Object.keys(RESOURCE_GROWTH);
+  const ALL_GROWTH_KEYS = [...RESOURCE_KEYS, ...KEYS];
   const GENDERS = { male: '男性', female: '女性', other: 'その他', unspecified: '未設定' };
   const DERIVED = { hp: '最大LIFE', mp: '最大MANA', sp: '最大SP', atk: '攻撃', def: '防御', mag: '魔力', speed: '速度' };
   // Content can add allowedGenders / gender to gear, jobs, or skills, or register a predicate here.
@@ -35,6 +42,23 @@
   makeHero = function(...args) { return initialize(previousMakeHero(...args)); };
   const previousSync = syncHero;
   syncHero = function(h) { initialize(h); previousSync(h); };
+  const previousStats = stats;
+  stats = function(h) {
+    const st = previousStats(h);
+    const e = state(), alloc = e.alloc[h.id] || {};
+    const bonusHp = (alloc.hp || 0) + (previewDelta?.heroId === h.id ? previewDelta.values.hp || 0 : 0);
+    const bonusMp = (alloc.mp || 0) + (previewDelta?.heroId === h.id ? previewDelta.values.mp || 0 : 0);
+    st.hp += bonusHp * 8;
+    st.mp += bonusMp * 4;
+    return st;
+  };
+  const previousMaxSP = maxSP;
+  maxSP = function(h) {
+    const base = previousMaxSP(h);
+    const e = state(), alloc = e.alloc[h.id] || {};
+    const bonusSp = (alloc.sp || 0) + (previewDelta?.heroId === h.id ? previewDelta.values.sp || 0 : 0);
+    return base + bonusSp * 2;
+  };
   const previousAttributes = attributes;
   attributes = function(h) {
     const a = previousAttributes(h), offsets = initialize(h).birthAttributes;
@@ -105,7 +129,7 @@
     return Math.max(0, (h.lv - 1) * 2 + (e.freePts[h.id] || 0) - spent);
   }
   function draftFor(h) {
-    if (!growthDraft || growthDraft.owner !== s || growthDraft.heroId !== h.id) growthDraft = { owner: s, heroId: h.id, values: Object.fromEntries(KEYS.map(k => [k, 0])) };
+    if (!growthDraft || growthDraft.owner !== s || growthDraft.heroId !== h.id) growthDraft = { owner: s, heroId: h.id, values: Object.fromEntries(ALL_GROWTH_KEYS.map(k => [k, 0])) };
     return growthDraft;
   }
   function draftTotal(h) { return growthDraft?.owner === s && growthDraft.heroId === h.id ? Object.values(growthDraft.values).reduce((a, n) => a + n, 0) : 0; }
@@ -122,9 +146,9 @@
     const h = s.roster.find(a => a.id === id);
     if (!h || s.battle || !growthDraft || growthDraft.owner !== s || growthDraft.heroId !== id) return false;
     const delta = growthDraft.values, total = draftTotal(h);
-    if (!total || total > freePoints(h) || KEYS.some(k => !Number.isInteger(delta[k]) || delta[k] < 0)) return false;
+    if (!total || total > freePoints(h) || ALL_GROWTH_KEYS.some(k => !Number.isInteger(delta[k]) || delta[k] < 0)) return false;
     const e = state(); e.alloc[id] ??= {};
-    for (const k of KEYS) e.alloc[id][k] = (e.alloc[id][k] || 0) + delta[k];
+    for (const k of ALL_GROWTH_KEYS) e.alloc[id][k] = (e.alloc[id][k] || 0) + delta[k];
     growthDraft = null;
     tell(h.name + 'の成長を確定した。');
     render();
@@ -135,7 +159,7 @@
   globalThis.cancelCharacterGrowth = cancelGrowth;
   globalThis.adjustCharacterGrowth = function(id, key, amount) {
     const h = s.roster.find(a => a.id === id);
-    if (!h || s.battle || !KEYS.includes(key) || ![1, -1].includes(amount)) return false;
+    if (!h || s.battle || !ALL_GROWTH_KEYS.includes(key) || ![1, -1].includes(amount)) return false;
     const d = draftFor(h);
     if (amount < 0 && !d.values[key] || amount > 0 && draftTotal(h) >= freePoints(h)) return false;
     d.values[key] += amount;
@@ -245,6 +269,11 @@
       return `<div class="detail-gear"><h4>${label} <small class="muted">所持 ${list.length}個 / 装備可能 ${list.filter(x => x.permitted).length}個</small></h4><p>${esc(current ? gearName(current) : '装備なし')}${current ? ` <span class="gold">（${statName}+${curVal}${current.enchant ? ` · 付呪+${enchantPower(current)}` : ''}）</span>` : ''}</p>${current ? `<small>耐久 ${current.dur}/${current.maxDur}${canEquip(h, current) ? '' : ' · 装備条件を満たしていません'}</small>` : ''}<label class="field">${label}を変更<select data-character-change="equip" data-hero="${h.id}" data-slot="${slot}" aria-label="${label}を変更" ${readOnly ? 'disabled' : ''}><option value="">装備を外す</option>${groups}</select></label></div>`;
     }).join('') + (readOnly ? '<p class="muted">装備の変更は街で行えます。</p>' : '');
   }
+  let equipmentReachFilter = 'all';
+  function reachOfGear(g) {
+    if (!g || g.slot !== 'weapon') return null;
+    return ['bow', 'staff'].includes(g.type) ? 'long' : ['spear', 'whip'].includes(g.type) ? 'medium' : (g.range || 'near');
+  }
   const equipmentViews = new Map();
   let equipmentState = null;
   function equipmentView(h) {
@@ -258,9 +287,27 @@
     const durability = current ? eq.durability(current) : null;
     const occupied = slot === 'shield' && item(h.weapon)?.hands === 2;
     const bag = eq.inventory(h), stored = s.gear.filter(g => g.ownerId === null);
-    const matching = g => eq.slotOf(g) === (slot.startsWith('acc') ? 'accessory' : slot);
+    const matching = g => {
+      if (eq.slotOf(g) !== (slot.startsWith('acc') ? 'accessory' : slot)) return false;
+      if (slot === 'weapon' && equipmentReachFilter !== 'all') {
+        const reach = reachOfGear(g);
+        if (reach !== equipmentReachFilter) return false;
+      }
+      return true;
+    };
     const candidates = bag.filter(matching);
     const storedCandidates = stored.filter(matching);
+
+    let filterBar = '';
+    if (slot === 'weapon') {
+      const filters = [
+        { id: 'all', label: 'すべて' },
+        { id: 'near', label: '近距離' },
+        { id: 'medium', label: '中距離' },
+        { id: 'long', label: '遠距離' }
+      ];
+      filterBar = `<div class="equipment-reach-filter" style="margin: 0.5rem 0; display: flex; gap: 0.5rem; align-items: center;"><span class="muted" style="font-size: 0.85rem;">射程絞込:</span><div class="button-group">${filters.map(f => `<button type="button" class="btn ${equipmentReachFilter === f.id ? 'active primary' : 'ghost'}" data-action="equipment-reach-filter" data-reach="${f.id}" style="padding: 0.2rem 0.6rem; font-size: 0.8rem;">${f.label}</button>`).join('')}</div></div>`;
+    }
 
     const card = (g, storage = false) => {
       const owner = eq.equippedOwner(g), suit = eq.suitability(h, g), permitted = canEquip(h, g), own = owner?.id === h.id;
@@ -269,7 +316,7 @@
       return `<article class="inventory-card ${own ? 'is-equipped' : ''} rarity-${g.rarity || 'common'}"><div class="row between"><h4>${esc(gearName(g))}</h4><small>${esc(eq.types[g.type]?.name || g.type)}${g.hands === 2 ? ' · 両手' : ''}</small></div><p>${g.slot === 'weapon' ? '攻撃' : '防御'} +${eq.valueFor(h, g)} · <span class="durability ${durability.level}">${durability.icon} ${durability.percent}%</span></p>${owner ? `<span class="equipped-badge" title="${esc(owner.name)}が装備中">✓ ${esc(owner.name)}が装備中</span>` : ''}<small class="${suit.suitable ? 'muted' : 'equipment-unsuitable'}">${esc(suit.text)}</small><small>${esc(gearRequirementText(g))}${!permitted ? ' · 能力条件未達' : ''}</small><div class="actions">${btn(own ? '✓ 装備中' : 'これを装備', 'character-equip', `data-id="${h.id}" data-gear="${g.id}" data-slot="${slot}" ${locked || own || !permitted || storage && !eq.canReceive(h) ? 'disabled' : ''}`, own ? '' : 'primary')}${storage ? btn('所持品へ取り出す', 'character-transfer', `data-id="${h.id}" data-gear="${g.id}" ${locked || !eq.canReceive(h) ? 'disabled' : ''}`) : btn('倉庫へ預ける', 'character-transfer', `data-id="storage" data-gear="${g.id}" ${locked || own ? 'disabled' : ''}`)}</div>${!storage && destination.length ? `<details class="inventory-transfer"><summary>仲間へ渡す</summary><div class="actions">${destination.map(a => btn(esc(a.name) + ' (' + eq.usage(a) + '/' + eq.capacity(a) + ')', 'character-transfer', `data-id="${a.id}" data-gear="${g.id}" ${locked || !eq.canReceive(a) ? 'disabled' : ''}`)).join('')}</div></details>` : ''}</article>`;
     };
 
-    return `<div class="equipment-modal-current"><div class="row between"><div><span class="eyebrow">${esc(eq.labels[slot])} 部位</span><h4>現在の装備: ${esc(current ? gearName(current) : occupied ? '両手武器が使用中' : '装備なし')}</h4></div>${current ? btn('この部位を外す', 'character-unequip', `data-id="${h.id}" data-slot="${slot}" ${locked ? 'disabled' : ''}`) : ''}</div>${current ? `<p>${current.slot === 'weapon' ? '攻撃' : '防御'} +${eq.valueFor(h, current)} · <span class="durability ${durability.level}">${durability.icon} 耐久 ${durability.percent}%</span></p>` : ''}</div><div class="section-space"><h4>所持品の候補 (${candidates.length})</h4><div class="inventory-grid">${candidates.map(g => card(g)).join('') || '<p class="muted">この部位の所持品はありません。</p>'}</div></div>${storedCandidates.length ? `<div class="section-space"><h4>街の倉庫の候補 (${storedCandidates.length})</h4><div class="inventory-grid">${storedCandidates.map(g => card(g, true)).join('')}</div></div>` : ''}`;
+    return `<div class="equipment-modal-current"><div class="row between"><div><span class="eyebrow">${esc(eq.labels[slot])} 部位</span><h4>現在の装備: ${esc(current ? gearName(current) : occupied ? '両手武器が使用中' : '装備なし')}</h4></div>${current ? btn('この部位を外す', 'character-unequip', `data-id="${h.id}" data-slot="${slot}" ${locked ? 'disabled' : ''}`) : ''}</div>${filterBar}${current ? `<p>${current.slot === 'weapon' ? '攻撃' : '防御'} +${eq.valueFor(h, current)} · <span class="durability ${durability.level}">${durability.icon} 耐久 ${durability.percent}%</span></p>` : ''}</div><div class="section-space"><h4>所持品の候補 (${candidates.length})</h4><div class="inventory-grid">${candidates.map(g => card(g)).join('') || '<p class="muted">この部位の所持品はありません。</p>'}</div></div>${storedCandidates.length ? `<div class="section-space"><h4>街の倉庫の候補 (${storedCandidates.length})</h4><div class="inventory-grid">${storedCandidates.map(g => card(g, true)).join('')}</div></div>` : ''}`;
   }
   function openEquipmentDialog(h, slot) {
     let dialog = $('equipment-dialog');
@@ -496,6 +543,10 @@
           refreshDetail();
         }
       } else if (action === 'equipment-dialog-close') closeEquipmentDialog();
+      else if (action === 'equipment-reach-filter') {
+        equipmentReachFilter = b.dataset.reach || 'all';
+        refreshEquipmentDialog();
+      }
       else if (action === 'character-auto-source') { const h = s.roster.find(x => x.id === id); if (h && !s.dungeon && !s.battle && Object.hasOwn(equipmentView(h).sources, b.dataset.source)) { const v = equipmentView(h); v.sources[b.dataset.source] = !v.sources[b.dataset.source]; refreshDetail(); } }
       else if (action === 'character-auto-equip') { const h = s.roster.find(x => x.id === id); if (h) BRPGEquipment.autoEquip(id, equipmentView(h).sources); }
       else if (action === 'character-store-bulk') globalThis.BRPGEquipment?.transferUnworn(id);

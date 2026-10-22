@@ -180,13 +180,17 @@ M_ART_01〜M_ART_03は `df47bf1` で共有完了。M_ART_04は `eb60952` で共�
 | --- | --- | --- | --- | --- |
 | TRAV_01 | 階層移動・昇降口改修（game.js, systems.js, exploration-ui.js, test-dungeon-improvements.cjs） | MON_ART_01 | 1階(1, 1)のみ地上出口、2階以上(1, 1)は上り階段(昇降口 `<`)。2階以上からの徒歩直接帰還をブロック。上り階段移動 `ascend()` を新設し前階(17, 11)へ上る。同一探索セッション中の階層往復フロア状態を `s.floorCache` で保持・復元。walkTowardEntrance・UIヘッダー・右側帰還パネル・Canvas描画・キーバインド対応。全Nodeテスト(38件)・Pythonテスト(52件)・Pagesビルド・実Chrome 1280/390/320px(ソースおよび配布dist)通過後にmain/devへ通常push | コミット・両先端照合 |
 
-## マップアート・モンスターアート完全適用・キャッシュ強制更新（FIX_ART_01）
+## ゲームプレイ・UI・バランス総合改善（BALANCE_UX_01）
 
-ユーザー実機・Cloudflare Pages（dev.brpg.pages.dev）環境で、MAPおよび戦闘時モンスターアートが反映されず幾何学タイル・絵文字アイコンになっていた問題を根本修正。
+ユーザー要望に基づく5大改善：(1) ステータスアップでLIFE/MANA/SPを直接育成可能に、(2) 装備品選択画面に射程フィルタ（近/中/遠）新設、(3) 工房請負時の完成品ステータス事前表示、(4) 隊列変更のD&D操作対応、(5) 帰還符価格改定（35G→280G）による探索者スキルの価値向上。
 
 | ID | 目的・対象 | 依存 | 完了条件・検証 | チェックポイント |
 | --- | --- | --- | --- | --- |
-| FIX_ART_01 | マップ・モンスターアート表示完全化とキャッシュ強制更新（monster-art.js, systems.js, map-art.js, exploration-ui.js, index.html, test-browser.cjs, test-monster-art.cjs） | TRAV_01 | (1) hornhare等全敵・全ボスのエイリアス完全網羅、(2) M0001-M0030のフォールバック配備により全400体100%画像化、(3) monsterThumbHTMLのcatalogId優先化、(4) Canvas昇降口(1,1)の看板を深層でUPへ修正、(5) map-art画像onload時の画面render再描画同期、(6) index.htmlの全CSS/JSキャッシュバスター一新。全Nodeテスト・Pythonテスト・Pagesビルド・Chrome 3幅(ソース/dist)通過後にmain/devへ通常push | コミット・両先端照合 |
+| BALANCE_UX_01 | ステータス直接アップ・装備フィルタ・請負予測・隊列D&D・帰還符バランス（characters.js, systems.js, facilities.js, formation.js, formation.css, world-data.js, game.js） | FIX_ART_01 | (1) 成長画面でLIFE/MANA/SPへの直接ポイント配分とプレビュー/確定、(2) 装備モーダルの射程フィルタ、(3) 街工房での未識別含む完成性能予測、(4) 隊列ミニカードのD&D移動・スワップ、(5) 帰還符価格280G化。全Nodeテスト・Pythonテスト・Pagesビルド・Chrome 3幅(ソース/dist)通過後にmain/devへ通常push | コミット・両先端照合 |
+
+BALANCE_UX_01は実装・検証完了。全Node.jsテスト（14スイート42件）、Pythonテスト（52件）、Pagesビルド、Chromium実ブラウザテスト全3幅（通常＆--dist）に完全合格。
+
+
 
 
 

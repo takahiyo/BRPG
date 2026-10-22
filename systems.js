@@ -1645,12 +1645,18 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
   }
   function craftPerformanceHTML(mat, prod, skill, workshop, route, amount) {
     if (!prod) return '';
-    if (!isMaterialIdentified(mat)) return '<p class="status">素材未識別：完成前の性能は不明です。識別後に攻撃・防御・耐久の予測を確認できます。</p>';
+    const identified = isMaterialIdentified(mat);
     const quality = consumedQuality(mat, amount);
     const variants = [0, .999].map(roll => craftEquipmentSpec(mat, prod, skill, workshop, route, quality, getTitleByCraftSkill(skill, () => roll)));
     const values = variants.map(g => gearValue(g)), g = variants[0], eq = globalThis.BRPGEquipment;
     if (eq) eq.enrich(g);
-    return `<div class="craft-preview"><b>完成品の性能予測</b><p class="gold">${g.slot === 'weapon' ? '攻撃' : '防御'} +${Math.min(...values)}〜${Math.max(...values)} / 耐久 ${g.maxDur} / 品質 Q${g.quality}</p><small>${eq ? esc(eq.labels[eq.slotOf(g)] || '装飾') + ' / ' + esc(eq.types[g.type].name) : ''}${g.hands === 2 ? '（両手）' : ''} · ${esc(gearRequirementText(g))}</small><p class="muted">称号が抽選されるため性能に幅があります。装備する仲間の適性と能力で実効性能が変わります。</p></div>`;
+    const heading = workshop ? '🏪 街工房職人の見立て・完成性能予測' : '完成品の性能予測';
+    const note = identified
+      ? '称号が抽選されるため性能に幅があります。装備する仲間の適性と能力で実効性能が変わります。'
+      : (workshop
+          ? '【職人の目利き】素材の素質を見抜いた見立て性能です。仕上がり時の称号により幅があります。'
+          : '【手探り予測】未識別の素材ですが、手応えから予測される概算性能です。');
+    return `<div class="craft-preview"><b>${heading}</b><p class="gold">${g.slot === 'weapon' ? '攻撃' : '防御'} +${Math.min(...values)}〜${Math.max(...values)} / 耐久 ${g.maxDur} / 品質 Q${g.quality}</p><small>${eq ? esc(eq.labels[eq.slotOf(g)] || '装飾') + ' / ' + esc(eq.types[g.type].name) : ''}${g.hands === 2 ? '（両手）' : ''} · ${esc(gearRequirementText(g))}</small><p class="muted">${note}</p></div>`;
   }
 
   // UI: Atlas Screen (progressive map discovery + address expedition rules)
