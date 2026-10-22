@@ -19,7 +19,7 @@
         cancelResume();
         if (s !== state || s.dungeon !== floor || s.battle || !s.autoExpedition || s.view !== 'explore') return;
         baseResume(); render();
-      }, 3000);
+      }, 1500);
       resumeWait = timer;
       return;
     }
@@ -67,7 +67,7 @@
   function controls() {
     const battle = !!s.battle, running = automaticRunning();
     const mode = battle && selectedMode === 'walk' ? 'battle' : selectedMode;
-    const status = resumeWait !== null ? '勝利 · 3秒後に探索を再開' : battleTimer ? '自動戦闘中' : walkTimer ? (walkOnly ? '自動歩行中' : s.autoExpedition ? '連続探索中' : '入口へ移動中') : '手動操作';
+    const status = resumeWait !== null ? '勝利 · 1.5秒後に探索を再開' : battleTimer ? '自動戦闘中' : walkTimer ? (walkOnly ? '自動歩行中' : s.autoExpedition ? '連続探索中' : '入口へ移動中') : '手動操作';
     return `<section class="panel exp-automation" aria-label="自動操作"><div class="exp-auto-title"><span>${icon('compass')}<b>自動操作</b></span><span class="exp-run-state ${running ? 'running' : ''}" role="status">${status}</span></div><div class="exp-auto-options" role="group" aria-label="自動操作の範囲">${[['continuous','compass','歩行＋戦闘'],['walk','walk','歩行のみ'],['battle','sword','戦闘のみ']].map(([id,ico,label]) => `<button type="button" data-action="exp-auto-mode" data-mode="${id}" aria-pressed="${mode === id}" ${id === 'walk' && battle || id === 'battle' && !battle ? 'disabled' : ''} class="${mode === id ? 'selected' : ''}">${icon(ico)}${label}</button>`).join('')}</div><div class="exp-auto-bottom"><p>${resumeWait !== null ? '戦利品を確認できます。停止・手動操作で再開を中止。' : mode === 'walk' ? '遭遇・階段・封印で停止します。' : mode === 'battle' ? 'この戦闘だけ自動で戦います。' : '歩行と戦闘を続け、階段・封印で停止します。'}</p>${btn(running ? icon('stop') + 'すべて停止' : icon('play') + '開始','exp-auto-toggle','',running ? 'exp-stop' : 'primary')}</div>${resumeWait !== null ? '<div class="exp-resume-track"><i></i></div>' : ''}</section>`;
   }
 
@@ -126,12 +126,12 @@
         <div class="exp-map-heading"><span>${icon('compass')}探索地図</span><span>${battle?'戦闘中':atEntrance?'入口 · 無料で帰還できます':`現在地 ${d.x}, ${d.y}`}</span></div>
         ${battle?`<div class="exp-view-switch" role="group" aria-label="探索表示の切替">${[['map','MAP','exp-map-view'],['enemies','敵','exp-enemy-view']].map(([view,label,panel])=>`<button type="button" id="exp-view-${view}" data-action="exp-stage-view" data-view="${view}" aria-controls="${panel}" aria-pressed="${stageView===view}" class="${stageView===view?'selected':''}">${label}</button>`).join('')}</div>`:''}
         <div class="exp-map-stage">
-          <div id="exp-map-view" ${showEnemies?'hidden':''}><canvas id="map" width="936" height="648" role="img" aria-label="探索地図。石造りの出口が入口の1,1。人物が現在地、結晶が採集地点、木箱が宝箱、階段が次の階。未踏の区画は霧で隠れています。"></canvas><div class="exp-map-fog-caption">${battle?'戦闘終了後に探索できます':'WASD / 矢印キーで移動'}</div></div>
+          <div id="exp-map-view" ${showEnemies?'hidden':''}><canvas id="map" width="936" height="648" role="img" aria-label="探索地図。石造りの出口が入口の1,1。人物が現在地、結晶が採集地点、木箱が宝箱、階段が次の階。未踏の区画は霧で隠れています。"></canvas><div class="exp-map-fog-caption">${battle?'キー: Enter/Space実行 | Tおまかせ | B自動戦闘':'移動: WASD/矢印/クリック | Space: 自動探索 | Enter: 階段/決定 | R: 帰還'}</div></div>
           ${battle?`<section id="exp-enemy-view" class="exp-enemies" aria-label="遭遇した魔物" tabindex="0" ${showEnemies?'':'hidden'}><div class="exp-subheading"><h2>遭遇した魔物</h2><small>${observed()?'同行者が状態を観測中':'現在LIFE・脅威度は未観測'}</small></div>${uiEnemies()}</section>`:''}
         </div>
         <div class="exp-map-legend"><span>${icon('door')}出口</span><span>${icon('gem')}採集</span><span>${icon('chest')}宝箱</span><span>${icon('stairs')}階段</span><span>${icon('shield')}封印</span></div>
         ${!battle?`<div class="exp-manual-controls"><div class="dpad">${btn('↑','step','data-dx="0" data-dy="-1" aria-label="北へ"')}${btn('←','step','data-dx="-1" data-dy="0" aria-label="西へ"')}${btn('↓','step','data-dx="0" data-dy="1" aria-label="南へ"')}${btn('→','step','data-dx="1" data-dy="0" aria-label="東へ"')}</div><div class="exp-tile-action">${tile==='>'?btn(icon('stairs')+'次の階へ','descend','','primary'):tile==='!'?btn(icon('shield')+'地域の主に挑む','boss','','danger'):`<span>移動して周囲を探索</span><small>${known?'既知の地形・危険箇所 '+known+' / ':''}遭遇は移動時に発生します</small>`}</div></div>`:''}
-      </div></section><aside class="expedition-side">${controls()}${battle?uiBattlePanel():`<section class="panel exp-return"><p class="eyebrow">WAY HOME</p><h2>${icon('door')}街へ帰る</h2><p>${atEntrance?'いま出口の前にいます。費用を使わずに帰還できます。':'地図左上の石の出口まで戻ると、無料で帰還できます。'}</p><div class="exp-return-actions">${atEntrance?btn('出口から街へ帰還','return','','primary'):btn(icon('walk')+`入口へ歩いて戻る${returnPath?' / '+returnPath.length+'歩':''}`,'exp-walk-entrance')}${!atEntrance?btn('帰還符で即帰還 / 残'+(s.items.scroll||0),'return',s.items.scroll>0?'':'disabled'):''}${btn('道標で即時帰還 / SP3','instant-return',party().some(h=>h.hp>0&&h.mp>0&&(h.sp??0)>=3&&(h.job==='explorer'||h.job==='guide'))||s.ext?.facilityRules?.owned?.includes('instant_return')?'':'disabled')}</div></section><details class="panel exp-provisions"><summary>旅の道具を使う</summary>${uiFieldSupplies()}</details>`}<section class="panel expedition-log"><p class="eyebrow">RECENT LOG</p>${resumeWait!==null?'<p class="exp-victory-note">勝利しました。3秒後に探索を再開します。</p>':''}${battle&&s.battle.lastTurnDigest?.length?`<div class="battle-digest">${s.battle.lastTurnDigest.map(line=>`<p>${line}</p>`).join('')}</div>`:''}${logHTML(6)}</section></aside></div></div>`;
+      </div></section><aside class="expedition-side">${controls()}${battle?uiBattlePanel():`<section class="panel exp-return"><p class="eyebrow">WAY HOME</p><h2>${icon('door')}街へ帰る</h2><p>${atEntrance?'いま出口の前にいます。費用を使わずに帰還できます。':'地図左上の石の出口まで戻ると、無料で帰還できます。'}</p><div class="exp-return-actions">${atEntrance?btn('出口から街へ帰還','return','','primary'):btn(icon('walk')+`入口へ歩いて戻る${returnPath?' / '+returnPath.length+'歩':''}`,'exp-walk-entrance')}${!atEntrance?btn('帰還符で即帰還 / 残'+(s.items.scroll||0),'return',s.items.scroll>0?'':'disabled'):''}${btn('道標で即時帰還 / SP3','instant-return',party().some(h=>h.hp>0&&h.mp>0&&(h.sp??0)>=3&&(h.job==='explorer'||h.job==='guide'))||s.ext?.facilityRules?.owned?.includes('instant_return')?'':'disabled')}</div></section><details class="panel exp-provisions"><summary>旅の道具を使う</summary>${uiFieldSupplies()}</details>`}<section class="panel expedition-log"><div class="exp-log-header"><p class="eyebrow">RECENT LOG</p><button type="button" class="exp-log-toggle" data-action="toggle-log-expand">${s.ext?.logExpanded?'最新のみ表示':`過去の記録を展開 (${s.log.length}件)`}</button></div>${resumeWait!==null?'<p class="exp-victory-note">勝利しました。1.5秒後に探索を再開します。</p>':''}${battle&&s.battle.lastTurnDigest?.length?`<div class="battle-digest">${s.battle.lastTurnDigest.map(line=>`<p>${line}</p>`).join('')}</div>`:''}${logHTML(s.ext?.logExpanded?100:6)}</section></aside></div></div>`;
   };
   battleScreen=exploreScreen;
 
@@ -139,6 +139,12 @@
   handleAction=function(event) {
     const button=event.target.closest('[data-action]');if(!button||button.disabled)return;
     const action=button.dataset.action;
+    if(action==='toggle-log-expand') {
+      s.ext ??= {};
+      s.ext.logExpanded = !s.ext.logExpanded;
+      render();
+      return;
+    }
     if(action==='exp-stage-view') {
       if(!s.battle || !['map','enemies'].includes(button.dataset.view))return;
       stageView=button.dataset.view;render();
@@ -184,7 +190,125 @@
     if(action==='exp-walk-entrance'){globalThis.walkTowardEntrance?.();return;}
     return baseHandle(event);
   };
-  globalThis.BRPGExplorationUI={isWaiting:()=>resumeWait!==null,cancel:()=>stopAll()};
+  function findPathToTile(d, tx, ty) {
+    if (!d || (d.x === tx && d.y === ty)) return [];
+    if (!d.map[ty]?.[tx] || d.map[ty][tx] === '#') return null;
+    const queue = [[d.x, d.y, []]];
+    const visited = new Set([`${d.x},${d.y}`]);
+    while (queue.length) {
+      const [cx, cy, path] = queue.shift();
+      if (cx === tx && cy === ty) return path;
+      for (const [dx, dy] of DIRS) {
+        const nx = cx + dx, ny = cy + dy, key = `${nx},${ny}`;
+        if (d.map[ny]?.[nx] && d.map[ny][nx] !== '#' && !visited.has(key)) {
+          visited.add(key);
+          queue.push([nx, ny, [...path, [dx, dy]]]);
+        }
+      }
+    }
+    return null;
+  }
+  function walkTowardTile(tx, ty) {
+    const d = s.dungeon;
+    if (!d || s.battle) return;
+    if (d.x === tx && d.y === ty) return;
+    const allowed = typeof globalThis.BRPGFacilities?.canClickWalk === 'function'
+      ? globalThis.BRPGFacilities.canClickWalk()
+      : (party().some(h => h.job === 'explorer') || s.books?.includes('survey_walk'));
+    if (!allowed) {
+      tell('地図クリック歩行には探索者等の支援職の同行、または高Lv帯の「測量踏破の手引書」が必要です。');
+      render();
+      return;
+    }
+    const path = findPathToTile(d, tx, ty);
+    if (!path || !path.length) {
+      tell('その地点への安全な通路が見つかりません。');
+      render();
+      return;
+    }
+    stopAll();
+    let moved = 0;
+    for (const [dx, dy] of path.slice(0, 5)) {
+      if (!s.dungeon || s.battle) break;
+      step(dx, dy, false);
+      moved++;
+      if (s.dungeon && s.dungeon.x === tx && s.dungeon.y === ty) {
+        tell(`🎯 指定地点（${tx}, ${ty}）に到着しました。`);
+        break;
+      }
+    }
+    if (s.dungeon && !s.battle && (s.dungeon.x !== tx || s.dungeon.y !== ty)) {
+      const rem = findPathToTile(s.dungeon, tx, ty);
+      tell(`🚶 指定地点（${tx}, ${ty}）へ向かって ${moved}歩 移動（残り ${rem ? rem.length : '?'}歩）。再クリックで継続。`);
+    }
+    render();
+  }
+  globalThis.walkTowardTile = walkTowardTile;
+  globalThis.BRPGExplorationUI={isWaiting:()=>resumeWait!==null,cancel:()=>stopAll(),walkTowardTile,findPathToTile};
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('click', event => {
+      const canvas = event.target?.closest?.('#map');
+      if (!canvas || !s.dungeon || s.battle || typeof canvas.getBoundingClientRect !== 'function') return;
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const px = (event.clientX - rect.left) * scaleX;
+      const py = (event.clientY - rect.top) * scaleY;
+      const ox = 50, oy = 34, z = 44;
+      const tx = Math.floor((px - ox) / z);
+      const ty = Math.floor((py - oy) / z);
+      if (tx >= 0 && tx < 19 && ty >= 0 && ty < 13) {
+        walkTowardTile(tx, ty);
+      }
+    });
+
+    document.addEventListener('keydown', event => {
+      if (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(event.target.tagName)) return;
+      if ($('guide')?.open || $('character-dialog')?.open || $('save-dialog')?.open) return;
+      const key = event.key;
+      if (s.dungeon && !s.battle) {
+        if (key === ' ' || key === 'e' || key === 'E') {
+          event.preventDefault();
+          toggleExpedition();
+          render();
+          return;
+        }
+        if (key === 'Enter' || key === 'f' || key === 'F') {
+          event.preventDefault();
+          const d = s.dungeon, tile = d.map[d.y]?.[d.x];
+          if (tile === '>') { descend(); return; }
+          if (tile === '!') { bossChallenge(); return; }
+          if (d.x === 1 && d.y === 1) { returnTown(); return; }
+          return;
+        }
+        if (key === 'r' || key === 'R' || key === 'h' || key === 'H') {
+          event.preventDefault();
+          if (s.dungeon.x === 1 && s.dungeon.y === 1) returnTown();
+          else globalThis.walkTowardEntrance?.();
+          return;
+        }
+      } else if (s.battle) {
+        if (key === 'Enter' || key === ' ') {
+          event.preventDefault();
+          if (alive().every(h => s.battle.plans[h.id])) executeTurn();
+          return;
+        }
+        if (key === 't' || key === 'T' || key === 'a' || key === 'A') {
+          event.preventDefault();
+          autoPlans();
+          render();
+          return;
+        }
+        if (key === 'b' || key === 'B') {
+          event.preventDefault();
+          toggleAutoBattle();
+          return;
+        }
+      }
+    });
+  }
 
   // Small painted primitives keep the map legible without a downloaded tile set.
   draw=function() {

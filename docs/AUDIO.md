@@ -42,16 +42,21 @@
 - BGMは1曲のみ、loop=true / preload=metadata。非表示タブは一時停止し、復帰時は現在の意図する曲のみを再開。再生待ち中の切替／消音／非表示は古い要素を退役させ、遅いPromise完了で新しい曲を止めない。
 - SEは既存Web Audio合成を共通Gainへ接続し、再生中のSEにも音量／ミュートを即時反映。遭遇音も合成で、BGMと独立。Audio / AudioContext未対応環境や簡易DOMテストでは無音で継続する。
 
-## 素材
+## 素材と楽曲の保存場所
 
-| 用途 | ルートファイル | 制作元 |
-| --- | --- | --- |
-| 戦闘BGM | `Cath_Slan_na_n_Og.mp3` | Gemini（ユーザー申告） |
-| 街／非戦闘BGM | `The_Wayfarer_s_Morning.mp3` | Gemini（ユーザー申告） |
+今後も楽曲が追加されるため、整理用ディレクトリ `audio/` を正本保存場所として用意している。下位互換性のためプロジェクトルートのファイル名解決も維持し、配布ビルド（Pages）では両方を自動配布する。
 
-生成音源の権利・利用条件はユーザーの利用環境の規約で確認する。SElabの素材はダウンロードも組み込みもしていない。ライセンス調査は親担当の範囲。
+| 用途 | ファイル名 | 保存場所 | 制作元 | 容量 |
+| --- | --- | --- | --- | --- |
+| 戦闘BGM | `Cath_Slan_na_n_Og.mp3` | `audio/` およびルート | Gemini（ユーザー申告） | 4,388,427 bytes |
+| 街／拠点BGM | `The_Wayfarer_s_Morning.mp3` | `audio/` およびルート | Gemini（ユーザー申告） | 4,290,624 bytes |
+| 灰灯の林縁（ダンジョン探索）BGM | `Sho_lah_Beneath_the_Moon.mp3` | `audio/` およびルート | ユーザー追加音源 | 4,265,549 bytes |
 
-推奨納品仕様は44.1kHzまたは48kHz、ステレオ、128〜192kbps MP3、1曲あたり約2〜5MB。Cloudflare Pagesの単一アセット上限は25MiB（公式[Limits](https://developers.cloudflare.com/pages/platform/limits/#file-size)）。実音源は戦闘4,388,427bytes、街4,290,624bytesで上限内。配布ビルドは上限超過を旧dist削除前に拒否する。実ファイルの音量正規化、ループ継ぎ目、音楽としての聴感・実機再生品質は未検聴。エンコード遅延によるループの隙間があり得る。
+### 楽曲の追加手順
+1. 新規MP3ファイル（推奨：44.1kHz/48kHz、ステレオ、128〜192kbps、1曲2〜5MB以内・単一25MiB制限厳守）を `audio/` ディレクトリ（およびルート）へ配置。
+2. `audio.js` の `tracks` オブジェクトに対象マップIDまたは用途キー（例: `forest_edge: 'Sho_lah_Beneath_the_Moon.mp3'`）を追加。
+3. `scripts/build-pages.cjs` の allowlist にファイル名を追加。
+4. `test-audio.cjs` および `docs/AUDIO.md` に登録内容を記録。
 
 ## 検証と引き継ぎ
 

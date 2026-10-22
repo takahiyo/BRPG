@@ -1,6 +1,6 @@
 // Copy only browser assets into Cloudflare Pages' public directory.
 const {mkdirSync, copyFileSync, rmSync, readFileSync, statSync} = require('node:fs');
-const {join} = require('node:path');
+const {join, dirname} = require('node:path');
 
 const root = join(__dirname, '..');
 const output = join(root, 'dist');
@@ -10,7 +10,8 @@ const files = [
   'game.js', 'screens.js', 'systems.js', 'characters.js',
   'facilities.js', 'equipment.js', 'equipment.css', 'exploration-ui.js', 'exploration-ui.css',
   'formation.js', 'formation.css', 'save-manager.js', '幻想モンスター図鑑 40種.png',
-  'audio.js', 'audio.css', 'Cath_Slan_na_n_Og.mp3', 'The_Wayfarer_s_Morning.mp3',
+  'audio.js', 'audio.css', 'Cath_Slan_na_n_Og.mp3', 'The_Wayfarer_s_Morning.mp3', 'Sho_lah_Beneath_the_Moon.mp3',
+  'audio/Cath_Slan_na_n_Og.mp3', 'audio/The_Wayfarer_s_Morning.mp3', 'audio/Sho_lah_Beneath_the_Moon.mp3',
   'monster-art.js', 'monster-art.css',
   'monsters_sheet02_M0031-M0060.png', 'monsters_sheet03_M0061-M0090.png',
   'monsters_sheet04_M0091-M0120.png', 'monsters_sheet05_M0121-M0150.png',
@@ -39,4 +40,8 @@ for (const file of files.filter(file => file.endsWith('.html'))) {
 
 rmSync(output, {recursive: true, force: true});
 mkdirSync(output, {recursive: true});
-for (const file of files) copyFileSync(join(root, file), join(output, file));
+for (const file of files) {
+  const dest = join(output, file);
+  mkdirSync(dirname(dest), {recursive: true});
+  copyFileSync(join(root, file), dest);
+}

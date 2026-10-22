@@ -42,8 +42,8 @@ h.run(`
   winAutomatically();
 `);
 assert.equal(timers.size, 1);
-assert.equal([...timers.values()][0].ms, 3000);
-advance(2999);
+assert.equal([...timers.values()][0].ms, 1500);
+advance(1499);
 h.run(`assert(BRPGExplorationUI.isWaiting()&&!walkTimer);assert.equal(s.dungeon.steps,0);`);
 advance(1);
 h.run(`assert(!BRPGExplorationUI.isWaiting()&&walkTimer&&!battleTimer&&s.autoExpedition);assert.equal(s.dungeon.steps,0);`);
@@ -59,25 +59,25 @@ for (const manual of [
   `click('exp-auto-mode',{mode:'walk'})`
 ]) {
   h.run('winAutomatically();');
-  const stale = [...timers.values()].find(t => t.ms === 3000).f;
+  const stale = [...timers.values()].find(t => t.ms === 1500).f;
   h.run(manual);
   h.run(`assert(!BRPGExplorationUI.isWaiting()&&!walkTimer&&!battleTimer&&!s.autoExpedition);`);
-  stale();advance(4000);
+  stale();advance(2000);
   h.run(`assert(!BRPGExplorationUI.isWaiting()&&!walkTimer&&!battleTimer&&!s.autoExpedition);$('character-dialog').close();`);
 }
 h.run('winAutomatically();');
-const oldWait = [...timers.values()].find(t => t.ms === 3000).f;
+const oldWait = [...timers.values()].find(t => t.ms === 1500).f;
 h.run('winAutomatically();');
 oldWait();
 h.run(`assert(BRPGExplorationUI.isWaiting()&&!walkTimer);`);
 assert.equal(timers.size, 1, 'An old callback cannot cancel the new wait');
-advance(3000);
+advance(1500);
 h.run(`assert(!BRPGExplorationUI.isWaiting()&&walkTimer);`);
 
 // Reject a stale state/floor and cancel the wait before a new encounter.
 for (const replace of [`s=fresh()`, `s.dungeon=structuredClone(s.dungeon)`]) {
   h.run('winAutomatically();');
-  h.run(replace);advance(3000);
+  h.run(replace);advance(1500);
   h.run(`assert(!walkTimer&&!battleTimer&&!BRPGExplorationUI.isWaiting());stopAll();`);
 }
 h.run(`winAutomatically();encounter();assert(!BRPGExplorationUI.isWaiting()&&s.battle&&battleTimer);stopAll();`);
@@ -249,4 +249,4 @@ assert(paintText.includes('EXIT'));
 assert(!paintText.some(text => ['#', 'o', 'c', '>', '!'].includes(text)), 'Map objects use painted geometry');
 h.run('stopAll();');
 assert.equal(timers.size, 0);
-console.log('PASS: stable party order, battle-only MAP/enemy switch, encounter SE/animation once, silent restoration, reduced motion/audio failure safety, command → target → confirm → turn, painted exit, 3-second wait, stale/cancelled timers and automation scopes.');
+console.log('PASS: stable party order, battle-only MAP/enemy switch, encounter SE/animation once, silent restoration, reduced motion/audio failure safety, command → target → confirm → turn, painted exit, 1.5-second wait, stale/cancelled timers and automation scopes.');

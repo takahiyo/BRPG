@@ -230,7 +230,9 @@ async function main() {
       assert.equal(await evaluate('s.battle.turn'), turn + 1, 'Confirmed commands advance a real browser turn');
       assert(await evaluate('validSave(s)'));
       await evaluate(`s.battle=null;render()`);
-      await waitFor(`__brpgMedia.some(m=>m.src.endsWith('The_Wayfarer_s_Morning.mp3')&&!m.paused&&m.readyState>=2)`, 'town BGM restored after battle');
+      await waitFor(`__brpgMedia.some(m=>m.src.endsWith('Sho_lah_Beneath_the_Moon.mp3')&&!m.paused&&m.readyState>=2)`, 'dungeon BGM restored after battle');
+      await evaluate(`s.view='town';s.dungeon=null;render()`);
+      await waitFor(`__brpgMedia.some(m=>m.src.endsWith('The_Wayfarer_s_Morning.mp3')&&!m.paused&&m.readyState>=2)`, 'town BGM restored after return');
       console.log('PASS: Chromium ' + width + 'px audio playback/settings, artwork preview/crops, stable party, MAP/enemy switching, encounter SE, equipment/facilities/save and battle turn.');
     }
     assert.deepEqual(errors, [], 'Uncaught browser errors');

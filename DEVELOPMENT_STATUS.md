@@ -2,7 +2,7 @@
 
 更新：2026-10-22 JST / 担当：統括エージェント。
 
-最新状態：メディア統合P0-P3は `b257e53` でmain/devへ共有完了（詳細は末尾）。以下は作業時の記録。音楽/SE/画像と探索GUIを統合して既存main/devへpushする明示依頼あり。基準HEAD/両remote `dec2022`。I4-I6の整理済み原本14枚も今回共有対象、01欠番は維持。現在の復旧記録は末尾「メディア統合P0-P3」を優先する。状態異常S0-S5は未実装。
+最新状態：ダンジョン探索・BGM・戦闘・RecentLog改善（D0-D4）を完了、全テスト・ビルド・実ブラウザ検証通過。コミット＆push（D5）へ移行。以下は前段階までの記録。音楽/SE/画像と探索GUIを統合して既存main/devへpushする明示依頼あり。基準HEAD/両remote `dec2022`。I4-I6の整理済み原本14枚も今回共有対象、01欠番は維持。現在の復旧記録は末尾「メディア統合P0-P3」を優先する。状態異常S0-S5は未実装。
 
 ## 復旧点
 
@@ -128,4 +128,12 @@
 - P3検証完了（再開セッション）：両exportを再実行し差分なし（生成一致）。Node12スイート33件・Python51件・`node scripts/build-pages.cjs`・`git diff --check` 成功。`node test-browser.cjs --dist` はサンドボックス内でChromium起動不可（終了コード4294930433）のため隔離外で再実行し、1280/390/320pxで音声/画像/仲間固定/MAP敵切替/遭遇SE/既存操作すべて成功。
 - 共有対象：AGENTS.md・VIBE_STARTER_KIT_REVISED_v3.md（ユーザー規則）と旧参考PNG `docs/30体の…アトラス.png` の削除（ユーザー操作、未stage保持）を除く全差分。サンドボックス内のgit ls-remoteはプロキシ接続不可のため、push/照合は隔離外で行う。
 - P3共有完了：関連差分を `b257e5326085c838ebbfd41e39b9289e15f5f33d` にcommitし、`git push origin HEAD:refs/heads/main HEAD:refs/heads/dev` 成功、`git ls-remote` で両先端一致を確認。CI/Pages公開は未確認。残る未共有差分はAGENTS.md・VIBE_STARTER_KIT_REVISED_v3.md・旧参考PNG削除のみ。
-- 次：(1) 実検聴・残り379種/遭遇70種の検品・01受領 (3) CI/Pages公開確認とS0着手。実検聴・全画像承認・CI/公開成功は未確認。
+
+## ダンジョン探索・BGM・戦闘・RecentLog改善（D0-D5）
+
+- D1完了：`game.js` の `note` で直前のメッセージと同一の場合に行を消費せず `*1`、`*2`…と回数表示を更新。タブ操作時の「帰還後に利用できます。」でのログ埋まりを解消。`logHTML` および `exploration-ui.js` に「過去の記録を展開」ボタン（`toggle-log-expand`）を追加し、最大100件まで履歴表示・スクロール可能にした。
+- D2完了：楽曲を `audio/` ディレクトリで一元管理（`The_Wayfarer_s_Morning.mp3`, `Cath_Slan_na_n_Og.mp3`, `Sho_lah_Beneath_the_Moon.mp3`）。`audio.js` で灰灯の林縁（`forest_edge`）の探索BGMとして `Sho_lah_Beneath_the_Moon.mp3` を設定。街⇔灰灯の林縁⇔戦闘のBGM切り替えと復帰を自動化。`docs/AUDIO.md` に楽曲管理規則を記録。
+- D3完了：`systems.js` で探索済みタイルと踏破フロア（階段到達/ボス撃破/クエスト達成）を永続化し、再突入時に暗くならない仕様を実現。`facilities.js` に高Lv帯行動書「測量踏破の手引書」（Lv25）を追加し、探索者等の支援職同行または同手引書習得時に地図（Canvas `#map`）クリックによるBFS最短経路自動歩行を可能にした。自動探索の戦闘後歩行再開ラグを3秒から1.5秒に短縮。キーバインド（Space: 自動探索 / Enter: 階段・決定 / R: 帰還 / 戦闘時 Enter/T/B）を配備。
+- D4完了：自動戦闘タイマーのインターバルを1.1秒から1.5秒へ調整し、一瞬で戦闘が終わる問題を緩和。`systems.js` で `enemyTurn` をラップし、敵の各種行動（通常攻撃・装甲強化・毒・ドレイン・呪詛・薙ぎ払い）にSE（`playSE`）と視覚エフェクト（`.fx-attack`, `queueFX`）を付与。
+- D5検証完了：Nodeテスト13スイート（全36件）成功、Pythonテスト（51件）成功、Pagesビルド成功、Chrome実ブラウザテスト（1280/390/320px）で全探索・BGM切替・戦闘操作の正常動作を確認。
+- 共有対象：上記関連ファイル一式。AGENTS.md・VIBE_STARTER_KIT_REVISED_v3.mdおよび旧参考PNG削除は未stageで保護。

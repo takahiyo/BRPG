@@ -135,3 +135,15 @@ I4-I6ローカル完了：ルートへ通常版02〜14の13枚+14別案1枚を�
 P0-P3検証完了：Node33件・Python51件・Pagesビルド・配布Chrome3幅成功。関連差分をorigin/main/devへ通常共有する（ユーザー規則ファイルと旧参考PNG削除は除外）。
 
 SEは既存Web Audio合成音を利用し、外部素材取得や新規課金APIは使わない。音楽の実検聴・ループ音質、未検品379種/遭遇70種、01欠番と寸法/配置不整合は別の残課題として記録する。
+
+## ダンジョン探索・BGM・戦闘・RecentLog改善（D0-D4）
+
+ユーザー要望に基づく追加改善。Git共有モードは `checkpoint_auto`（通常pushのみ）。
+
+| ID | 目的・対象 | 依存 | 完了条件・検証 | チェックポイント |
+| --- | --- | --- | --- | --- |
+| D1 | RecentLog重複カウント（*1,*2…）と展開機能（game.js, exploration-ui.js/css） | P3 | 同一メッセージ重複時に行を消費せず回数カウント、展開ボタンで最大100件まで履歴表示。Nodeテスト成功 | コード・テスト保存 |
+| D2 | BGM整理・灰灯の林縁BGM設定（audio.js, docs/AUDIO.md, audio/） | P3 | `audio/` ディレクトリで一元管理、`Sho_lah_Beneath_the_Moon.mp3` を灰灯の林縁BGMに設定。探索⇔戦闘⇔街のBGM復帰、Node/配布検証 | コード・音源保存 |
+| D3 | ダンジョン探索改善（systems.js, exploration-ui.js, facilities.js） | D1 | 一度開いたMAP/踏破フロアの霧リセット防止、地図クリック歩行と「測量踏破の手引書」（Lv25）、再開ラグ1.5秒、キーバインド（Space/Enter/R） | コード・テスト保存 |
+| D4 | 戦闘演出・テンポ改善（systems.js, game.js, exploration-ui.css） | D3 | 敵の各種行動（通常/装甲/毒/ドレイン/呪詛/薙ぎ払い）のSE・エフェクト付与、自動戦闘インターバル1.5秒調整 | コード・動作確認 |
+| D5 | 総合検証・ビルド・配布ブラウザQA・リモート共有 | D1-D4 | 全Nodeテスト（36件）、Pythonテスト（51件）、Pagesビルド、Chrome 1280/390/320px検証後にmain/devへ通常push | コミット・両先端照合 |

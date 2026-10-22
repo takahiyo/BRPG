@@ -27,7 +27,7 @@ function build({missing, reference, oversized} = {}) {
 let result = build();
 assert.ifError(result.error);
 const copies = result.calls.filter(c => c[0] === 'copy').map(c => path.basename(c[1]));
-for (const file of ['equipment.js', 'equipment.css', 'exploration-ui.js', 'exploration-ui.css', 'save-manager.js', 'audio.js', 'audio.css', 'Cath_Slan_na_n_Og.mp3', 'The_Wayfarer_s_Morning.mp3', 'monster-art.js', 'monster-art.css']) assert(copies.includes(file));
+for (const file of ['equipment.js', 'equipment.css', 'exploration-ui.js', 'exploration-ui.css', 'save-manager.js', 'audio.js', 'audio.css', 'Cath_Slan_na_n_Og.mp3', 'The_Wayfarer_s_Morning.mp3', 'Sho_lah_Beneath_the_Moon.mp3', 'monster-art.js', 'monster-art.css']) assert(copies.includes(file));
 assert.equal(copies.filter(file => /^monsters_sheet/.test(file)).length, 14);
 for (const file of ['worker.js', 'wrangler.toml', 'AGENTS.md', '.env', 'test.cjs']) assert(!copies.includes(file));
 for (const options of [

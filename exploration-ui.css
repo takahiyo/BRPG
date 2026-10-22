@@ -152,3 +152,18 @@
 .exp-workspace .exp-party .mini .bar{height:3px;margin:2px 0}
 .exp-party .formation-empty{min-height:0;font-size:9px}
 @media(max-width:760px){.exp-party .formation-party{grid-template-columns:minmax(0,1fr);gap:5px}}
+
+/* Recent Log expansion */
+.exp-log-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.exp-log-header .eyebrow{margin:0}
+.exp-log-toggle{font-size:11px;padding:3px 9px;background:#253a3c;border:1px solid #4a6663;color:#c0dcd6;border-radius:5px;cursor:pointer;transition:background .15s}
+.exp-log-toggle:hover{background:#365356;border-color:#74a59f;color:#fff}
+.expedition-log .log.expanded{max-height:260px;overflow-y:auto;padding-right:4px}
+
+/* Combat FX animations */
+.fx-attack{animation:fx-attack-pulse .28s ease-out}
+@keyframes fx-attack-pulse{
+  0%{transform:scale(1)}
+  50%{transform:scale(1.08) translateY(-4px);filter:brightness(1.35)}
+  100%{transform:scale(1)}
+}

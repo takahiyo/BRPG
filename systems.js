@@ -38,7 +38,53 @@ function regionBoss(mapId){return DATA.bosses?.[mapId]||DATA.boss;}
 const oldEnemyStatsAt=enemyStatsAt;
 enemyStatsAt=function(e,level){const isBoss=e.id===DATA.boss.id||Object.values(DATA.bosses||{}).some(b=>b.id===e.id);if(!isBoss||e.id===DATA.boss.id)return oldEnemyStatsAt(e,level);const l=Math.max(0,level-1);return{...e,level,hp:Math.round(e.hp*(1+l*.28)),maxhp:Math.round(e.hp*(1+l*.28)),atk:Math.round(e.atk+l*3.5),def:Math.round(e.def+l*.75),mag:Math.round(e.mag+l*2.4),speed:e.speed+Math.floor(l/3),xp:Math.round(e.xp*(1+l*.08)),gold:Math.round(e.gold*(1+l*.05))};};
 const oldMakeFloor=makeFloor;
-makeFloor=function(map,seed,depth){const f=oldMakeFloor(map,seed,depth),r=rng((seed+depth*13337)>>>0),open=['forest','desert','snow','canopy','battlefield','celestial'].includes(map.biome),extra=open?14:6;for(let i=0;i<extra;i++){const x=2+Math.floor(r()*15),y=2+Math.floor(r()*9);if(f.map[y][x]==='#'&&((f.map[y][x-1]!=='#'&&f.map[y][x+1]!=='#')||(f.map[y-1][x]!=='#'&&f.map[y+1][x]!=='#')))f.map[y][x]=r()<.16?'o':'.';}return f;};
+function syncFloorExploration(f) {
+  if (!f || !f.mapId || typeof s === 'undefined' || !s) return;
+  s.ext ??= {};
+  const e = s.ext;
+  e.revealedFloors ??= {};
+  e.clearedFloors ??= {};
+  const fKey = f.mapId + ':' + f.depth;
+  const isMapCleared = (s.quests?.[f.mapId]?.completed) || (s.won && f.mapId === 'forest_edge') || e.clearedFloors[fKey];
+  if (isMapCleared) {
+    for (let y = 0; y < 13; y++) {
+      for (let x = 0; x < 19; x++) {
+        f.seen[y][x] = true;
+      }
+    }
+    return;
+  }
+  const saved = e.revealedFloors[fKey];
+  if (saved) {
+    for (let y = 0; y < 13; y++) {
+      for (let x = 0; x < 19; x++) {
+        if (saved[y]?.[x]) f.seen[y][x] = true;
+      }
+    }
+  }
+}
+makeFloor=function(map,seed,depth){const f=oldMakeFloor(map,seed,depth),r=rng((seed+depth*13337)>>>0),open=['forest','desert','snow','canopy','battlefield','celestial'].includes(map.biome),extra=open?14:6;for(let i=0;i<extra;i++){const x=2+Math.floor(r()*15),y=2+Math.floor(r()*9);if(f.map[y][x]==='#'&&((f.map[y][x-1]!=='#'&&f.map[y][x+1]!=='#')||(f.map[y-1][x]!=='#'&&f.map[y+1][x]!=='#')))f.map[y][x]=r()<.16?'o':'.';}syncFloorExploration(f);return f;};
+
+const prevReveal = reveal;
+reveal = function() {
+  prevReveal();
+  const d = s.dungeon;
+  if (!d) return;
+  s.ext ??= {};
+  const e = s.ext;
+  e.revealedFloors ??= {};
+  e.clearedFloors ??= {};
+  const fKey = d.mapId + ':' + d.depth;
+  const grid = e.revealedFloors[fKey] ??= Array.from({length: 13}, () => Array(19).fill(false));
+  for (let y = 0; y < 13; y++) {
+    for (let x = 0; x < 19; x++) {
+      if (d.seen[y]?.[x]) grid[y][x] = true;
+    }
+  }
+  if (d.map[d.y]?.[d.x] === '>' || d.map[d.y]?.[d.x] === '!' || s.quests?.[d.mapId]?.completed || s.won) {
+    e.clearedFloors[fKey] = true;
+  }
+};
 const oldEncounter=encounter;
 encounter=function(boss=false){if(!boss)return oldEncounter(false);const d=s.dungeon;if(!d||s.battle)return;stopWalk();const bDef=regionBoss(d.mapId),foe={...enemyStatsAt(bDef,d.level),key:0,poison:0,counted:false};s.battle={enemies:[foe],boss:true,turn:1,plans:{},actor:alive()[0].id,target:0,cover:false,rally:0};d.sinceBattle=0;s.view='explore';const r=s.research[foe.id]??={encounters:0,kills:0,level:d.level};r.encounters++;r.level=d.level;tell(foe.name+'が現れた！');if(s.autoExpedition)startBattleTimer();render();};
 const baseGearValue=oldGearValue;
@@ -957,6 +1003,33 @@ boot=function(){document.addEventListener('click',e=>{const b=e.target.closest('
       }
     }
     return ok;
+  };
+
+  const prevEnemyTurn = enemyTurn;
+  enemyTurn = function(e, guards) {
+    if (e.hp <= 0 || !alive().length) return;
+    queueFX('attack', 'enemy', e.key, '', '#ff6b6b');
+    if (e.ai === 'armor' && s.battle.turn % 3 === 0) {
+      playSE('buff');
+      queueFX('heal', 'enemy', e.key, '🛡️装甲強化!', '#74f29c');
+      pushDigest('🛡️ <b>' + esc(e.name) + '</b> が装甲を強固に固めた！');
+      return prevEnemyTurn(e, guards);
+    }
+    if (e.ai === 'hex') {
+      playSE('dark');
+    } else if (e.ai === 'cleave' && s.battle.turn % 2 === 0) {
+      playSE('slash');
+      pushDigest('⚔️ <b>' + esc(e.name) + '</b> の薙ぎ払い攻撃！');
+    } else {
+      playSE('attack');
+    }
+    const prevHp = e.hp;
+    prevEnemyTurn(e, guards);
+    if (e.ai === 'drain' && e.hp > prevHp) {
+      playSE('dark');
+      queueFX('heal', 'enemy', e.key, '+' + (e.hp - prevHp), '#74f29c');
+      pushDigest('🩸 <b>' + esc(e.name) + '</b> がLIFEを吸収した！');
+    }
   };
 
   const prevExecuteTurn = executeTurn;

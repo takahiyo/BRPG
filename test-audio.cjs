@@ -235,3 +235,25 @@ test('minimal game harness without Audio/createElement and documentless load sta
   const box = vm.createContext({}); vm.runInContext(source, box);
   assert(box.BRPGAudio.set('seVolume', 0.1));
 });
+
+test('exploration in forest_edge plays Sho_lah_Beneath_the_Moon.mp3', async () => {
+  const h = setup();
+  h.box.s.view = 'explore';
+  h.box.s.dungeon = { mapId: 'forest_edge' };
+  h.box.render();
+  h.emit('pointerdown');
+  assert.equal(h.media[0].src, 'Sho_lah_Beneath_the_Moon.mp3');
+  // Transition to battle switches to battle track
+  h.box.s.battle = { turn: 1 };
+  h.box.render();
+  assert.equal(h.media[1].src, 'Cath_Slan_na_n_Og.mp3');
+  // Ending battle switches back to dungeon track
+  h.box.s.battle = null;
+  h.box.render();
+  assert.equal(h.media[2].src, 'Sho_lah_Beneath_the_Moon.mp3');
+  // Returning to town switches to town track
+  h.box.s.view = 'town';
+  h.box.s.dungeon = null;
+  h.box.render();
+  assert.equal(h.media[3].src, 'The_Wayfarer_s_Morning.mp3');
+});

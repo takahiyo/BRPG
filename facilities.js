@@ -3,7 +3,8 @@
   const catalog = typeof CATALOG === 'undefined' ? DATA.catalog || {} : CATALOG;
   const SUPPORT_BOOKS = [
     {id:'expedition',name:'連続探索の手引書',level:1,cost:1800,desc:'右手法の自動歩行と、先頭への通常攻撃による連続探索を身につける。'},
-    {id:'instant_return',name:'道標帰還の手引書',level:3,cost:3600,desc:'戦闘外でSP3を使い、探索地から街へ即時帰還する。'}
+    {id:'instant_return',name:'道標帰還の手引書',level:3,cost:3600,desc:'戦闘外でSP3を使い、探索地から街へ即時帰還する。'},
+    {id:'survey_walk',name:'測量踏破の手引書',level:25,cost:5500,desc:'地図上の任意の地点を指定し、最短経路で歩行する測量技術。探索者が不在でも地図クリック歩行が可能になる。'}
   ];
   function state() {
     s.ext ??= {};
@@ -84,6 +85,7 @@
   function bookKnown(id) { return state().facilityRules.known.includes(id); }
   function supportOwned(id) { return state().facilityRules.owned.includes(id)&&partyLevel()>=(SUPPORT_BOOKS.find(b=>b.id===id)?.level||1); }
   function canAutomate() { return explorers().length>0||supportOwned('expedition'); }
+  function canClickWalk() { return explorers().length>0||supportOwned('survey_walk'); }
   function returnUser() { const candidates=explorers().length?explorers():supportOwned('instant_return')?alive():[];return candidates.find(h=>(h.sp??maxSP(h))>=3); }
   function bookPrice(b) { return Math.ceil(Math.max(1200,b.cost*5)*currentTown().price); }
   function discoverRule(level, guaranteed=false) {
@@ -863,5 +865,5 @@
     if(actions[d.action])return actions[d.action]();
     return oldHandleAction(event);
   };
-  globalThis.BRPGFacilities={getCalendar,formatCalendar,advanceTime,checkRealMidnight,getActiveQuest,checkContractDeadlines,ensureSpecialOffers,abandonContract,contracts,acceptContract,deliverContract,challengeContract,rollSpecialOffers,discoverRule,bookPrice,bookKnown,canAutomate,observers,tacticians,supportRoleCount,instantReturn,templeTreat,templeFee,creditLimit,sellUnusedCommonGear,behaviorStatus,behaviorActive,heroCatalogSkills,partyCatalogSkills,ensureFloorHazards,scanAdjacentHazards};
+  globalThis.BRPGFacilities={getCalendar,formatCalendar,advanceTime,checkRealMidnight,getActiveQuest,checkContractDeadlines,ensureSpecialOffers,abandonContract,contracts,acceptContract,deliverContract,challengeContract,rollSpecialOffers,discoverRule,bookPrice,bookKnown,canAutomate,canClickWalk,observers,tacticians,supportRoleCount,instantReturn,templeTreat,templeFee,creditLimit,sellUnusedCommonGear,behaviorStatus,behaviorActive,heroCatalogSkills,partyCatalogSkills,ensureFloorHazards,scanAdjacentHazards};
 })();

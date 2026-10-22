@@ -3,7 +3,12 @@
 (() => {
   const STORAGE_KEY = 'brpg-audio-v1';
   const defaults = { bgmVolume: 0.5, seVolume: 0.7, bgmMuted: false, seMuted: false };
-  const tracks = { town: 'The_Wayfarer_s_Morning.mp3', battle: 'Cath_Slan_na_n_Og.mp3' };
+  const tracks = {
+    town: 'The_Wayfarer_s_Morning.mp3',
+    battle: 'Cath_Slan_na_n_Og.mp3',
+    forest_edge: 'Sho_lah_Beneath_the_Moon.mp3',
+    dungeon_default: 'Sho_lah_Beneath_the_Moon.mp3'
+  };
   const doc = globalThis.document;
   let settings = { ...defaults };
   function valid(key, value) {
@@ -89,7 +94,7 @@
         if (active !== entry) { try { entry.media.pause(); } catch {} return; }
         if (entry.state === 'failed') { try { entry.media.pause(); } catch {} return; }
         entry.state = 'playing';
-        message = intended === 'battle' ? '戦闘BGM再生中' : '街BGM再生中';
+        message = intended === 'battle' ? '戦闘BGM再生中' : intended === 'forest_edge' ? '灰灯の林縁BGM再生中' : intended in tracks && intended !== 'town' ? '探索BGM再生中' : '街BGM再生中';
         syncControls();
       }, () => {
         if (active !== entry) { try { entry.media.pause(); } catch {} return; }
@@ -120,8 +125,18 @@
     syncControls();
     return true;
   }
+  function resolveContext(context) {
+    if (context === 'battle') return 'battle';
+    if (context && tracks[context]) return context;
+    if (typeof s !== 'undefined' && s) {
+      if (s.battle) return 'battle';
+      if (s.view === 'explore' && s.dungeon?.mapId && tracks[s.dungeon.mapId]) return s.dungeon.mapId;
+      if (s.view === 'explore' && s.dungeon) return 'dungeon_default';
+    }
+    return 'town';
+  }
   function setContext(context) {
-    const next = context === 'battle' ? 'battle' : 'town';
+    const next = resolveContext(context);
     if (intended === next) return;
     pause();
     active = null;
@@ -158,11 +173,20 @@
     const previousRender = render;
     render = function(...args) {
       const result = previousRender.apply(this, args);
-      try { setContext(typeof s !== 'undefined' && s?.battle ? 'battle' : 'town'); syncControls(); } catch {}
+      try {
+        const nextCtx = typeof s !== 'undefined' && s?.battle
+          ? 'battle'
+          : (typeof s !== 'undefined' && s?.view === 'explore' && s?.dungeon?.mapId ? s.dungeon.mapId : 'town');
+        setContext(nextCtx);
+        syncControls();
+      } catch {}
       return result;
     };
   }
   doc?.addEventListener?.('DOMContentLoaded', syncControls);
-  if (typeof s !== 'undefined' && s?.battle) setContext('battle');
+  if (typeof s !== 'undefined') {
+    if (s.battle) setContext('battle');
+    else if (s.view === 'explore' && s.dungeon?.mapId) setContext(s.dungeon.mapId);
+  }
   syncControls();
 })();
