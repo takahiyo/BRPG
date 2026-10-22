@@ -2,7 +2,7 @@
 
 更新：2026-10-22 JST / 担当：統括エージェント。
 
-最新状態：状態異常・バフの追加計画を文書化・整合性検証・共有済み。計画checkpointは `6ee6b37`（origin/main/dev到達確認済み）。S0の仕様確定とゲーム実装は未着手。ゲームコードの最終変更は `fbd0e12`。現在の復旧記録は末尾の状態異常追加計画を優先し、下記M/U/R/B/C節は過去の記録として参照する。
+最新状態：画像制作表I0とサンプル対応プロンプトI1-I2はローカル検証済み、I3は共有待ち。基準HEAD `19d5918`、origin/main/dev一致を再確認。音声A0は親側統合待ち、探索GUI A1/A2と状態異常S0-S5は未完了。現在の復旧記録は末尾「サンプル対応I1-I3」を優先する。
 
 ## 復旧点
 
@@ -87,3 +87,20 @@
 - 検証：`python -m unittest discover -s scripts -p "*_test_*.py" -v` は44件成功（文書frontmatter/名前/参照整合を含む）。`git diff --check` 成功（改行変換警告のみ）。必須20種と操屍の派生要件、対応バフ/対処手段を文書上で照合。ゲームコード未変更のためNode/ブラウザ/ビルドは今回再実行しておらず、新規状態の動作検証成功を意味しない。
 - 次：(1) 実装依頼時にS0の時間/全快/能力群/陣営/ロスト契約を確定 (2) S1aの共通基盤と毒の保存移行から小段階で実装 (3) 各段階で回復手段/UI/AI/旧保存を同時検証。旧課題のLv2経済・認証・画像・実機・CI/公開確認も継続。
 - 共有結果：4文書を `6ee6b372717bca4a7147ecbcf3d16d280f8a3d30` にcommitし、`git push origin HEAD:refs/heads/main HEAD:refs/heads/dev` 成功。`git ls-remote` で両先端一致を確認。この共有結果の記録も同ブランチへ通常commit/pushするが、自身のSHA追記だけの追加コミットは作らない。CI/公開反映は未確認。ユーザーの規則ファイルは未共有のまま保護。
+
+## 音声・探索GUI・画像表の継続点（2026-10-22 JST）
+
+- ユーザー追加MP3：Cath_Slan_na_n_Og.mp3（戦闘）、The_Wayfarer_s_Morning.mp3（街）。開始時のAGENTS/共通規則原本とともに保持。音声担当generalがaudio.js/css・test-audio.cjs・docs/AUDIO.md、systems.js音声節を実装。親側のindex/配布統合と実ブラウザ検証は未実施。担当報告は音声12テスト・既存8スイート・Python44件成功。探索GUIは未編集。
+- 効果音ラボ規約/FAQを取得：ゲームとGitHubへの音源組込みは許可、直リンクと素材再配布は禁止。外部SEはまだ取得/組込みしていない。Cloudflare Pages公式で1アセット25MiB上限を確認。
+- 新しい「制作対象の表とフレーバー」依頼を先に処理。既存図鑑フレーバー400種とDATA.enemies/bossesの70種を既存manifestの位置へ結合し、全17シートを再生成可能にする。画像生成そのものは行わない。
+- I0完了：docs/MONSTER_ART_TABLES.mdの索引と全17シートに470対象の特徴/生態/フレーバーを追加。遭遇70種はworld-data.jsの原典説明を保持し、外見補助と新規フレーバーを制作案として区別。図鑑400種は既存の種族/特性/生態/フレーバーを結合。scripts/export_monster_art_tables.pyで再生成可能、scripts/monster_art_test_tables.pyで全対象ID/名前/枠/内容/空白枠と生成結果一致を検証。
+- 検証：`python scripts/export_monster_art_tables.py` 成功、`python -m unittest discover -s scripts -p "*_test_*.py" -v` は47件成功、`git diff --check` 成功（改行変換警告のみ）。画像未生成、manifest未変更・全件未検品のまま。音声/ゲーム動作の親側検証成功とは区別する。
+- 次：(1) 音声モジュール/音源をindex・配布へ統合 (2) パーティー固定表示/MAP敵切替/遭遇演出とSE (3) PC/狭幅ブラウザ・回帰・配布検証。画像表依頼を優先して音声/GUIは途中保存。現在は未コミット、ユーザー規則ファイルはstageしない。
+
+## サンプル対応I1-I3（2026-10-22 JST）
+
+- I1確認：ユーザー追加docs/30体のモンスター透過スプライトアトラス.pngは1145×1374px・RGBA・2,018,380 bytes。既存Pillowで読取のみ、アルファ0〜255・完全透明848,318px・四隅0を確認。5列×6行なら229pxセル。全サービス共通上限と断定しない。元PNGは未加工、ゲーム用各セルの検品は未実施。
+- I2完了：基準1145×1374/229px、四辺19px以上の透明余白へ変更。SKILL・正本仕様・両exportスクリプトと再生成文書・manifestのlayoutのみを同期し、470対象の対応は保持。画像を自動登録/配布しない。読み取り専用explore担当は解像度参照とruntime非依存を確認済み。
+- I3検証済み：`python scripts/export_monster_art_prompts.py` と `python scripts/export_monster_art_tables.py` 成功。`python -m unittest discover -s scripts -p "*_test_*.py" -v` 50件成功（PNGヘッダと正方形セル寸法、生成一致、470行/空白枠、旧大判指示の不在）。Pillowは一度の画像調査にのみ使用し、新規テストはPython標準ライブラリのみ。`node scripts/build-pages.cjs` と `git diff --check` 成功（改行警告のみ）。今回ゲームコードを変更していないためゲームNode/ブラウザ回帰は再実行していない。
+- 共有対象：制作仕様・索引・17制作表・manifest・共通スキルと持ち運び文書/14入力・export2本/専用テスト・参考PNG・計画/状態。ユーザーのアップ依頼に従いorigin/main/devへ通常commit/pushする。音声途中差分（systems.js/audio関連）・README・AGENTS/共通規則原本・MP3はstageしない。CI/公開成功とは区別。
+- 次：(1) 対象を限定してcommit/pushと到達確認 (2) 生成時は改修済み共通プロンプトと対象表1枚を使用し各セルを検品 (3) 音声/探索GUIの親側統合を再開。現在未コミット、push未実行。

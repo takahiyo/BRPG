@@ -3,9 +3,9 @@
   "layout": {
     "columns": 5,
     "rows": 6,
-    "width": 2560,
-    "height": 3072,
-    "cell": 512
+    "width": 1145,
+    "height": 1374,
+    "cell": 229
   },
   "background": "transparent",
   "batches": [
