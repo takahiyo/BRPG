@@ -472,3 +472,21 @@
   - Pages ビルド：`node scripts/build-pages.cjs` 成功。
   - 実ブラウザテスト：`node test-browser.cjs` および `node test-browser.cjs --dist` により、1280px / 390px / 320px の全3幅で通常版・配布版ともに完全合格。
 - 共有先：`origin/main` および `origin/dev` へ通常push。
+## 経済バランス適正化：通常戦闘ゴールド廃止＆ギルド依頼・アイテム売却主導経済（INCOME_BALANCE_GUILD_QUESTS_01）
+
+- 改善内容：
+  1. **通常戦闘での直接ゴールドドロップ廃止** (`game.js`)：
+     - `victory()` において、通常モンスター撃破時の直接ゴールド加算（`gold += e.gold` / `earnGold(gold)`）を撤廃。
+     - 敵からのドロップは素材（`addMaterial`）および戦利品装備のみとし、金貨は得られない。
+     - 最奥のボス討伐時のみ、ギルド公式討伐報奨金として金貨が付与される。
+  2. **ギルド依頼＆アイテム売却の経済中核化** (`facilities.js`, `game.js`)：
+     - 冒険者の主な資金獲得経路を「迷宮で素材を収集 → 街へ帰還 → ギルド依頼（常設調達・好条件納品・緊急討伐）に納品して高額報酬獲得」または「商店で素材・不要装備を売却」に一本化。
+     - ギルド依頼掲示板の案内文に「迷宮の通常魔物からは直接の金貨は得られません。集めた素材をギルド依頼へ納品して報奨金を得るか、商店で素材・不要装備を売却して資金を獲得しましょう」と明記。
+  3. **自動テストの整備** (`test-features.cjs`):
+     - 通常戦闘勝利で直接ゴールドが増加しないこと（0 G）、素材ドロップは正常に獲得されること、ギルド依頼納品で報酬金が獲得されること、商店での素材売却で金貨が得られること、ボス戦討伐報奨金の獲得を包括的にテスト検証。
+- 検証結果：
+  - Node.js テスト：`test-features.cjs` (15件), `test.cjs`, `test-regression.cjs` 含む全テストスイート完全合格。
+  - Python テスト：全52件合格。
+  - Pages ビルド：`node scripts/build-pages.cjs` 成功。
+  - 実ブラウザテスト：`node test-browser.cjs` および `node test-browser.cjs --dist` により、1280px / 390px / 320px の全3幅で通常版・配布版ともに完全合格。
+- 共有先：`origin/main` および `origin/dev` へ通常push。

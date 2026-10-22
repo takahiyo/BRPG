@@ -588,3 +588,70 @@ test('Tactician and multi-class resource reservation skills (SP/MANA bottom-out 
   `, box);
 });
 
+test('Income balance: regular dungeon battles yield 0 direct gold, revenue comes from guild quests and selling items/materials', () => {
+  const { box } = harness();
+  vm.runInContext(`
+    boot();
+    s = fresh();
+    s.gold = 500;
+    const initialGold = s.gold;
+
+    // 1. Regular battle victory yields NO direct gold, only materials and exp
+    enterMap('forest_edge');
+    s.battle = {
+      enemies: [{ key: 0, id: 'rat', name: '大ネズミ', hp: 0, atk: 5, def: 2, mag: 2, speed: 5, xp: 20, gold: 30, drop: 'hide', counted: false }],
+      boss: false,
+      turn: 1,
+      plans: {},
+      actor: party()[0].id,
+      target: 0
+    };
+    const hideBefore = s.materials.hide || 0;
+    victory();
+
+    assert.equal(s.gold, initialGold, 'Regular battle victory does not add direct gold');
+    assert.equal(s.materials.hide, hideBefore + 1, 'Regular battle yields material drop');
+
+    // 2. Guild quest delivery earns gold reward
+    s.dungeon = null; s.battle = null; s.view = 'town';
+    const questMapId = 'forest_edge';
+    const q = worldMap(questMapId).quest;
+    assert(q, 'Quest exists for forest_edge');
+    // Ensure player has accepted quest and has required materials
+    s.quests[questMapId] = { accepted: true, completed: false, times: 0 };
+    addMaterial(q.material, q.amount, 1);
+    const goldBeforeDelivery = s.gold;
+    deliverQuest(questMapId);
+
+    assert.equal(s.gold, goldBeforeDelivery + q.reward, 'Guild quest delivery awards gold');
+    assert(s.quests[questMapId].completed, 'Quest marked completed');
+
+    // 3. Selling materials at shop earns gold
+    addMaterial('wood', 5, 1);
+    const goldBeforeSellMat = s.gold;
+    sellMaterial('wood');
+    assert(s.gold > goldBeforeSellMat, 'Selling material at shop yields gold');
+
+    // 4. Selling second material at shop also earns gold
+    addMaterial('copper', 3, 1);
+    const goldBeforeSellCopper = s.gold;
+    sellMaterial('copper');
+    assert(s.gold > goldBeforeSellCopper, 'Selling copper material at shop yields gold');
+
+    // 5. Boss victory awards official guild bounty
+    enterMap('forest_edge');
+    s.battle = {
+      enemies: [{ key: 0, id: DATA.boss.id, name: DATA.boss.name, hp: 0, atk: 20, def: 10, mag: 10, speed: 10, xp: 200, gold: 100, counted: false }],
+      boss: true,
+      turn: 1,
+      plans: {},
+      actor: party()[0].id,
+      target: 0
+    };
+    const goldBeforeBoss = s.gold;
+    const expectedBounty = worldMap(s.dungeon.mapId).level * 80 + 100;
+    victory();
+    assert.equal(s.gold, goldBeforeBoss + expectedBounty, 'Boss victory grants guild bounty');
+  `, box);
+});
+
