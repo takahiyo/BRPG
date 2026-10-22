@@ -143,6 +143,14 @@
 - M_ART_01完了：`docs/MAP_ART_SPEC.md` を作成。壁・床・宝箱・罠・階段等の稚拙な幾何学描画を画像生成アセットへ置き換えるための正本仕様書。モンスターアート（`MONSTER_ART_SPEC.md`）と完全互換の1145×1374px、5列×6行、229px正方形セル、四辺19px余白、透過PNG、見下ろし角（床/罠: 60度、壁/オブジェクト: 2.5D 30〜45度）の制作規格および `exploration-ui.js`（`BRPGMapArt`）へのCanvas描画契約・未検品時の安全なフォールバック設計を策定。
 - M_ART_02完了：`docs/MAP_ART_TABLES.md` を作成。全4シート（Sheet 01: 構造物・宝箱・結晶、Sheet 02: 地形ギミック・トラップ、Sheet 03: 灰灯の林縁・森林、Sheet 04: 地下迷宮・古代遺跡・鉱廊）計120セルの詳細制作指示・外見描写・世界観フレーバーを体系化。
 - M_ART_03完了：`docs/map-art/マップアセット共通プロンプト.md` を作成。画像生成AI（ChatGPT / Midjourney等）へ渡すシステムプロンプト・共通指示文を整備。Obsidian相互リンク整合性を確保。
-- 検証完了：Pythonテスト全51件成功（Obsidianファイル名・リンクターゲット・frontmatter検証を含む）、Nodeテスト全36件成功、Pagesビルド成功。
-- 次の操作：関連差分（`docs/MAP_ART_SPEC.md`, `docs/MAP_ART_TABLES.md`, `docs/map-art/マップアセット共通プロンプト.md`, `DEVELOPMENT_PLAN.md`, `DEVELOPMENT_STATUS.md`）をコミットし、`origin/main` および `origin/dev` へ通常push。保護対象（ユーザーAGENTS.md、VIBE_STARTER_KIT_REVISED_v3.md、旧参考PNG削除状態）はstageしない。
+- M_ART_01〜03共有完了：`df47bf15c54e62f922ce61ce3300816c6aeb21e8` でmain/devへ通常push、両先端一致確認。
+
+## 受領マップアセット4枚の整理・改名・移動・配布統合（M_ART_04）
+
+- 受領画像照合：ユーザーが `docs/map-art` へ投入した生成画像4枚を調査。全4枚が 1145×1374 px・RGBA（透過PNG）で完全一致。セル絵柄・平均RGBを照合し、連番 `-1.png`〜`-4.png` が Sheet 01〜04 に1対1で対応することを確認。
+- 移動・改名：モンスター画像ルール（ルート配置・バイト不変）に準拠し、プロジェクト直下へ `map_sheet01_structures.png` 〜 `map_sheet04_dungeon.png` として移動。全4件で移動前後のSHA-256一致を確認（再圧縮・切出し加工なし）。
+- 受領記録作成：`docs/map-art/MAP_ART_RECEIVED.md` を新設し、元名/先名/実寸/SHA-256/対応ID範囲と検品前フォールバック注意を記録。Obsidian stem重複を回避。
+- 配布・回帰検証：`scripts/build-pages.cjs` の配布許可リストへ4枚を追加。`scripts/map_art_test_received.py` を新設し画像契約を自動検証。Pythonテスト全52件、Pagesビルドテスト（`test-build-pages.cjs`）、Nodeテスト全36件が合格。
+- 次の操作：関連ファイル（4画像、受領記録、テスト、build-pages.cjs、計画/状態）をstage/commitし、`origin/main` および `origin/dev` へ通常push。保護対象（ユーザーAGENTS.md、VIBE_STARTER_KIT_REVISED_v3.md、旧参考PNG削除状態）はstageしない。
+
 

@@ -19,7 +19,9 @@ const files = [
   'monsters_sheet08_M0211-M0240.png', 'monsters_sheet09_M0241-M0270.png',
   'monsters_sheet10_M0271-M0300.png', 'monsters_sheet11_M0301-M0330.png',
   'monsters_sheet12_M0331-M0360.png', 'monsters_sheet13_M0361-M0390.png',
-  'monsters_sheet14_M0391-M0400.png', 'monsters_sheet14_M0391-M0400_alt.png'
+  'monsters_sheet14_M0391-M0400.png', 'monsters_sheet14_M0391-M0400_alt.png',
+  'map_sheet01_structures.png', 'map_sheet02_hazards.png',
+  'map_sheet03_forest.png', 'map_sheet04_dungeon.png'
 ];
 
 // Reject missing assets before replacing the last successful build. Keep the

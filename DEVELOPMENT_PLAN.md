@@ -159,4 +159,8 @@ D1-D5は検証・共有完了（`65cc7c9` & `48e8b1b`）。origin/mainおよびo
 | M_ART_01 | マップアセット制作仕様・Canvas描画契約の策定（`docs/MAP_ART_SPEC.md`） | D5 | 1145×1374px、5×6セル、229px正方形、四辺19px余白、透過PNG、見下ろし/2.5D角、Canvas描画フォールバック契約の定義 | 仕様書作成 |
 | M_ART_02 | 4シート・120セルの詳細制作指示・フレーバー表策定（`docs/MAP_ART_TABLES.md`） | M_ART_01 | Sheet 01（構造物・宝箱）、Sheet 02（罠・地形ギミック）、Sheet 03（林縁バイオーム）、Sheet 04（迷宮バイオーム）計120項目の指示策定 | 制作表作成 |
 | M_ART_03 | 持ち運び用共通プロンプト配備・検証・Git共有（`docs/map-art/`） | M_ART_02 | `docs/map-art/マップアセット共通プロンプト.md` 作成、Obsidianリンク・Pythonテスト（51件）通過、main/devへ通常push | コミット・両先端照合 |
+| M_ART_04 | 受領マップアセット4枚の整理・改名・移動・配布統合 | M_ART_03 | プロジェクト直下へ移動、SHA-256一致検証、受領記録（`docs/map-art/MAP_ART_RECEIVED.md`）、`scripts/build-pages.cjs` 配布登録、専用テスト作成、全テスト通過後にmain/devへ通常push | コミット・両先端照合 |
+
+M_ART_01〜M_ART_03は `df47bf1` で共有完了。
+
 
